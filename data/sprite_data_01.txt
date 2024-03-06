@@ -1,0 +1,6 @@
+4
+../DX11Engine/data/sprite01.tga
+../DX11Engine/data/sprite02.tga
+../DX11Engine/data/sprite03.tga
+../DX11Engine/data/sprite04.tga
+100
