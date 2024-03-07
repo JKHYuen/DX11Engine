@@ -29,21 +29,21 @@ public:
     void TurnZBufferOff();
 
 private:
-    ID3D11DeviceContext* m_deviceContext {};
+    ID3D11DeviceContext* m_DeviceContext {};
 
-    int m_textureWidth {}, m_textureHeight {};
-    ID3D11Texture2D* m_renderTargetTexture {};
-    ID3D11RenderTargetView* m_renderTargetView {};
-    ID3D11ShaderResourceView* m_shaderResourceView {};
-    ID3D11Texture2D* m_depthStencilBuffer {};
-    ID3D11DepthStencilView* m_depthStencilView {};
-    D3D11_VIEWPORT m_viewport {};
-    XMMATRIX m_projectionMatrix {};
-    XMMATRIX m_orthoMatrix {};
+    int m_TextureWidth {}, m_TextureHeight {};
+    ID3D11Texture2D* m_RenderTargetTexture {};
+    ID3D11RenderTargetView* m_RenderTargetView {};
+    ID3D11ShaderResourceView* m_ShaderResourceView {};
+    ID3D11Texture2D* m_DepthStencilBuffer {};
+    ID3D11DepthStencilView* m_DepthStencilView {};
+    D3D11_VIEWPORT m_Viewport {};
+    XMMATRIX m_ProjectionMatrix {};
+    XMMATRIX m_OrthoMatrix {};
 
-    ID3D11DepthStencilState* m_depthStencilState {};
-    ID3D11DepthStencilState* m_depthDisabledStencilState {};
+    ID3D11DepthStencilState* m_DepthStencilState {};
+    ID3D11DepthStencilState* m_DepthDisabledStencilState {};
 
-    ID3D11BlendState* m_alphaEnableBlendingState {};
-    ID3D11BlendState* m_alphaDisableBlendingState {};
+    ID3D11BlendState* m_AlphaEnableBlendingState {};
+    ID3D11BlendState* m_AlphaDisableBlendingState {};
 };

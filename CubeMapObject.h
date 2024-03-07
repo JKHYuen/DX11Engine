@@ -9,12 +9,59 @@ using namespace DirectX;
 
 class TextureClass;
 class ModelClass;
+class HDRTexture;
 
 class CubeMapObject {
 private:
     struct MatrixBufferType {
         XMMATRIX view;
         XMMATRIX projection;
+    };
+
+    struct VertexType {
+        XMFLOAT3 position;
+        XMFLOAT2 uv;
+    };
+
+    static constexpr inline int k_UnitCubeVertexCount = 36;
+    static constexpr inline int k_UnitCubeIndexCount = 36;
+    static constexpr float k_UnitCubeVertices[] = {
+        -1.0 , 1.0, -1.0, 0.0 , 0.0,
+         1.0 , 1.0, -1.0, 1.0 , 0.0,
+        -1.0, -1.0, -1.0, 0.0,  1.0,
+        -1.0, -1.0, -1.0, 0.0,  1.0,
+         1.0 , 1.0, -1.0, 1.0 , 0.0,
+         1.0 ,-1.0, -1.0, 1.0 , 1.0,
+         1.0 , 1.0, -1.0, 0.0 , 0.0,
+         1.0 , 1.0,  1.0, 1.0 , 0.0,
+         1.0 ,-1.0, -1.0, 0.0 , 1.0,
+         1.0 ,-1.0, -1.0, 0.0 , 1.0,
+         1.0 , 1.0,  1.0, 1.0 , 0.0,
+         1.0 ,-1.0,  1.0, 1.0 , 1.0,
+         1.0 , 1.0,  1.0, 0.0 , 0.0,
+        -1.0,  1.0,  1.0, 1.0,  0.0,
+         1.0 ,-1.0,  1.0, 0.0 , 1.0,
+         1.0 ,-1.0,  1.0, 0.0 , 1.0,
+        -1.0,  1.0,  1.0, 1.0,  0.0,
+        -1.0, -1.0,  1.0, 1.0,  1.0,
+        -1.0,  1.0,  1.0, 0.0,  0.0,
+        -1.0,  1.0, -1.0, 1.0,  0.0,
+        -1.0, -1.0,  1.0, 0.0,  1.0,
+        -1.0, -1.0,  1.0, 0.0,  1.0,
+        -1.0,  1.0, -1.0, 1.0,  0.0,
+        -1.0, -1.0, -1.0, 1.0,  1.0,
+        -1.0,  1.0,  1.0, 0.0,  0.0,
+         1.0 , 1.0,  1.0, 1.0 , 0.0,
+        -1.0,  1.0, -1.0, 0.0,  1.0,
+        -1.0,  1.0, -1.0, 0.0,  1.0,
+         1.0 , 1.0,  1.0, 1.0 , 0.0,
+         1.0 , 1.0, -1.0, 1.0 , 1.0,
+        -1.0, -1.0, -1.0, 0.0,  0.0,
+         1.0 ,-1.0, -1.0, 1.0 , 0.0,
+        -1.0, -1.0,  1.0, 0.0,  1.0,
+        -1.0, -1.0,  1.0, 0.0,  1.0,
+         1.0 ,-1.0, -1.0, 1.0 , 0.0,
+         1.0 ,-1.0,  1.0, 1.0 , 1.0,
     };
 
 public:
@@ -30,6 +77,7 @@ public:
 private:
     void OutputShaderErrorMessage(ID3D10Blob*, HWND, WCHAR*);
     bool InitializeShader(ID3D11Device*, HWND, WCHAR*, WCHAR*);
+    bool InitializeUnitCubeBuffers(ID3D11Device* device);
 
 private:
     ID3D11VertexShader* m_VertexShader {};
@@ -41,6 +89,9 @@ private:
     ID3D11Buffer* m_CameraBuffer {};
     ID3D11Buffer* m_MaterialParamBuffer {};
 
+    ID3D11Buffer* m_VertexBuffer {};
+    ID3D11Buffer* m_IndexBuffer {};
+
     TextureClass* m_CubeMapTex {};
-    ModelClass* m_UnitCubeModel {};
+    HDRTexture* m_HDRCubeMapTex {};
 };

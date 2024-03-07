@@ -3,7 +3,7 @@ SamplerState SampleType : register(s0);
 
 struct PixelInputType {
     float4 position : SV_POSITION;
-    float3 uv : TEXCOORD0;
+    float3 uvw : TEXCOORD0;
 };
 
 //static const float2 invAtan = float2(0.1591, 0.3183);
@@ -15,6 +15,6 @@ struct PixelInputType {
 //    return uv;
 //}
 
-float4 CubeMapPixelShader(PixelInputType i) : SV_TARGET {
-    return CubeMapTexture.Sample(SampleType, i.uv);
+float4 Frag(PixelInputType i) : SV_TARGET {
+    return CubeMapTexture.Sample(SampleType, i.uvw);
 }

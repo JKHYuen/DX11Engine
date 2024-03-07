@@ -34,27 +34,27 @@ bool DepthShaderClass::Initialize(ID3D11Device* device, HWND hwnd) {
 // Shutdown the vertex and pixel shaders as well as the related objects.
 void DepthShaderClass::Shutdown() {
 	// Release the matrix constant buffer.
-	if(m_matrixBuffer) {
-		m_matrixBuffer->Release();
-		m_matrixBuffer = nullptr;
+	if(m_MatrixBuffer) {
+		m_MatrixBuffer->Release();
+		m_MatrixBuffer = nullptr;
 	}
 
 	// Release the layout.
-	if(m_layout) {
-		m_layout->Release();
-		m_layout = nullptr;
+	if(m_Layout) {
+		m_Layout->Release();
+		m_Layout = nullptr;
 	}
 
 	// Release the pixel shader.
-	if(m_pixelShader) {
-		m_pixelShader->Release();
-		m_pixelShader = nullptr;
+	if(m_PixelShader) {
+		m_PixelShader->Release();
+		m_PixelShader = nullptr;
 	}
 
 	// Release the vertex shader.
-	if(m_vertexShader) {
-		m_vertexShader->Release();
-		m_vertexShader = nullptr;
+	if(m_VertexShader) {
+		m_VertexShader->Release();
+		m_VertexShader = nullptr;
 	}
 }
 
@@ -71,7 +71,7 @@ bool DepthShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount
 	projectionMatrix = XMMatrixTranspose(projectionMatrix);
 
 	// Lock the constant buffer so it can be written to.
-	result = deviceContext->Map(m_matrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	result = deviceContext->Map(m_MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	if(FAILED(result)) {
 		return false;
 	}
@@ -85,21 +85,21 @@ bool DepthShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount
 	dataPtr->projection = projectionMatrix;
 
 	// Unlock the constant buffer.
-	deviceContext->Unmap(m_matrixBuffer, 0);
+	deviceContext->Unmap(m_MatrixBuffer, 0);
 
 	// Set the position of the constant buffer in the vertex shader.
 	bufferNumber = 0;
 
 	// Finally set the constant buffer in the vertex shader with the updated values.
-	deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_matrixBuffer);
+	deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_MatrixBuffer);
 
 	// Now render the prepared buffers with the shader.
 	// Set the vertex input layout.
-	deviceContext->IASetInputLayout(m_layout);
+	deviceContext->IASetInputLayout(m_Layout);
 
 	// Set the vertex and pixel shaders that will be used to render this triangle.
-	deviceContext->VSSetShader(m_vertexShader, NULL, 0);
-	deviceContext->PSSetShader(m_pixelShader, NULL, 0);
+	deviceContext->VSSetShader(m_VertexShader, NULL, 0);
+	deviceContext->PSSetShader(m_PixelShader, NULL, 0);
 
 	// Render the triangle.
 	deviceContext->DrawIndexed(indexCount, 0, 0);
@@ -152,13 +152,13 @@ bool DepthShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* 
 	}
 
 	// Create the vertex shader from the buffer.
-	result = device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, &m_vertexShader);
+	result = device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, &m_VertexShader);
 	if(FAILED(result)) {
 		return false;
 	}
 
 	// Create the pixel shader from the buffer.
-	result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_pixelShader);
+	result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_PixelShader);
 	if(FAILED(result)) {
 		return false;
 	}
@@ -177,7 +177,7 @@ bool DepthShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* 
 	numElements = sizeof(polygonLayout) / sizeof(polygonLayout);
 
 	// Create the vertex input layout.
-	result = device->CreateInputLayout(&polygonLayout, numElements, vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_layout);
+	result = device->CreateInputLayout(&polygonLayout, numElements, vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_Layout);
 	if(FAILED(result)) {
 		return false;
 	}
@@ -198,7 +198,7 @@ bool DepthShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* 
 	matrixBufferDesc.StructureByteStride = 0;
 
 	// Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
-	result = device->CreateBuffer(&matrixBufferDesc, NULL, &m_matrixBuffer);
+	result = device->CreateBuffer(&matrixBufferDesc, NULL, &m_MatrixBuffer);
 	if(FAILED(result)) {
 		return false;
 	}

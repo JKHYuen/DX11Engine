@@ -90,6 +90,9 @@
     <ClCompile Include="DepthShaderClass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="HDRTexture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SystemClass.h">
@@ -155,6 +158,9 @@
     <ClInclude Include="DepthShaderClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="HDRTexture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Light.ps">
@@ -215,6 +221,12 @@
       <Filter>Source Files\Shaders</Filter>
     </None>
     <None Include="PostProcess.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="HDRCubeMap.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="HDRCubeMap.ps">
       <Filter>Source Files\Shaders</Filter>
     </None>
   </ItemGroup>

@@ -1,4 +1,3 @@
-// Global
 cbuffer MatrixBuffer {
     matrix viewMatrix;
     matrix projectionMatrix;
@@ -6,18 +5,18 @@ cbuffer MatrixBuffer {
 
 struct VertexInputType {
     float4 position : POSITION;
-    float3 uv : TEXCOORD0;
+    float2 uv : TEXCOORD0;
 };
 
 struct PixelInputType {
     float4 position : SV_POSITION;
-    float3 uv : TEXCOORD0;
+    float3 uvw : TEXCOORD0;
 };
 
-PixelInputType CubeMapVertexShader(VertexInputType i) {
+PixelInputType Vert(VertexInputType i) {
     PixelInputType o;
     
-    o.uv = i.position.xyz;
+    o.uvw = i.position.xyz;
     
     i.position.w = 1.0f;
     o.position = mul(i.position, viewMatrix);

@@ -28,9 +28,9 @@ private:
 	void OutputShaderErrorMessage(ID3D10Blob*, HWND, WCHAR*);
 
 private:
-	ID3D11VertexShader* m_vertexShader {};
-	ID3D11PixelShader*  m_pixelShader {};
-	ID3D11InputLayout*  m_layout {};
-	ID3D11Buffer*       m_matrixBuffer {};
-	ID3D11SamplerState* m_sampleState {};
+	ID3D11VertexShader* m_VertexShader {};
+	ID3D11PixelShader*  m_PixelShader {};
+	ID3D11InputLayout*  m_Layout {};
+	ID3D11Buffer*       m_MatrixBuffer {};
+	ID3D11SamplerState* m_SampleState {};
 };

@@ -1,11 +1,11 @@
 #include "RenderTextureClass.h"
 
 RenderTextureClass::RenderTextureClass() {
-    m_renderTargetTexture = nullptr;
-    m_renderTargetView    = nullptr;
-    m_shaderResourceView  = nullptr;
-    m_depthStencilBuffer  = nullptr;
-    m_depthStencilView    = nullptr;
+    m_RenderTargetTexture = nullptr;
+    m_RenderTargetView    = nullptr;
+    m_ShaderResourceView  = nullptr;
+    m_DepthStencilBuffer  = nullptr;
+    m_DepthStencilView    = nullptr;
 }
 
 RenderTextureClass::RenderTextureClass(const RenderTextureClass& other) {}
@@ -23,11 +23,11 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* d
     D3D11_DEPTH_STENCIL_DESC depthDisabledStencilDesc {};
     D3D11_BLEND_DESC blendStateDescription {};
 
-    m_deviceContext = deviceContext;
+    m_DeviceContext = deviceContext;
 
     // Store the width and height of the render texture.
-    m_textureWidth = textureWidth;
-    m_textureHeight = textureHeight;
+    m_TextureWidth = textureWidth;
+    m_TextureHeight = textureHeight;
 
     // Initialize the render target texture description.
     ZeroMemory(&textureDesc, sizeof(textureDesc));
@@ -45,7 +45,7 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* d
     textureDesc.MiscFlags = 0;
 
     // Create the render target texture.
-    result = device->CreateTexture2D(&textureDesc, NULL, &m_renderTargetTexture);
+    result = device->CreateTexture2D(&textureDesc, NULL, &m_RenderTargetTexture);
     if(FAILED(result)) {
         return false;
     }
@@ -56,7 +56,7 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* d
     renderTargetViewDesc.Texture2D.MipSlice = 0;
 
     // Create the render target view.
-    result = device->CreateRenderTargetView(m_renderTargetTexture, &renderTargetViewDesc, &m_renderTargetView);
+    result = device->CreateRenderTargetView(m_RenderTargetTexture, &renderTargetViewDesc, &m_RenderTargetView);
     if(FAILED(result)) {
         return false;
     }
@@ -68,7 +68,7 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* d
     shaderResourceViewDesc.Texture2D.MipLevels = 1;
 
     // Create the shader resource view.
-    result = device->CreateShaderResourceView(m_renderTargetTexture, &shaderResourceViewDesc, &m_shaderResourceView);
+    result = device->CreateShaderResourceView(m_RenderTargetTexture, &shaderResourceViewDesc, &m_ShaderResourceView);
     if(FAILED(result)) {
         return false;
     }
@@ -90,7 +90,7 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* d
     depthBufferDesc.MiscFlags = 0;
 
     // Create the texture for the depth buffer using the filled out description.
-    result = device->CreateTexture2D(&depthBufferDesc, NULL, &m_depthStencilBuffer);
+    result = device->CreateTexture2D(&depthBufferDesc, NULL, &m_DepthStencilBuffer);
     if(FAILED(result)) {
         return false;
     }
@@ -104,7 +104,7 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* d
     depthStencilViewDesc.Texture2D.MipSlice = 0;
 
     // Create the depth stencil view.
-    result = device->CreateDepthStencilView(m_depthStencilBuffer, &depthStencilViewDesc, &m_depthStencilView);
+    result = device->CreateDepthStencilView(m_DepthStencilBuffer, &depthStencilViewDesc, &m_DepthStencilView);
     if(FAILED(result)) {
         return false;
     }
@@ -124,7 +124,7 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* d
     blendStateDescription.RenderTarget[0].RenderTargetWriteMask = 0x0f;
 
     // Create the blend state using the description.
-    result = device->CreateBlendState(&blendStateDescription, &m_alphaEnableBlendingState);
+    result = device->CreateBlendState(&blendStateDescription, &m_AlphaEnableBlendingState);
     if(FAILED(result)) {
         return false;
     }
@@ -132,7 +132,7 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* d
     // Modify the description to create an alpha disabled blend state description.
     blendStateDescription.RenderTarget[0].BlendEnable = FALSE;
     // Create the blend state using the description.
-    result = device->CreateBlendState(&blendStateDescription, &m_alphaDisableBlendingState);
+    result = device->CreateBlendState(&blendStateDescription, &m_AlphaDisableBlendingState);
     if(FAILED(result)) {
         return false;
     }
@@ -159,72 +159,72 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* d
     depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
     // Create the depth stencil state.
-    result = device->CreateDepthStencilState(&depthStencilDesc, &m_depthStencilState);
+    result = device->CreateDepthStencilState(&depthStencilDesc, &m_DepthStencilState);
     if(FAILED(result)) {
         return false;
     }
 
     // Disabled depth stencil
     depthStencilDesc.DepthEnable = false;
-    result = device->CreateDepthStencilState(&depthStencilDesc, &m_depthDisabledStencilState);
+    result = device->CreateDepthStencilState(&depthStencilDesc, &m_DepthDisabledStencilState);
     if(FAILED(result)) {
         return false;
     }
 
     // Set the default depth stencil state.
-    m_deviceContext->OMSetDepthStencilState(m_depthStencilState, 1);
+    m_DeviceContext->OMSetDepthStencilState(m_DepthStencilState, 1);
     ///
 
     // Setup the viewport for rendering.
-    m_viewport.Width = (float)textureWidth;
-    m_viewport.Height = (float)textureHeight;
-    m_viewport.MinDepth = 0.0f;
-    m_viewport.MaxDepth = 1.0f;
-    m_viewport.TopLeftX = 0;
-    m_viewport.TopLeftY = 0;
+    m_Viewport.Width = (float)textureWidth;
+    m_Viewport.Height = (float)textureHeight;
+    m_Viewport.MinDepth = 0.0f;
+    m_Viewport.MaxDepth = 1.0f;
+    m_Viewport.TopLeftX = 0;
+    m_Viewport.TopLeftY = 0;
 
     // Setup the projection matrix.
-    m_projectionMatrix = XMMatrixPerspectiveFovLH((3.141592654f / 4.0f), ((float)textureWidth / (float)textureHeight), screenNear, screenDepth);
+    m_ProjectionMatrix = XMMatrixPerspectiveFovLH((3.141592654f / 4.0f), ((float)textureWidth / (float)textureHeight), screenNear, screenDepth);
 
     // Create an orthographic projection matrix for 2D rendering.
-    m_orthoMatrix = XMMatrixOrthographicLH((float)textureWidth, (float)textureHeight, screenNear, screenDepth);
+    m_OrthoMatrix = XMMatrixOrthographicLH((float)textureWidth, (float)textureHeight, screenNear, screenDepth);
 
     return true;
 }
 
 void RenderTextureClass::Shutdown() {
-    if(m_depthStencilView) {
-        m_depthStencilView->Release();
-        m_depthStencilView = nullptr;
+    if(m_DepthStencilView) {
+        m_DepthStencilView->Release();
+        m_DepthStencilView = nullptr;
     }
 
-    if(m_depthStencilBuffer) {
-        m_depthStencilBuffer->Release();
-        m_depthStencilBuffer = nullptr;
+    if(m_DepthStencilBuffer) {
+        m_DepthStencilBuffer->Release();
+        m_DepthStencilBuffer = nullptr;
     }
 
-    if(m_shaderResourceView) {
-        m_shaderResourceView->Release();
-        m_shaderResourceView = nullptr;
+    if(m_ShaderResourceView) {
+        m_ShaderResourceView->Release();
+        m_ShaderResourceView = nullptr;
     }
 
-    if(m_renderTargetView) {
-        m_renderTargetView->Release();
-        m_renderTargetView = nullptr;
+    if(m_RenderTargetView) {
+        m_RenderTargetView->Release();
+        m_RenderTargetView = nullptr;
     }
 
-    if(m_renderTargetTexture) {
-        m_renderTargetTexture->Release();
-        m_renderTargetTexture = nullptr;
+    if(m_RenderTargetTexture) {
+        m_RenderTargetTexture->Release();
+        m_RenderTargetTexture = nullptr;
     }
 }
 
 void RenderTextureClass::SetRenderTarget(ID3D11DeviceContext* deviceContext) {
     // Bind the render target view and depth stencil buffer to the output render pipeline.
-    deviceContext->OMSetRenderTargets(1, &m_renderTargetView, m_depthStencilView);
+    deviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
 
     // Set the viewport.
-    deviceContext->RSSetViewports(1, &m_viewport);
+    deviceContext->RSSetViewports(1, &m_Viewport);
 }
 
 void RenderTextureClass::ClearRenderTarget(ID3D11DeviceContext* deviceContext, float red, float green, float blue, float alpha) {
@@ -237,38 +237,38 @@ void RenderTextureClass::ClearRenderTarget(ID3D11DeviceContext* deviceContext, f
     color[3] = alpha;
 
     // Clear the back buffer.
-    deviceContext->ClearRenderTargetView(m_renderTargetView, color);
+    deviceContext->ClearRenderTargetView(m_RenderTargetView, color);
 
     // Clear the depth buffer.
-    deviceContext->ClearDepthStencilView(m_depthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+    deviceContext->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 
 ID3D11ShaderResourceView* RenderTextureClass::GetShaderResourceView() {
-    return m_shaderResourceView;
+    return m_ShaderResourceView;
 }
 
 void RenderTextureClass::GetProjectionMatrix(XMMATRIX& projectionMatrix) {
-    projectionMatrix = m_projectionMatrix;
+    projectionMatrix = m_ProjectionMatrix;
 }
 
 void RenderTextureClass::GetOrthoMatrix(XMMATRIX& orthoMatrix) {
-    orthoMatrix = m_orthoMatrix;
+    orthoMatrix = m_OrthoMatrix;
 }
 
 int RenderTextureClass::GetTextureWidth() {
-    return m_textureWidth;
+    return m_TextureWidth;
 }
 
 int RenderTextureClass::GetTextureHeight() {
-    return m_textureHeight;
+    return m_TextureHeight;
 }
 
 void RenderTextureClass::TurnZBufferOn() {
-    m_deviceContext->OMSetDepthStencilState(m_depthStencilState, 1);
+    m_DeviceContext->OMSetDepthStencilState(m_DepthStencilState, 1);
 }
 
 void RenderTextureClass::TurnZBufferOff() {
-    m_deviceContext->OMSetDepthStencilState(m_depthDisabledStencilState, 1);
+    m_DeviceContext->OMSetDepthStencilState(m_DepthDisabledStencilState, 1);
 }
 
 void RenderTextureClass::EnableAlphaBlending() {
@@ -281,7 +281,7 @@ void RenderTextureClass::EnableAlphaBlending() {
     blendFactor[3] = 0.0f;
 
     // Turn on the alpha blending.
-    m_deviceContext->OMSetBlendState(m_alphaEnableBlendingState, blendFactor, 0xffffffff);
+    m_DeviceContext->OMSetBlendState(m_AlphaEnableBlendingState, blendFactor, 0xffffffff);
 }
 
 void RenderTextureClass::DisableAlphaBlending() {
@@ -294,7 +294,7 @@ void RenderTextureClass::DisableAlphaBlending() {
     blendFactor[3] = 0.0f;
 
     // Turn off the alpha blending.
-    m_deviceContext->OMSetBlendState(m_alphaDisableBlendingState, blendFactor, 0xffffffff);
+    m_DeviceContext->OMSetBlendState(m_AlphaDisableBlendingState, blendFactor, 0xffffffff);
 }
 
 

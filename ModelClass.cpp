@@ -4,7 +4,7 @@ ModelClass::ModelClass() {}
 ModelClass::ModelClass(const ModelClass& other) {}
 ModelClass::~ModelClass() {}
 
-bool ModelClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& modelFilename, const std::vector<std::string>& textureFileNames, bool isCubeMap) {
+bool ModelClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& modelFilename, const std::vector<std::string>& textureFileNames) {
 	// Load in the model data.
 	bool result = LoadModel(modelFilename);
 	if(!result) {
@@ -19,11 +19,11 @@ bool ModelClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 		return false;
 	}
 
-	m_textures.reserve(textureFileNames.size());
+	m_Textures.reserve(textureFileNames.size());
 	// Load the texture for this model.
 	for(size_t i = 0; i < textureFileNames.size(); i++) {
-		m_textures.emplace_back();
-		if(!m_textures[i].Initialize(device, deviceContext, textureFileNames[i].data(), isCubeMap)) {
+		m_Textures.emplace_back();
+		if(!m_Textures[i].Initialize(device, deviceContext, textureFileNames[i].data(), false /*isCubeMap*/)) {
 			return false;
 		}
 	}
@@ -33,27 +33,27 @@ bool ModelClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 
 void ModelClass::Shutdown() {
 	// Release the model texture.
-	for(auto tex : m_textures) {
+	for(auto tex : m_Textures) {
 		tex.Shutdown();
 	}
 
 	// Shutdown the vertex and index buffers.
 	// Release the index buffer.
-	if(m_indexBuffer) {
-		m_indexBuffer->Release();
-		m_indexBuffer = nullptr;
+	if(m_IndexBuffer) {
+		m_IndexBuffer->Release();
+		m_IndexBuffer = nullptr;
 	}
 
 	// Release the vertex buffer.
-	if(m_vertexBuffer) {
-		m_vertexBuffer->Release();
-		m_vertexBuffer = nullptr;
+	if(m_VertexBuffer) {
+		m_VertexBuffer->Release();
+		m_VertexBuffer = nullptr;
 	}
 
 	// Release the model data.
-	if(m_model) {
-		delete[] m_model;
-		m_model = nullptr;
+	if(m_Model) {
+		delete[] m_Model;
+		m_Model = nullptr;
 	}
 }
 
@@ -64,21 +64,21 @@ void ModelClass::Render(ID3D11DeviceContext* deviceContext) {
 	unsigned int offset {0};
 
 	// Set the vertex buffer to active in the input assembler so it can be rendered.
-	deviceContext->IASetVertexBuffers(0, 1, &m_vertexBuffer, &stride, &offset);
+	deviceContext->IASetVertexBuffers(0, 1, &m_VertexBuffer, &stride, &offset);
 
 	// Set the index buffer to active in the input assembler so it can be rendered.
-	deviceContext->IASetIndexBuffer(m_indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	deviceContext->IASetIndexBuffer(m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
 	// Set the type of primitive that should be rendered from this vertex buffer, in this case triangles.
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
 int ModelClass::GetIndexCount() {
-	return m_indexCount;
+	return m_IndexCount;
 }
 
 ID3D11ShaderResourceView* ModelClass::GetTexture(int i) {
-	return m_textures[i].GetTextureSRV();
+	return m_Textures[i].GetTextureSRV();
 }
 
 bool ModelClass::InitializeBuffers(ID3D11Device* device) {
@@ -89,25 +89,25 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device) {
 	HRESULT result;
 
 	// Create the vertex array.
-	vertices = new VertexType[m_vertexCount];
+	vertices = new VertexType[m_VertexCount];
 
 	// Create the index array.
-	indices = new unsigned long[m_indexCount];
+	indices = new unsigned long[m_IndexCount];
 
 	// Load the vertex array and index array with data.
-	for(int i = 0; i < m_vertexCount; i++) {
-		vertices[i].position = XMFLOAT3(m_model[i].x, m_model[i].y, m_model[i].z);
-		vertices[i].texture = XMFLOAT2(m_model[i].tu, m_model[i].tv);
-		vertices[i].normal = XMFLOAT3(m_model[i].nx, m_model[i].ny, m_model[i].nz);
-		vertices[i].tangent = XMFLOAT3(m_model[i].tx, m_model[i].ty, m_model[i].tz);
-		vertices[i].binormal = XMFLOAT3(m_model[i].bx, m_model[i].by, m_model[i].bz);
-
+	for(int i = 0; i < m_VertexCount; i++) {
+		vertices[i].position = XMFLOAT3(m_Model[i].x, m_Model[i].y, m_Model[i].z);
+		vertices[i].texture = XMFLOAT2(m_Model[i].tu, m_Model[i].tv);
+		vertices[i].normal = XMFLOAT3(m_Model[i].nx, m_Model[i].ny, m_Model[i].nz);
+		vertices[i].tangent = XMFLOAT3(m_Model[i].tx, m_Model[i].ty, m_Model[i].tz);
+		vertices[i].binormal = XMFLOAT3(m_Model[i].bx, m_Model[i].by, m_Model[i].bz);
+		
 		indices[i] = i;
 	}
 
 	// Set up the description of the static vertex buffer.
 	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_vertexCount;
+	vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_VertexCount;
 	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vertexBufferDesc.CPUAccessFlags = 0;
 	vertexBufferDesc.MiscFlags = 0;
@@ -119,14 +119,14 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device) {
 	vertexData.SysMemSlicePitch = 0;
 
 	// Now create the vertex buffer.
-	result = device->CreateBuffer(&vertexBufferDesc, &vertexData, &m_vertexBuffer);
+	result = device->CreateBuffer(&vertexBufferDesc, &vertexData, &m_VertexBuffer);
 	if(FAILED(result)) {
 		return false;
 	}
 
 	// Set up the description of the static index buffer.
 	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_indexCount;
+	indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_IndexCount;
 	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	indexBufferDesc.CPUAccessFlags = 0;
 	indexBufferDesc.MiscFlags = 0;
@@ -138,7 +138,7 @@ bool ModelClass::InitializeBuffers(ID3D11Device* device) {
 	indexData.SysMemSlicePitch = 0;
 
 	// Create the index buffer.
-	result = device->CreateBuffer(&indexBufferDesc, &indexData, &m_indexBuffer);
+	result = device->CreateBuffer(&indexBufferDesc, &indexData, &m_IndexBuffer);
 	if(FAILED(result)) {
 		return false;
 	}
@@ -172,13 +172,13 @@ bool ModelClass::LoadModel(std::string filename) {
 	}
 
 	// Read in the vertex count.
-	fin >> m_vertexCount;
+	fin >> m_VertexCount;
 
 	// Set the number of indices to be the same as the vertex count.
-	m_indexCount = m_vertexCount;
+	m_IndexCount = m_VertexCount;
 
 	// Create the model using the vertex count that was read in.
-	m_model = new ModelType[m_vertexCount];
+	m_Model = new ModelType[m_VertexCount];
 
 	// Read up to the beginning of the data.
 	input = {};
@@ -187,10 +187,10 @@ bool ModelClass::LoadModel(std::string filename) {
 	}
 
 	// Read in the vertex data.
-	for(i = 0; i < m_vertexCount; i++) {
-		fin >> m_model[i].x  >> m_model[i].y  >> m_model[i].z;
-		fin >> m_model[i].tu >> m_model[i].tv;
-		fin >> m_model[i].nx >> m_model[i].ny >> m_model[i].nz;
+	for(i = 0; i < m_VertexCount; i++) {
+		fin >> m_Model[i].x  >> m_Model[i].y  >> m_Model[i].z;
+		fin >> m_Model[i].tu >> m_Model[i].tv;
+		fin >> m_Model[i].nx >> m_Model[i].ny >> m_Model[i].nz;
 	}
 
 	// Close the model file.
@@ -205,7 +205,7 @@ void ModelClass::CalculateModelVectors() {
 	VectorType tangent, binormal;
 
 	// Calculate the number of faces in the model.
-	faceCount = m_vertexCount / 3;
+	faceCount = m_VertexCount / 3;
 
 	// Initialize the index to the model data.
 	index = 0;
@@ -213,50 +213,50 @@ void ModelClass::CalculateModelVectors() {
 	// Go through all the faces and calculate the the tangent and binormal vectors.
 	for(i = 0; i < faceCount; i++) {
 		// Get the three vertices for this face from the model.
-		vertex1.x = m_model[index].x;
-		vertex1.y = m_model[index].y;
-		vertex1.z = m_model[index].z;
-		vertex1.tu = m_model[index].tu;
-		vertex1.tv = m_model[index].tv;
+		vertex1.x = m_Model[index].x;
+		vertex1.y = m_Model[index].y;
+		vertex1.z = m_Model[index].z;
+		vertex1.tu = m_Model[index].tu;
+		vertex1.tv = m_Model[index].tv;
 		index++;
 
-		vertex2.x = m_model[index].x;
-		vertex2.y = m_model[index].y;
-		vertex2.z = m_model[index].z;
-		vertex2.tu = m_model[index].tu;
-		vertex2.tv = m_model[index].tv;
+		vertex2.x = m_Model[index].x;
+		vertex2.y = m_Model[index].y;
+		vertex2.z = m_Model[index].z;
+		vertex2.tu = m_Model[index].tu;
+		vertex2.tv = m_Model[index].tv;
 		index++;
 
-		vertex3.x = m_model[index].x;
-		vertex3.y = m_model[index].y;
-		vertex3.z = m_model[index].z;
-		vertex3.tu = m_model[index].tu;
-		vertex3.tv = m_model[index].tv;
+		vertex3.x = m_Model[index].x;
+		vertex3.y = m_Model[index].y;
+		vertex3.z = m_Model[index].z;
+		vertex3.tu = m_Model[index].tu;
+		vertex3.tv = m_Model[index].tv;
 		index++;
 
 		CalculateTangentBinormal(vertex1, vertex2, vertex3, tangent, binormal);
 
 		// Store the tangent and binormal for this face back in the model structure.
-		m_model[index - 1].tx = tangent.x;
-		m_model[index - 1].ty = tangent.y;
-		m_model[index - 1].tz = tangent.z;
-		m_model[index - 1].bx = binormal.x;
-		m_model[index - 1].by = binormal.y;
-		m_model[index - 1].bz = binormal.z;
+		m_Model[index - 1].tx = tangent.x;
+		m_Model[index - 1].ty = tangent.y;
+		m_Model[index - 1].tz = tangent.z;
+		m_Model[index - 1].bx = binormal.x;
+		m_Model[index - 1].by = binormal.y;
+		m_Model[index - 1].bz = binormal.z;
 
-		m_model[index - 2].tx = tangent.x;
-		m_model[index - 2].ty = tangent.y;
-		m_model[index - 2].tz = tangent.z;
-		m_model[index - 2].bx = binormal.x;
-		m_model[index - 2].by = binormal.y;
-		m_model[index - 2].bz = binormal.z;
+		m_Model[index - 2].tx = tangent.x;
+		m_Model[index - 2].ty = tangent.y;
+		m_Model[index - 2].tz = tangent.z;
+		m_Model[index - 2].bx = binormal.x;
+		m_Model[index - 2].by = binormal.y;
+		m_Model[index - 2].bz = binormal.z;
 
-		m_model[index - 3].tx = tangent.x;
-		m_model[index - 3].ty = tangent.y;
-		m_model[index - 3].tz = tangent.z;
-		m_model[index - 3].bx = binormal.x;
-		m_model[index - 3].by = binormal.y;
-		m_model[index - 3].bz = binormal.z;
+		m_Model[index - 3].tx = tangent.x;
+		m_Model[index - 3].ty = tangent.y;
+		m_Model[index - 3].tz = tangent.z;
+		m_Model[index - 3].bx = binormal.x;
+		m_Model[index - 3].by = binormal.y;
+		m_Model[index - 3].bz = binormal.z;
 	}
 }
 

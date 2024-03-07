@@ -12,26 +12,26 @@ public:
 	void SetRotation(float, float, float);
 
 	XMFLOAT3 GetPosition();
-	float GetPositionX() { return m_positionX; };
-	float GetPositionY() { return m_positionY; };
-	float GetPositionZ() { return m_positionZ; };
+	float GetPositionX() { return m_PositionX; };
+	float GetPositionY() { return m_PositionY; };
+	float GetPositionZ() { return m_PositionZ; };
 
 	XMFLOAT3 GetRotation();
-	float GetRotationX() { return m_rotationX; };
-	float GetRotationY() { return m_rotationY; };
-	float GetRotationZ() { return m_rotationZ; };
+	float GetRotationX() { return m_RotationX; };
+	float GetRotationY() { return m_RotationY; };
+	float GetRotationZ() { return m_RotationZ; };
 
-	XMFLOAT3 GetLookAtDir() { return m_lookAtDir; };
-	XMFLOAT3 GetRightDir() { return m_rightDir; };
+	XMFLOAT3 GetLookAtDir() { return m_LookAtDir; };
+	XMFLOAT3 GetRightDir() { return m_RightDir; };
 
 	void Render();
 	void GetViewMatrix(XMMATRIX&);
 
 private:
-	float m_positionX {}, m_positionY {}, m_positionZ {};
-	float m_rotationX {}, m_rotationY {}, m_rotationZ {};
+	float m_PositionX {}, m_PositionY {}, m_PositionZ {};
+	float m_RotationX {}, m_RotationY {}, m_RotationZ {};
 
-	XMFLOAT3 m_lookAtDir {};
-	XMFLOAT3 m_rightDir {};
-	XMMATRIX m_viewMatrix {};
+	XMFLOAT3 m_LookAtDir {};
+	XMFLOAT3 m_RightDir {};
+	XMMATRIX m_ViewMatrix {};
 };

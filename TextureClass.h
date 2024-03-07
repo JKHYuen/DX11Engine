@@ -1,8 +1,6 @@
 #pragma once
 
 #include <d3d11.h>
-#include <stdio.h>
-
 #include <array>
 #include <string>
 

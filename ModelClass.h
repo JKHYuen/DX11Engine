@@ -43,7 +43,7 @@ public:
 	ModelClass(const ModelClass&);
 	~ModelClass();
 
-	bool Initialize(ID3D11Device*, ID3D11DeviceContext*, const std::string& modelFilename, const std::vector<std::string>& textureFileNames, bool isCubeMap = false);
+	bool Initialize(ID3D11Device*, ID3D11DeviceContext*, const std::string& modelFilename, const std::vector<std::string>& textureFileNames);
 	void Shutdown();
 	void Render(ID3D11DeviceContext*);
 
@@ -55,12 +55,12 @@ private:
 	bool LoadModel(std::string);
 
 private:
-	ID3D11Buffer* m_vertexBuffer {};
-	ID3D11Buffer* m_indexBuffer  {};
-	int m_vertexCount {};
-	int m_indexCount  {};
+	ID3D11Buffer* m_VertexBuffer {};
+	ID3D11Buffer* m_IndexBuffer  {};
+	int m_VertexCount {};
+	int m_IndexCount  {};
 
-	std::vector<TextureClass> m_textures {};
+	std::vector<TextureClass> m_Textures {};
 
-	ModelType* m_model {};
+	ModelType* m_Model {};
 };

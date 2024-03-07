@@ -1,14 +1,15 @@
 #include "TextureClass.h"
 
-#include <iostream>
+#include <stdio.h>
+
 #include "stb_image.h"
 
 TextureClass::TextureClass() {}
 TextureClass::TextureClass(const TextureClass& other) {}
 TextureClass::~TextureClass() {}
 
-bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& fileName, bool isCubeMap) {
-	return isCubeMap ? InitializeCubeMap(device, deviceContext, fileName) : InitializeTexture(device, deviceContext, fileName);
+bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, bool isCubeMap) {
+	return isCubeMap ? InitializeCubeMap(device, deviceContext, filePath) : InitializeTexture(device, deviceContext, filePath);
 }
 
 // NOTE: use rastertek loader if tga file, else, stb_image; because tga function seems to be significantly faster
@@ -98,7 +99,6 @@ bool TextureClass::InitializeTexture(ID3D11Device* device, ID3D11DeviceContext* 
 	return true;
 }
 
-// TODO: NOT DONE
 // NOTE: only supports cubemaps that are 6 JPG textures by default for now
 bool TextureClass::InitializeCubeMap(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& folderPath) {
 	D3D11_TEXTURE2D_DESC textureArrayDesc {};
