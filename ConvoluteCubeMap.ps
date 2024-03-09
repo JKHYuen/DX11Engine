@@ -1,0 +1,37 @@
+TextureCube CubeMapTexture : register(t0);
+SamplerState WrapSampleType : register(s0);
+
+struct PixelInputType {
+    float4 position : SV_POSITION;
+    float3 uvw : TEXCOORD0;
+};
+
+static const float PI = 3.14159265359;
+
+float4 Frag(PixelInputType i) : SV_TARGET {
+    float3 N = normalize(i.uvw);
+    float3 irradiance = 0;
+    
+    float3 up = float3(0.0, 1.0, 0.0);
+    float3 right = normalize(cross(up, N));
+    up = normalize(cross(N, right));
+    
+
+    float sampleDelta = 0.025;
+    float nrSamples = 0.0;
+    for(float phi = 0.0; phi < 2.0 * PI; phi += sampleDelta) {
+        for(float theta = 0.0; theta < 0.5 * PI; theta += sampleDelta) {
+             // spherical to cartesian (in tangent space)
+            float3 tangentSample = float3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+            // tangent space to world
+            float3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
+            
+            irradiance += CubeMapTexture.Sample(WrapSampleType, sampleVec).rgb * cos(theta) * sin(theta);
+            nrSamples++;
+        }
+    }
+    
+    irradiance = PI * irradiance * (1.0 / float(nrSamples));
+    
+    return float4(irradiance, 1);
+}

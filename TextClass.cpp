@@ -115,7 +115,7 @@ bool TextClass::InitializeBuffers(ID3D11Device* device, ID3D11DeviceContext* dev
 
     // Now add the text data to the sentence buffers.
     result = UpdateText(deviceContext, Font, text, positionX, positionY, red, green, blue);
-    if(!result) {
+    if(FAILED(result)) {
         return false;
     }
 

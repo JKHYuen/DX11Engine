@@ -45,7 +45,7 @@
     <ClCompile Include="FpsClass.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="LightShaderClass.cpp">
+    <ClCompile Include="PBRShaderClass.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="LightClass.cpp">
@@ -116,7 +116,7 @@
     <ClInclude Include="FpsClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LightShaderClass.h">
+    <ClInclude Include="PBRShaderClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LightClass.h">
@@ -227,6 +227,12 @@
       <Filter>Source Files\Shaders</Filter>
     </None>
     <None Include="HDRCubeMap.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="ConvoluteCubeMap.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="ConvoluteCubeMap.ps">
       <Filter>Source Files\Shaders</Filter>
     </None>
   </ItemGroup>

@@ -34,11 +34,13 @@ float3 HableTMO(float3 v) {
     return curr * white_scale;
 }
 
+// Rendered objects on screen texture should be in linear color space
 float4 TexturePixelShader(PixelInputType i) : SV_TARGET {
     float4 color = screenTexture.Sample(SampleType, i.uv);
     
     // Tonemap
     color.rgb = ReinhardJodieTMO(color.rgb);
+    //color.rgb = HableTMO(color.rgb);
     
     //color = pow(color, 1.0 / 2.2);
     

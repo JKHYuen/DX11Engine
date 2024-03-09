@@ -33,7 +33,7 @@ struct PixelInputType {
     float4 lightViewPosition : TEXCOORD2;
 };
 
-PixelInputType LightVertexShader(VertexInputType input) {
+PixelInputType PBRVertexShader(VertexInputType input) {
     PixelInputType output;
     
     // Change the position vector to be 4 units for proper matrix calculations.

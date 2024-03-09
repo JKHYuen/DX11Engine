@@ -7,11 +7,12 @@
 
 class LightClass;
 class ModelClass;
-class LightShaderClass;
+class PBRShaderClass;
 class DepthShaderClass;
 class RenderTextureClass;
 struct ID3D11Device;
 struct ID3D11DeviceContext;
+struct ID3D11ShaderResourceView;
 
 using namespace DirectX;
 
@@ -19,7 +20,7 @@ class GameObject {
 public:
 	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, const std::string& modelName, const std::string& textureName);
 
-	bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, RenderTextureClass* shadowMap, LightClass* light, XMFLOAT3 cameraPos, float time);
+	bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, LightClass* light, XMFLOAT3 cameraPos, float time);
 
 	bool RenderToDepth(ID3D11DeviceContext* deviceContext, LightClass* light, float time);
 
@@ -54,6 +55,6 @@ private:
 	DirectX::XMFLOAT3 m_Scale { 1.0f, 1.0f, 1.0f };
 
 	ModelClass* m_Model {};
-	LightShaderClass* m_LightShader {};
+	PBRShaderClass* m_PBRShader {};
 	DepthShaderClass* m_DepthShader {};
 };

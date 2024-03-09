@@ -1,7 +1,7 @@
 #include <vector>
 
 #include "GameObject.h"
-#include "LightShaderClass.h"
+#include "PBRShaderClass.h"
 #include "DepthShaderClass.h"
 #include "ModelClass.h"
 #include "LightClass.h"
@@ -10,6 +10,7 @@
 bool GameObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, const std::string& modelName, const std::string& textureName) {
 	bool result;
 
+	// TODO: convert to wstring
 	const std::vector<std::string> textureFileNames {
 		"../DX11Engine/data/" + textureName + "/" + textureName + "_albedo.tga",
 		"../DX11Engine/data/" + textureName + "/" + textureName + "_normal.tga",
@@ -47,8 +48,8 @@ bool GameObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 	}
 
 	// Create and initialize the light shader object.
-	m_LightShader = new LightShaderClass();
-	result = m_LightShader->Initialize(device, windowHandle);
+	m_PBRShader = new PBRShaderClass();
+	result = m_PBRShader->Initialize(device, windowHandle);
 	if(!result) {
 		MessageBox(windowHandle, L"Could not initialize the light shader object.", L"Error", MB_OK);
 		return false;
@@ -74,7 +75,7 @@ bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, LightClass* l
 	return true;
 }
 
-bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, RenderTextureClass* shadowMap, LightClass* light, XMFLOAT3 cameraPos, float time) {
+bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, LightClass* light, XMFLOAT3 cameraPos, float time) {
 	XMMATRIX srtMatrix = XMMatrixMultiply(XMMatrixMultiply(
 		XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z),
 		XMMatrixRotationY(time * m_RotationYSpeed)),
@@ -83,7 +84,7 @@ bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix,
 
 	m_Model->Render(deviceContext);
 	// Render the model using the light shader.
-	return m_LightShader->Render(deviceContext, m_Model->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_Model->GetTexture(0), m_Model->GetTexture(1), m_Model->GetTexture(2), m_Model->GetTexture(3), m_Model->GetTexture(4), m_Model->GetTexture(5), shadowMap->GetShaderResourceView(), light, cameraPos, time, m_UVScale, m_HeightMapScale);
+	return m_PBRShader->Render(deviceContext, m_Model->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_Model->GetTexture(0), m_Model->GetTexture(1), m_Model->GetTexture(2), m_Model->GetTexture(3), m_Model->GetTexture(4), m_Model->GetTexture(5), shadowMap, irradianceMap, light, cameraPos, time, m_UVScale, m_HeightMapScale);
 }
 
 void GameObject::Shutdown() {
@@ -93,9 +94,9 @@ void GameObject::Shutdown() {
 		m_Model = nullptr;
 	}
 
-	if(m_LightShader) {
-		m_LightShader->Shutdown();
-		delete m_LightShader;
-		m_LightShader = nullptr;
+	if(m_PBRShader) {
+		m_PBRShader->Shutdown();
+		delete m_PBRShader;
+		m_PBRShader = nullptr;
 	}
 }

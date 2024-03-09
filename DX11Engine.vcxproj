@@ -35,7 +35,7 @@
     <ClCompile Include="FpsClass.cpp" />
     <ClCompile Include="InputClass.cpp" />
     <ClCompile Include="LightClass.cpp" />
-    <ClCompile Include="LightShaderClass.cpp" />
+    <ClCompile Include="PBRShaderClass.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ModelClass.cpp" />
     <ClCompile Include="SystemClass.cpp" />
@@ -60,7 +60,7 @@
     <ClInclude Include="FpsClass.h" />
     <ClInclude Include="InputClass.h" />
     <ClInclude Include="LightClass.h" />
-    <ClInclude Include="LightShaderClass.h" />
+    <ClInclude Include="PBRShaderClass.h" />
     <ClInclude Include="ModelClass.h" />
     <ClInclude Include="SystemClass.h" />
     <ClInclude Include="TextClass.h" />
@@ -71,6 +71,8 @@
   <ItemGroup>
     <None Include="CubeMap.ps" />
     <None Include="CubeMap.vs" />
+    <None Include="ConvoluteCubeMap.ps" />
+    <None Include="ConvoluteCubeMap.vs" />
     <None Include="Depth.ps" />
     <None Include="Depth.vs" />
     <None Include="Font.ps" />

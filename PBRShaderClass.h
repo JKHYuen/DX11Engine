@@ -10,7 +10,7 @@ class LightClass;
 
 // constexpr int g_numLights = 4;
 
-class LightShaderClass {
+class PBRShaderClass {
 private:
     struct MatrixBufferType {
         XMMATRIX world;
@@ -45,13 +45,13 @@ private:
     };
 
 public:
-    LightShaderClass();
-    LightShaderClass(const LightShaderClass&);
-    ~LightShaderClass();
+    PBRShaderClass();
+    PBRShaderClass(const PBRShaderClass&);
+    ~PBRShaderClass();
 
     bool Initialize(ID3D11Device*, HWND);
     void Shutdown();
-    bool Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* albedoMap, ID3D11ShaderResourceView* normalMap, ID3D11ShaderResourceView* metallicMap, ID3D11ShaderResourceView* roughnessMap, ID3D11ShaderResourceView* aoMap, ID3D11ShaderResourceView* heightMap, ID3D11ShaderResourceView* shadowMap, LightClass* light, XMFLOAT3 cameraPosition, float time, float uvScale, float heightMapScale);
+    bool Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* albedoMap, ID3D11ShaderResourceView* normalMap, ID3D11ShaderResourceView* metallicMap, ID3D11ShaderResourceView* roughnessMap, ID3D11ShaderResourceView* aoMap, ID3D11ShaderResourceView* heightMap, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, LightClass* light, XMFLOAT3 cameraPosition, float time, float uvScale, float heightMapScale);
 
 private:
     bool InitializeShader(ID3D11Device*, HWND, WCHAR*, WCHAR*);

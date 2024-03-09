@@ -14,7 +14,7 @@ public:
 
     void SetRenderTarget(ID3D11DeviceContext*);
     void ClearRenderTarget(ID3D11DeviceContext*, float, float, float, float);
-    ID3D11ShaderResourceView* GetShaderResourceView();
+    ID3D11ShaderResourceView* GetTextureSRV();
 
     void GetProjectionMatrix(XMMATRIX&);
     void GetOrthoMatrix(XMMATRIX&);

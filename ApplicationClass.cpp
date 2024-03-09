@@ -7,7 +7,7 @@ ApplicationClass::~ApplicationClass() {}
 bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) {
 	bool result;
 	char fpsString[32];
-	char mouseString1[32], mouseString2[32], mouseString3[32];
+	//char mouseString1[32], mouseString2[32], mouseString3[32];
 
 	// Note: currently only used for debug quad position calc
 	m_ScreenWidth = screenWidth;
@@ -85,7 +85,8 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	// 3D Objects //
 	///////////////////////////////
 
-	// TODO: Load cubemap
+	// Load cubemap
+	// TODO: move raster state change into CubeMapObject class
 	m_Direct3D->SetToFrontCullRasterState();
 	m_CubeMapObject = new CubeMapObject();
 	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k
@@ -114,7 +115,7 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 		{"sphere", "stonewall",  {0.0f, 4.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
 		{"cube", "metal_grid", {3.0f, 4.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
 		// floor
-		{"plane",  "dirt",    {0.0f, 0.0f, 0.0f}, {5.0f, 1.0f, 5.0f}, 0.0f, 6.0f, 0.5f},
+		{"plane",  "dirt",    {0.0f, 0.0f, 0.0f}, {5.0f, 1.0f, 5.0f}, 0.0f, 10.0f, 0.5f},
 	};
 
 	m_GameObjects.reserve(sampleSceneObjects.size());
@@ -216,27 +217,27 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	///////////////////////////////
 
 	// Set the initial mouse strings.
- 	strcpy_s(mouseString1, "Mouse X: 0");
-	strcpy_s(mouseString2, "Mouse Y: 0");
-	strcpy_s(mouseString3, "Mouse Button: No");
+	//strcpy_s(mouseString1, "Mouse X: 0");
+	//strcpy_s(mouseString2, "Mouse Y: 0");
+	//strcpy_s(mouseString3, "Mouse Button: No");
 
-	// Create and initialize the text objects for the mouse strings.
-	m_MouseTexts = new TextClass[3];
+	//// Create and initialize the text objects for the mouse strings.
+	//m_MouseTexts = new TextClass[3];
 
-	result = m_MouseTexts[0].Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), screenWidth, screenHeight, 32, m_Font, mouseString1, 10, 35, 1.0f, 1.0f, 1.0f);
-	if(!result) {
-		return false;
-	}
+	//result = m_MouseTexts[0].Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), screenWidth, screenHeight, 32, m_Font, mouseString1, 10, 35, 1.0f, 1.0f, 1.0f);
+	//if(!result) {
+	//	return false;
+	//}
 
-	result = m_MouseTexts[1].Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), screenWidth, screenHeight, 32, m_Font, mouseString1, 10, 60, 1.0f, 1.0f, 1.0f);
-	if(!result) {
-		return false;
-	}
+	//result = m_MouseTexts[1].Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), screenWidth, screenHeight, 32, m_Font, mouseString1, 10, 60, 1.0f, 1.0f, 1.0f);
+	//if(!result) {
+	//	return false;
+	//}
 
-	result = m_MouseTexts[2].Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), screenWidth, screenHeight, 32, m_Font, mouseString1, 10, 85, 1.0f, 1.0f, 1.0f);
-	if(!result) {
-		return false;
-	}
+	//result = m_MouseTexts[2].Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), screenWidth, screenHeight, 32, m_Font, mouseString1, 10, 85, 1.0f, 1.0f, 1.0f);
+	//if(!result) {
+	//	return false;
+	//}
 
 	///////////////////////////////
 	// FPS Counter //
@@ -333,10 +334,10 @@ bool ApplicationClass::Frame(InputClass* input) {
 	m_Camera->SetPosition(m_Camera->GetPositionX() + XMVectorGetX(camMoveVector), m_Camera->GetPositionY() + XMVectorGetY(camMoveVector), m_Camera->GetPositionZ() + XMVectorGetZ(camMoveVector));
 
 	// Update the mouse strings each frame.
-	result = UpdateMouseStrings(mouseX, mouseY, mouseDown);
-	if(!result) {
-		return false;
-	}
+	//result = UpdateMouseStrings(mouseX, mouseY, mouseDown);
+	//if(!result) {
+	//	return false;
+	//}
 	///
 
 	return true;
@@ -490,20 +491,20 @@ bool ApplicationClass::RenderSceneToScreenTexture() {
 	m_Light->SetDirection(XMVectorGetX(dirVec), XMVectorGetY(dirVec), XMVectorGetX(dirVec));
 
 	// Note: a bit hacky
-	float direcLightRenderDist = 30.0f;
+	float direcLightRenderDist = 15.0f;
 	m_Light->SetPosition(-lightDirX * direcLightRenderDist, -lightDirY * direcLightRenderDist, -lightDirZ * direcLightRenderDist);
 	m_Light->GenerateViewMatrix();
 
 	// Opaque 3D PBR Objects
 	for(GameObject go : m_GameObjects) {
-		if(!go.Render(m_Direct3D->GetDeviceContext(), viewMatrix, projectionMatrix, m_ShadowMapRenderTexture, m_Light, m_Camera->GetPosition(), m_Time)) {
+		if(!go.Render(m_Direct3D->GetDeviceContext(), viewMatrix, projectionMatrix, m_ShadowMapRenderTexture->GetTextureSRV(), m_CubeMapObject->GetIrradianceSRV(), m_Light, m_Camera->GetPosition(), m_Time)) {
 			return false;
 		}
 	}
 
 	// TODO: cubemap
 	m_Direct3D->SetToFrontCullRasterState();
-	m_CubeMapObject->Render(m_Direct3D->GetDeviceContext(), viewMatrix, projectionMatrix);
+	m_CubeMapObject->Render(m_Direct3D->GetDeviceContext(), viewMatrix, projectionMatrix, CubeMapObject::kSkyBox);
 	m_Direct3D->SetToBackCullRasterState();
 
 
@@ -545,7 +546,7 @@ bool ApplicationClass::RenderToBackBuffer() {
 
 	// Render the display plane using the texture shader and the render texture resource.
 	m_ScreenDisplayPlane->Render(m_Direct3D->GetDeviceContext());
-	if(!m_PostProcessShader->Render(m_Direct3D->GetDeviceContext(), m_ScreenDisplayPlane->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_ScreenRenderTexture->GetShaderResourceView())) {
+	if(!m_PostProcessShader->Render(m_Direct3D->GetDeviceContext(), m_ScreenDisplayPlane->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_ScreenRenderTexture->GetTextureSRV())) {
 		return false;
 	}
 
@@ -557,7 +558,7 @@ bool ApplicationClass::RenderToBackBuffer() {
 	m_DepthDebugDisplayPlane->Render(m_Direct3D->GetDeviceContext());
 	float depthQuadPosX = -m_ScreenWidth / 2.0f + m_ScreenHeight / 6.0f;
 	float depthQuadPosY = -m_ScreenHeight / 2.0f + m_ScreenHeight / 6.0f;
-	m_DebugDepthShader->Render(m_Direct3D->GetDeviceContext(), m_DepthDebugDisplayPlane->GetIndexCount(), XMMatrixTranslation(depthQuadPosX, depthQuadPosY, 0), viewMatrix, orthoMatrix, m_ShadowMapRenderTexture->GetShaderResourceView());
+	m_DebugDepthShader->Render(m_Direct3D->GetDeviceContext(), m_DepthDebugDisplayPlane->GetIndexCount(), XMMatrixTranslation(depthQuadPosX, depthQuadPosY, 0), viewMatrix, orthoMatrix, m_ShadowMapRenderTexture->GetTextureSRV());
 
 	///////////////////////////////
 	// DEBUG Text (UI) //
@@ -571,13 +572,13 @@ bool ApplicationClass::RenderToBackBuffer() {
 	}
 
 	// Render the mouse text strings using the font shader.
-	for(size_t i = 0; i < 3; i++) {
-		m_MouseTexts[i].Render(m_Direct3D->GetDeviceContext());
-		if(!m_FontShader->Render(m_Direct3D->GetDeviceContext(), m_MouseTexts[i].GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix,
-			m_Font->GetTexture(), m_MouseTexts[i].GetPixelColor())) {
-			return false;
-		}
-	}
+	//for(size_t i = 0; i < 3; i++) {
+	//	m_MouseTexts[i].Render(m_Direct3D->GetDeviceContext());
+	//	if(!m_FontShader->Render(m_Direct3D->GetDeviceContext(), m_MouseTexts[i].GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix,
+	//		m_Font->GetTexture(), m_MouseTexts[i].GetPixelColor())) {
+	//		return false;
+	//	}
+	//}
 
 	// Turn the Z buffer back on now that all 2D rendering has completed.
 	m_Direct3D->TurnZBufferOn();
@@ -597,6 +598,12 @@ void ApplicationClass::Shutdown() {
 
 		delete[] m_MouseTexts;
 		m_MouseTexts = nullptr;
+	}
+
+	if(m_CubeMapObject) {
+		m_CubeMapObject->Shutdown();
+		delete m_CubeMapObject;
+		m_CubeMapObject = nullptr;
 	}
 
 	// Release the display plane object.

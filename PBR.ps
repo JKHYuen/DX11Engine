@@ -8,6 +8,7 @@ Texture2D aoMap : register(t4);
 
 // Shadow map
 Texture2D depthMap : register(t5);
+TextureCube irradianceMap : register(t6);
 
 SamplerState SamplerWrap : register(s0);
 SamplerState SamplerClamp : register(s1);
@@ -72,7 +73,26 @@ float3 FresnelSchlick(float cosTheta, float3 F0) {
     return F0 + (1.0 - F0) * pow(saturate(1.0 - cosTheta), 5.0);
 }
 
-float3 CalcPBRRadiance(PixelInputType i, float3 albedo, float3 normal) {
+float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
+    return F0 + (max(1.0 - roughness, F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+}
+
+float4 PBRPixelShader(
+PixelInputType i) : SV_TARGET {
+    i.uv *= uvScale;
+    
+    ///////////////////////////
+    /// Calculate PBR Color ///
+    ///////////////////////////
+    
+    float3 albedo = pow(albedoMap.Sample(SamplerWrap, i.uv).rgb, 2.2);
+    float ao = aoMap.Sample(SamplerWrap, i.uv).r;
+    float3 bumpMap = normalMap.Sample(SamplerWrap, i.uv) * 2.0 - 1.0;
+    float3 normal = normalize((bumpMap.x * i.tangent) + (bumpMap.y * i.binormal) + (bumpMap.z * i.normal));
+    
+    //float3 color = 0.03 * albedo * ao;
+    //float3 color = CalcPBRColor(i, albedo, normal, ao);
+    
     float metallic = metallicMap.Sample(SamplerWrap, i.uv).r;
     float roughness = roughnessMap.Sample(SamplerWrap, i.uv).r;
     
@@ -120,20 +140,17 @@ float3 CalcPBRRadiance(PixelInputType i, float3 albedo, float3 normal) {
     Lo += (kD * albedo / PI + specular) * radiance * NdotL;
     //}
     
-    // return radiance
-    return Lo;
-}
-
-float4 LightPixelShader(PixelInputType i) : SV_TARGET {
-    i.uv *= uvScale;
+    // IBL ambient lighting
+    float3 indirect_kS = FresnelSchlickRoughness(max(dot(normal, i.viewDirection), 0.0), F0, roughness);
+    float3 indirect_kD = 1.0 - indirect_kS;
+    indirect_kD *= 1.0 - metallic;
+    float3 irradiance = irradianceMap.Sample(SamplerWrap, normal).rgb;
+    float3 diffuse = irradiance * albedo;
+    float3 ambient = indirect_kD * diffuse * ao;
     
-    float3 albedo = pow(albedoMap.Sample(SamplerWrap, i.uv).rgb, 2.2);
-    float ao = aoMap.Sample(SamplerWrap, i.uv).r;
-    float3 bumpMap = normalMap.Sample(SamplerWrap, i.uv) * 2.0 - 1.0;
-    float3 normal = normalize((bumpMap.x * i.tangent) + (bumpMap.y * i.binormal) + (bumpMap.z * i.normal));
-    
-    // Start with ambient lighting
-    float3 color = 0.03 * albedo * ao;
+    ////////////////////////
+    /// Calculate Shadow ///
+    ////////////////////////
     
     // Set the bias value for fixing the floating point precision issues.
     //float bias = 0.001f;
@@ -144,40 +161,29 @@ float4 LightPixelShader(PixelInputType i) : SV_TARGET {
     projectTexCoord.x = i.lightViewPosition.x / i.lightViewPosition.w * 0.5f + 0.5f;
     projectTexCoord.y = -i.lightViewPosition.y / i.lightViewPosition.w * 0.5f + 0.5f;
 
-    // Determine if the projected coordinates are in the 0 to 1 range.  If so then this pixel is in the view of the light.
-    if ((saturate(projectTexCoord.x) == projectTexCoord.x) && (saturate(projectTexCoord.y) == projectTexCoord.y)) {
+    // Calculate the depth of the light.
+    float lightDepthValue = i.lightViewPosition.z / i.lightViewPosition.w;
         
-        // Calculate the depth of the light.
-        float lightDepthValue = i.lightViewPosition.z / i.lightViewPosition.w;
+    // Subtract the bias from the lightDepthValue.
+    lightDepthValue = lightDepthValue - bias;
         
-        // Subtract the bias from the lightDepthValue.
-        lightDepthValue = lightDepthValue - bias;
-        
-        // Sample the shadow map depth value from the depth texture using the sampler at the projected texture coordinate location.
-        float shadowFactor = 0.0;
-        float width, height, numOfLevels;
-        depthMap.GetDimensions(0, width, height, numOfLevels);
-        float2 texelSize = 1.0 / width;
-        for (int x = -2; x <= 2; ++x) {
-            for (int y = -2; y <= 2; ++y) {
-                float pcfDepth = depthMap.Sample(SamplerClamp, projectTexCoord + float2(x, y) * texelSize).r;
-                shadowFactor += lightDepthValue > pcfDepth ? 0.0 : 1.0;
-            }
+    // Sample the shadow map depth value from the depth texture using the sampler at the projected texture coordinate location.
+    float shadowFactor = 0.0;
+    float width, height, numOfLevels;
+    depthMap.GetDimensions(0, width, height, numOfLevels);
+    float2 texelSize = 1.0 / width;
+    for (int x = -2; x <= 2; ++x) {
+        for (int y = -2; y <= 2; ++y) {
+            float pcfDepth = depthMap.Sample(SamplerClamp, projectTexCoord + float2(x, y) * texelSize).r;
+            shadowFactor += lightDepthValue > pcfDepth ? 0.0 : 1.0;
         }
-        shadowFactor /= 25.0;
-
-        //if (lightDepthValue < depthValue) {
-        color += CalcPBRRadiance(i, albedo, normal) * shadowFactor;
-        //}
     }
-    else {
-        color += CalcPBRRadiance(i, albedo, normal);
-    }
+    shadowFactor /= 25.0;
+    
+    if (lightDepthValue > 1.0)
+        shadowFactor = 0.0;
 
-    // HDR tonemapping
-    //color = color / (color + 1.0);
-    // gamma correct
-    // color = pow(color, 1.0 / 2.2);
+    float3 color = ambient + Lo * shadowFactor;
 
     return float4(color, 1.0);
 }

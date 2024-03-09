@@ -1,4 +1,4 @@
-Texture2D CubeMapTexture : register(t0);
+Texture2D HDRCubeMapTexture : register(t0);
 SamplerState SampleType : register(s0);
 
 struct PixelInputType {
@@ -16,6 +16,6 @@ float2 SampleSphericalMap(float3 v) {
 }
 
 float4 Frag(PixelInputType i) : SV_TARGET {
-    float4 color = CubeMapTexture.Sample(SampleType, SampleSphericalMap(normalize(i.uvw)));
+    float4 color = HDRCubeMapTexture.Sample(SampleType, SampleSphericalMap(normalize(i.uvw)));
     return color;
 }

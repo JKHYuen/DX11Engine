@@ -1,16 +1,17 @@
-#include "LightShaderClass.h"
+#include "PBRShaderClass.h"
 #include "LightClass.h"
 
-LightShaderClass::LightShaderClass() {}
-LightShaderClass::LightShaderClass(const LightShaderClass& other) {}
-LightShaderClass::~LightShaderClass() {}
+PBRShaderClass::PBRShaderClass() {}
+PBRShaderClass::PBRShaderClass(const PBRShaderClass& other) {}
+PBRShaderClass::~PBRShaderClass() {}
 
-bool LightShaderClass::Initialize(ID3D11Device* device, HWND hwnd) {
+bool PBRShaderClass::Initialize(ID3D11Device* device, HWND hwnd) {
     wchar_t vsFilename[128];
     wchar_t psFilename[128];
     int error;
     bool result;
 
+    // TODO: convert to wstring
     // Set the filename of the vertex shader.
     error = wcscpy_s(vsFilename, 128, L"../DX11Engine/PBR.vs");
     if(error != 0) {
@@ -32,7 +33,7 @@ bool LightShaderClass::Initialize(ID3D11Device* device, HWND hwnd) {
     return true;
 }
 
-bool LightShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilename, WCHAR* psFilename) {
+bool PBRShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilename, WCHAR* psFilename) {
     HRESULT result {};
     ID3D10Blob* errorMessage {};
     ID3D10Blob* vertexShaderBuffer {};
@@ -52,7 +53,7 @@ bool LightShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* 
     D3D11_BUFFER_DESC materialParamBuffer {};
 
     // Compile the vertex shader code.
-    result = D3DCompileFromFile(vsFilename, NULL, NULL, "LightVertexShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &vertexShaderBuffer, &errorMessage);
+    result = D3DCompileFromFile(vsFilename, NULL, NULL, "PBRVertexShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &vertexShaderBuffer, &errorMessage);
     if(FAILED(result)) {
         // If the shader failed to compile it should have writen something to the error message.
         if(errorMessage) {
@@ -67,7 +68,7 @@ bool LightShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* 
     }
 
     // Compile the pixel shader code.
-    result = D3DCompileFromFile(psFilename, NULL, NULL, "LightPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pixelShaderBuffer, &errorMessage);
+    result = D3DCompileFromFile(psFilename, NULL, NULL, "PBRPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pixelShaderBuffer, &errorMessage);
     if(FAILED(result)) {
         // If the shader failed to compile it should have writen something to the error message.
         if(errorMessage) {
@@ -277,7 +278,7 @@ bool LightShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* 
     return true;
 }
 
-bool LightShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* albedoMap, ID3D11ShaderResourceView* normalMap, ID3D11ShaderResourceView* metallicMap, ID3D11ShaderResourceView* roughnessMap, ID3D11ShaderResourceView* aoMap, ID3D11ShaderResourceView* heightMap, ID3D11ShaderResourceView* shadowMap, LightClass* light, XMFLOAT3 cameraPosition, float time, float uvScale, float heightMapScale) {
+bool PBRShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* albedoMap, ID3D11ShaderResourceView* normalMap, ID3D11ShaderResourceView* metallicMap, ID3D11ShaderResourceView* roughnessMap, ID3D11ShaderResourceView* aoMap, ID3D11ShaderResourceView* heightMap, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, LightClass* light, XMFLOAT3 cameraPosition, float time, float uvScale, float heightMapScale) {
     HRESULT result;
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     unsigned int bufferNumber;
@@ -398,6 +399,7 @@ bool LightShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount
     deviceContext->PSSetShaderResources(3, 1, &roughnessMap);
     deviceContext->PSSetShaderResources(4, 1, &aoMap);
     deviceContext->PSSetShaderResources(5, 1, &shadowMap);
+    deviceContext->PSSetShaderResources(6, 1, &irradianceMap);
 
     // Bind vertex shader textures.
     // height map
@@ -483,7 +485,7 @@ bool LightShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount
 }
 
 
-void LightShaderClass::Shutdown() {
+void PBRShaderClass::Shutdown() {
     // Release the light constant buffer.
     if(m_lightBuffer) {
         m_lightBuffer->Release();
@@ -550,7 +552,7 @@ void LightShaderClass::Shutdown() {
     return;
 }
 
-void LightShaderClass::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR* shaderFilename) {
+void PBRShaderClass::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR* shaderFilename) {
     char* compileErrors;
     unsigned __int64 bufferSize, i;
     std::ofstream fout;
@@ -582,7 +584,7 @@ void LightShaderClass::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND h
     return;
 }
 
-void LightShaderClass::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount) {
+void PBRShaderClass::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount) {
     // Set the vertex input layout.
     deviceContext->IASetInputLayout(m_layout);
 

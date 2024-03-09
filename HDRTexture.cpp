@@ -21,7 +21,7 @@ bool HDRTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 	textureDesc.MipLevels = 0;
 	textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-	textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+	textureDesc.MiscFlags = 0;
 	textureDesc.SampleDesc.Count = 1;
 	textureDesc.SampleDesc.Quality = 0;
 	textureDesc.Usage = D3D11_USAGE_DEFAULT;
@@ -47,7 +47,7 @@ bool HDRTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 		return false;
 	}
 
-	deviceContext->GenerateMips(m_TextureView);
+	//deviceContext->GenerateMips(m_TextureView);
 
 	stbi_image_free(m_TextureData);
 
@@ -66,7 +66,7 @@ void HDRTexture::Shutdown() {
 	}
 
 	// in case of early return
-	if(m_TextureData) {
-		stbi_image_free(m_TextureData);
-	}
+	//if(m_TextureData) {
+	//	stbi_image_free(m_TextureData);
+	//}
 }

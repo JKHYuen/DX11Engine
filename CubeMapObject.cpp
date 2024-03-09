@@ -9,6 +9,7 @@ CubeMapObject::CubeMapObject() {}
 CubeMapObject::CubeMapObject(const CubeMapObject& other) {}
 CubeMapObject::~CubeMapObject() {}
 
+// TODO: remove HDRTextureClass
 bool CubeMapObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, const std::string& fileName, int cubeFaceResolution) {
 	/// Load shaders
 	// Initialize the vertex and pixel shaders.
@@ -17,97 +18,119 @@ bool CubeMapObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* device
 		return false;
 	}
 
+	result = InitializeShader(device, hwnd, L"ConvoluteCubeMap", &m_ConvolutionVertexShader, &m_ConvolutionPixelShader);
+	if(!result) {
+		return false;
+	}
+
 	result = InitializeShader(device, hwnd, L"CubeMap", &m_CubeMapVertexShader, &m_CubeMapPixelShader);
 	if(!result) {
 		return false;
 	}
-	///
 
-	// Load unit cube
+	/// Load unit cube
 	result = InitializeUnitCubeBuffers(device);
 	if(!result) {
 		return false;
 	}
 
-	/// Load HDR cubemap texture from disk and render to 6 cubemap textures
+	/// Load HDR cubemap texture from disk and render to 6 cubemap textures to build skybox
 	m_HDRCubeMapTex = new HDRTexture();
 	result = m_HDRCubeMapTex->Initialize(device, deviceContext, "../DX11Engine/data/" + fileName + ".hdr");
 	if(!result) {
 		return false;
 	}
 
-	// TODO: Generate 6 texture cubemap from HDR
-	// TODO: CLEANUP
 	// Initialize 6 render textures for cubemap capture from equirectangularly mapped HDR texture
-	std::array<RenderTextureClass*, 6> hdrRenderTextureArray {};
+	std::array<RenderTextureClass*, 6> renderTextureArray {};
 	for(size_t i = 0; i < 6; i++) {
-		hdrRenderTextureArray[i] = new RenderTextureClass();
-		result = hdrRenderTextureArray[i]->Initialize(device, deviceContext, cubeFaceResolution, cubeFaceResolution, 0.1f, 10.0f, DXGI_FORMAT_R32G32B32A32_FLOAT, XMConvertToRadians(90.0f));
+		renderTextureArray[i] = new RenderTextureClass();
+		result = renderTextureArray[i]->Initialize(device, deviceContext, cubeFaceResolution, cubeFaceResolution, 0.1f, 10.0f, DXGI_FORMAT_R32G32B32A32_FLOAT, XMConvertToRadians(90.0f));
 		if(!result) {
 			return false;
 		}
 	}
-
-	// View matrices for the 6 different cube directions
-	XMFLOAT3 float3_000  {  0.0f,  0.0f,  0.0f };
-	XMFLOAT3 float3_100  {  1.0f,  0.0f,  0.0f };
-	XMFLOAT3 float3_010  {  0.0f,  1.0f,  0.0f };
-	XMFLOAT3 float3_n100 { -1.0f,  0.0f,  0.0f };
-	XMFLOAT3 float3_00n1 {  0.0f,  0.0f, -1.0f };
-	XMFLOAT3 float3_0n10 {  0.0f, -1.0f,  0.0f };
-	XMFLOAT3 float3_001  {  0.0f,  0.0f,  1.0f };
-	const std::array<XMMATRIX, 6> cubeMapCaptureViewMats = {
-		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_100),  XMLoadFloat3(&float3_010)),
-		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_n100), XMLoadFloat3(&float3_010)),
-		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_010),  XMLoadFloat3(&float3_00n1)),
-		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_0n10),	XMLoadFloat3(&float3_001)),
-		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_001),	XMLoadFloat3(&float3_010)),
-		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
-	};
 
 	// Same projection matrix for all captures (90 degree FOV)
 	XMMATRIX cubemapCapturecaptureProjectionMatrix {};
-	hdrRenderTextureArray[0]->GetProjectionMatrix(cubemapCapturecaptureProjectionMatrix);
+	renderTextureArray[0]->GetProjectionMatrix(cubemapCapturecaptureProjectionMatrix);
 
 	std::array<ID3D11Texture2D*, 6> sourceCubeMapTextures{};
 	for(size_t i = 0; i < 6; i++) {
-		hdrRenderTextureArray[i]->SetRenderTarget(deviceContext);
-		hdrRenderTextureArray[i]->ClearRenderTarget(deviceContext, 0.5f, 0.0f, 0.0f, 1.0f);
+		renderTextureArray[i]->SetRenderTarget(deviceContext);
+		// Red clear color for debugging
+		renderTextureArray[i]->ClearRenderTarget(deviceContext, 0.5f, 0.0f, 0.0f, 1.0f);
 
-		result = Render(deviceContext, cubeMapCaptureViewMats[i], cubemapCapturecaptureProjectionMatrix, false /*isSkyBoxRender*/);
+		result = Render(deviceContext, kCubeMapCaptureViewMats[i], cubemapCapturecaptureProjectionMatrix, kHDRCapture);
 		if(!result) {
 			return false;
 		}
 
-		sourceCubeMapTextures[i] = hdrRenderTextureArray[i]->GetTexture();
+		sourceCubeMapTextures[i] = renderTextureArray[i]->GetTexture();
 	}
 
-	// Create cubemap texture array
+	// Create cubemap texture array (and SRV)
 	m_CubeMapTex = new TextureClass();
 	result = m_CubeMapTex->Initialize(device, deviceContext, sourceCubeMapTextures);
 	if(!result) {
 		return false;
 	}
-	///
+
+	/// Render 6 textures with convolution shader and build irradiance map 
+	// Initialize 6 render textures for convolution cubemap capture
+	for(size_t i = 0; i < 6; i++) {
+		renderTextureArray[i] = new RenderTextureClass();
+		result = renderTextureArray[i]->Initialize(device, deviceContext, 32, 32, 0.1f, 10.0f, DXGI_FORMAT_R32G32B32A32_FLOAT, XMConvertToRadians(90.0f));
+		if(!result) {
+			return false;
+		}
+	}
+
+	for(size_t i = 0; i < 6; i++) {
+		renderTextureArray[i]->SetRenderTarget(deviceContext);
+		// Red clear color for debugging
+		renderTextureArray[i]->ClearRenderTarget(deviceContext, 0.5f, 0.0f, 0.0f, 1.0f);
+
+		result = Render(deviceContext, kCubeMapCaptureViewMats[i], cubemapCapturecaptureProjectionMatrix, kConvolution);
+		if(!result) {
+			return false;
+		}
+
+		sourceCubeMapTextures[i] = renderTextureArray[i]->GetTexture();
+	}
+
+	// Create cubemap texture array (and SRV)
+	m_IrradianceCubeMapTex = new TextureClass();
+	result = m_IrradianceCubeMapTex->Initialize(device, deviceContext, sourceCubeMapTextures);
+	if(!result) {
+		return false;
+	}
+
+	/// Clean up local resources 
+	for(size_t i = 0; i < 6; i++) {
+		renderTextureArray[i]->Shutdown();
+		delete renderTextureArray[i];
+		sourceCubeMapTextures[i]->Release();
+	}
 
 	return true;
 }
 
 bool CubeMapObject::InitializeUnitCubeBuffers(ID3D11Device* device) {
-	VertexType* vertices = new VertexType[k_UnitCubeVertexCount];
-	unsigned long* indices = new unsigned long[k_UnitCubeIndexCount];
+	VertexType* vertices = new VertexType[kUnitCubeVertexCount];
+	unsigned long* indices = new unsigned long[kUnitCubeIndexCount];
 
 	// Load the vertex array and index array with hard coded unit cube data
-	for(int i = 0, j = 0; i < k_UnitCubeVertexCount; i++, j += 5) {
-		vertices[i].position = XMFLOAT3(k_UnitCubeVertices[j], k_UnitCubeVertices[j + 1], k_UnitCubeVertices[j + 2]);
-		vertices[i].uv = XMFLOAT2(k_UnitCubeVertices[j + 3], k_UnitCubeVertices[j + 4]);
+	for(int i = 0, j = 0; i < kUnitCubeVertexCount; i++, j += 5) {
+		vertices[i].position = XMFLOAT3(kUnitCubeVertices[j], kUnitCubeVertices[j + 1], kUnitCubeVertices[j + 2]);
+		vertices[i].uv = XMFLOAT2(kUnitCubeVertices[j + 3], kUnitCubeVertices[j + 4]);
 		indices[i] = i;
 	}
 
 	// Set up the description of the static vertex buffer.
 	D3D11_BUFFER_DESC vertexBufferDesc {};
 	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vertexBufferDesc.ByteWidth = sizeof(VertexType) * k_UnitCubeVertexCount;
+	vertexBufferDesc.ByteWidth = sizeof(VertexType) * kUnitCubeVertexCount;
 	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vertexBufferDesc.CPUAccessFlags = 0;
 	vertexBufferDesc.MiscFlags = 0;
@@ -128,7 +151,7 @@ bool CubeMapObject::InitializeUnitCubeBuffers(ID3D11Device* device) {
 	// Set up the description of the static index buffer.
 	D3D11_BUFFER_DESC indexBufferDesc {};
 	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = sizeof(unsigned long) * k_UnitCubeIndexCount;
+	indexBufferDesc.ByteWidth = sizeof(unsigned long) * kUnitCubeIndexCount;
 	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	indexBufferDesc.CPUAccessFlags = 0;
 	indexBufferDesc.MiscFlags = 0;
@@ -289,7 +312,7 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstri
 }
 
 
-bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, bool isSkyBoxRender) {
+bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, RenderType renderType) {
 	/// Render Unit Cube
 	unsigned int stride = sizeof(VertexType);
 	unsigned int offset = 0;
@@ -298,15 +321,13 @@ bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatr
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	/// Update cubemap shader resources
-	//if(isSkyBoxRender) {
-		// removing translation in view matrix by truncating 4x4 matrix to 3x3
-		XMFLOAT3X3 viewMatrix3x3{};
-		XMStoreFloat3x3(&viewMatrix3x3, viewMatrix);
-		viewMatrix = XMLoadFloat3x3(&viewMatrix3x3);
+	// removing translation in view matrix by truncating 4x4 matrix to 3x3
+	XMFLOAT3X3 viewMatrix3x3{};
+	XMStoreFloat3x3(&viewMatrix3x3, viewMatrix);
+	viewMatrix = XMLoadFloat3x3(&viewMatrix3x3);
 
-		viewMatrix = DirectX::XMMatrixTranspose(viewMatrix);
-		projectionMatrix = DirectX::XMMatrixTranspose(projectionMatrix);
-	//}
+	viewMatrix = DirectX::XMMatrixTranspose(viewMatrix);
+	projectionMatrix = DirectX::XMMatrixTranspose(projectionMatrix);
 
 	// Write to matrix constant buffer
 	D3D11_MAPPED_SUBRESOURCE mappedResource {};
@@ -326,33 +347,42 @@ bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatr
 
 	// Set shader texture resource in the pixel shader.
 	ID3D11ShaderResourceView* cubeMapTexture {};
-	if(isSkyBoxRender) {
-		cubeMapTexture = m_CubeMapTex->GetTextureSRV();
-	}
-	else{
-		cubeMapTexture = m_HDRCubeMapTex->GetTextureSRV();
+
+	/// Render cubemap shader on unit cube
+	switch(renderType) {
+		case kHDRCapture:
+			cubeMapTexture = m_HDRCubeMapTex->GetTextureSRV();
+			deviceContext->VSSetShader(m_HDREquiVertexShader, NULL, 0);
+			deviceContext->PSSetShader(m_HDREquiPixelShader, NULL, 0);
+			break;
+		case kConvolution:
+			cubeMapTexture = m_CubeMapTex->GetTextureSRV();
+			deviceContext->VSSetShader(m_ConvolutionVertexShader, NULL, 0);
+			deviceContext->PSSetShader(m_ConvolutionPixelShader, NULL, 0);
+			break;
+		case kSkyBox:
+			cubeMapTexture = m_CubeMapTex->GetTextureSRV();
+			// DEBUG
+			//cubeMapTexture = m_IrradianceCubeMapTex->GetTextureSRV();
+			deviceContext->VSSetShader(m_CubeMapVertexShader, NULL, 0);
+			deviceContext->PSSetShader(m_CubeMapPixelShader, NULL, 0);
+			break;
+		default:
+			return false;
 	}
 
 	deviceContext->PSSetShaderResources(0, 1, &cubeMapTexture);
-
-	/// Render cubemap shader on unit cube
 	deviceContext->IASetInputLayout(m_Layout);
-	if(isSkyBoxRender) {
-		deviceContext->VSSetShader(m_CubeMapVertexShader, NULL, 0);
-		deviceContext->PSSetShader(m_CubeMapPixelShader, NULL, 0);
-	}
-	else {
-		deviceContext->VSSetShader(m_HDREquiVertexShader, NULL, 0);
-		deviceContext->PSSetShader(m_HDREquiPixelShader, NULL, 0);
-	}
-
 	deviceContext->PSSetSamplers(0, 1, &m_ClampSampleState);
 
-	deviceContext->DrawIndexed(k_UnitCubeIndexCount, 0, 0);
+	deviceContext->DrawIndexed(kUnitCubeIndexCount, 0, 0);
 
 	return true;
 }
 
+ID3D11ShaderResourceView* CubeMapObject::GetIrradianceSRV() const { 
+	return m_IrradianceCubeMapTex->GetTextureSRV(); 
+}
 
 void CubeMapObject::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR* shaderFilename) {
 	char* compileErrors;
