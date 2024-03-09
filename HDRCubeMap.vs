@@ -20,7 +20,7 @@ PixelInputType Vert(VertexInputType i) {
     
     i.position.w = 1.0f;
     o.position = mul(i.position, viewMatrix);
-    o.position = mul(o.position, projectionMatrix).xyww;
+    o.position = mul(o.position, projectionMatrix);
     
     return o;
 }

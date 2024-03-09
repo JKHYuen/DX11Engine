@@ -26,12 +26,12 @@
 #include "CubeMapObject.h"
 
 constexpr bool gFullScreen = false;
-constexpr bool gVsyncEnabled = false;
+constexpr bool gVsyncEnabled = true;
 constexpr float gScreenDepth = 1000.0f;
-constexpr float gScreenNear = 0.3f;
+constexpr float gScreenNear = 0.1f;
 constexpr int gShadowmapWidth = 2048;
 constexpr int gShadowmapHeight = 2048;
-constexpr float gShadowMapDepth = 50.0f;
+constexpr float gShadowMapDepth = 100.0f;
 constexpr float gShadowMapNear = 1.0f;
 
 using ChronoTimePoint = std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>>;

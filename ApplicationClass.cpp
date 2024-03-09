@@ -38,7 +38,7 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	///////////////////////////////
 	// Create and initialize the screen render texture
 	m_ScreenRenderTexture = new RenderTextureClass();
-	result = m_ScreenRenderTexture->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), screenWidth, screenHeight, gScreenDepth, gScreenNear);
+	result = m_ScreenRenderTexture->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), screenWidth, screenHeight, gScreenNear, gScreenDepth, DXGI_FORMAT_R32G32B32A32_FLOAT);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize screen render texture.", L"Error", MB_OK);
 		return false;
@@ -85,6 +85,18 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	// 3D Objects //
 	///////////////////////////////
 
+	// TODO: Load cubemap
+	m_Direct3D->SetToFrontCullRasterState();
+	m_CubeMapObject = new CubeMapObject();
+	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k
+	result = m_CubeMapObject->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), hwnd, "industrial_sunset_puresky_4k", 2048);
+	m_Direct3D->SetToBackCullRasterState();
+
+	if(!result) {
+		MessageBox(hwnd, L"Could not initialize cubemap.", L"Error", MB_OK);
+		return false;
+	}
+
 	// Temp scene object system
 	struct GameObjectData {
 		std::string modelName {};
@@ -109,6 +121,7 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	for(size_t i = 0; i < sampleSceneObjects.size(); i++) {
 		m_GameObjects.emplace_back();
 		if(!m_GameObjects[i].Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), hwnd, sampleSceneObjects[i].modelName, sampleSceneObjects[i].materialName)) {
+			MessageBox(hwnd, L"Could not initialize PBR object.", L"Error", MB_OK);
 			return false;
 		}
 
@@ -123,18 +136,9 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	// Lighting //
 	///////////////////////////////
 
-	// TODO: Load cubemap
-	m_CubeMapObject = new CubeMapObject();
-	result = m_CubeMapObject->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), hwnd, "yokohama2_sb");
-	//result = m_CubeMapObject->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), hwnd, "ocean_sb");
-	if(!result) {
-		MessageBox(hwnd, L"Could not initialize cubemap.", L"Error", MB_OK);
-		return false;
-	}
-
 	// Create and initialize the shadow map texture
 	m_ShadowMapRenderTexture = new RenderTextureClass();
-	result = m_ShadowMapRenderTexture->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), gShadowmapWidth, gShadowmapHeight, gShadowMapDepth, gShadowMapNear);
+	result = m_ShadowMapRenderTexture->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), gShadowmapWidth, gShadowmapHeight, gShadowMapNear, gShadowMapDepth, DXGI_FORMAT_R32G32B32A32_FLOAT);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize shadow map texture.", L"Error", MB_OK);
 		return false;
@@ -156,7 +160,7 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	m_Light->SetDirectionalColor(9.0f, 8.0f, 7.0f, 1.0f);
 	m_Light->SetDirection(0.0f, -1.0f, 0.0f);
 
-	m_Light->GenerateOrthoMatrix(20.0f, gShadowMapDepth, gShadowMapNear);
+	m_Light->GenerateOrthoMatrix(20.0f, gShadowMapNear, gShadowMapDepth);
 
 	//// Set the number of lights we will use.
 	//m_numLights = 4;
@@ -259,130 +263,6 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	return true;
 }
 
-void ApplicationClass::Shutdown() {
-	// Release the text objects for the mouse strings.
-	if(m_MouseTexts) {
-		m_MouseTexts[0].Shutdown();
-		m_MouseTexts[1].Shutdown();
-		m_MouseTexts[2].Shutdown();
-
-		delete[] m_MouseTexts;
-		m_MouseTexts = nullptr;
-	}
-
-	// Release the display plane object.
-	if(m_ScreenDisplayPlane) {
-		m_ScreenDisplayPlane->Shutdown();
-		delete m_ScreenDisplayPlane;
-		m_ScreenDisplayPlane = nullptr;
-	}
-
-	if(m_DepthDebugDisplayPlane) {
-		m_DepthDebugDisplayPlane->Shutdown();
-		delete m_DepthDebugDisplayPlane;
-		m_DepthDebugDisplayPlane = nullptr;
-	}
-
-	// Release the render to texture object.
-	if(m_ScreenRenderTexture) {
-		m_ScreenRenderTexture->Shutdown();
-		delete m_ScreenRenderTexture;
-		m_ScreenRenderTexture = nullptr;
-	}
-
-	if(m_ShadowMapRenderTexture) {
-		m_ShadowMapRenderTexture->Shutdown();
-		delete m_ShadowMapRenderTexture;
-		m_ShadowMapRenderTexture = nullptr;
-	}
-
-	// Release the text object for the fps string.
-	if(m_FpsString) {
-		m_FpsString->Shutdown();
-		delete m_FpsString;
-		m_FpsString = nullptr;
-	}
-
-	// Release the fps object.
-	if(m_Fps) {
-		delete m_Fps;
-		m_Fps = nullptr;
-	}
-
-	// Release the font object.
-	if(m_Font) {
-		m_Font->Shutdown();
-		delete m_Font;
-		m_Font = nullptr;
-	}
-	
-	// Release the font shader object.
-	if(m_FontShader) {
-		m_FontShader->Shutdown();
-		delete m_FontShader;
-		m_FontShader = nullptr;
-	}
-
-	// Release the timer object.
-	if(m_Timer) {
-		delete m_Timer;
-		m_Timer = nullptr;
-	}
-
-	// Release the sprite object.
-	//if(m_sprite) {
-	//	m_sprite->Shutdown();
-	//	delete m_sprite;
-	//	m_sprite = nullptr;
-	//}
-
-	// Release the texture shader object.
-	if(m_PostProcessShader) {
-		m_PostProcessShader->Shutdown();
-		delete m_PostProcessShader;
-		m_PostProcessShader = nullptr;
-	}
-
-	if(m_DebugDepthShader) {
-		m_DebugDepthShader->Shutdown();
-		delete m_DebugDepthShader;
-		m_DebugDepthShader = nullptr;
-	}
-
-	// Release the light objects.
-	//if(m_lights) {
-	//	delete[] m_lights;
-	//	m_lights = nullptr;
-	//}
-
-	// Release the light object.
-	if(m_Light) {
-		delete m_Light;
-		m_Light = nullptr;
-	}
-
-	for(GameObject go : m_GameObjects) {
-		go.Shutdown();
-	}
-
-	// Release the camera objects.
-	if(m_Camera) {
-		delete m_Camera;
-		m_Camera = nullptr;
-	}
-
-	if(m_DisplayCamera) {
-		delete m_DisplayCamera;
-		m_DisplayCamera = nullptr;
-	}
-
-	// Release the Direct3D object.
-	if(m_Direct3D) {
-		m_Direct3D->Shutdown();
-		delete m_Direct3D;
-		m_Direct3D = nullptr;
-	}
-}
 
 bool ApplicationClass::Frame(InputClass* input) {
 	int mouseX, mouseY;
@@ -608,7 +488,10 @@ bool ApplicationClass::RenderSceneToScreenTexture() {
 	XMVECTOR dirVec = XMVectorSet(lightDirX, lightDirY, lightDirZ, 0.0f);
 	dirVec = XMVector3Normalize(dirVec);
 	m_Light->SetDirection(XMVectorGetX(dirVec), XMVectorGetY(dirVec), XMVectorGetX(dirVec));
-	m_Light->SetPosition(-lightDirX * 15.0f, -lightDirY * 15.0f, -lightDirZ * 15.0f);
+
+	// Note: a bit hacky
+	float direcLightRenderDist = 30.0f;
+	m_Light->SetPosition(-lightDirX * direcLightRenderDist, -lightDirY * direcLightRenderDist, -lightDirZ * direcLightRenderDist);
 	m_Light->GenerateViewMatrix();
 
 	// Opaque 3D PBR Objects
@@ -704,3 +587,129 @@ bool ApplicationClass::RenderToBackBuffer() {
 	m_Direct3D->EndScene();
 	return true;
 }
+
+void ApplicationClass::Shutdown() {
+	// Release the text objects for the mouse strings.
+	if(m_MouseTexts) {
+		m_MouseTexts[0].Shutdown();
+		m_MouseTexts[1].Shutdown();
+		m_MouseTexts[2].Shutdown();
+
+		delete[] m_MouseTexts;
+		m_MouseTexts = nullptr;
+	}
+
+	// Release the display plane object.
+	if(m_ScreenDisplayPlane) {
+		m_ScreenDisplayPlane->Shutdown();
+		delete m_ScreenDisplayPlane;
+		m_ScreenDisplayPlane = nullptr;
+	}
+
+	if(m_DepthDebugDisplayPlane) {
+		m_DepthDebugDisplayPlane->Shutdown();
+		delete m_DepthDebugDisplayPlane;
+		m_DepthDebugDisplayPlane = nullptr;
+	}
+
+	// Release the render to texture object.
+	if(m_ScreenRenderTexture) {
+		m_ScreenRenderTexture->Shutdown();
+		delete m_ScreenRenderTexture;
+		m_ScreenRenderTexture = nullptr;
+	}
+
+	if(m_ShadowMapRenderTexture) {
+		m_ShadowMapRenderTexture->Shutdown();
+		delete m_ShadowMapRenderTexture;
+		m_ShadowMapRenderTexture = nullptr;
+	}
+
+	// Release the text object for the fps string.
+	if(m_FpsString) {
+		m_FpsString->Shutdown();
+		delete m_FpsString;
+		m_FpsString = nullptr;
+	}
+
+	// Release the fps object.
+	if(m_Fps) {
+		delete m_Fps;
+		m_Fps = nullptr;
+	}
+
+	// Release the font object.
+	if(m_Font) {
+		m_Font->Shutdown();
+		delete m_Font;
+		m_Font = nullptr;
+	}
+
+	// Release the font shader object.
+	if(m_FontShader) {
+		m_FontShader->Shutdown();
+		delete m_FontShader;
+		m_FontShader = nullptr;
+	}
+
+	// Release the timer object.
+	if(m_Timer) {
+		delete m_Timer;
+		m_Timer = nullptr;
+	}
+
+	// Release the sprite object.
+	//if(m_sprite) {
+	//	m_sprite->Shutdown();
+	//	delete m_sprite;
+	//	m_sprite = nullptr;
+	//}
+
+	// Release the texture shader object.
+	if(m_PostProcessShader) {
+		m_PostProcessShader->Shutdown();
+		delete m_PostProcessShader;
+		m_PostProcessShader = nullptr;
+	}
+
+	if(m_DebugDepthShader) {
+		m_DebugDepthShader->Shutdown();
+		delete m_DebugDepthShader;
+		m_DebugDepthShader = nullptr;
+	}
+
+	// Release the light objects.
+	//if(m_lights) {
+	//	delete[] m_lights;
+	//	m_lights = nullptr;
+	//}
+
+	// Release the light object.
+	if(m_Light) {
+		delete m_Light;
+		m_Light = nullptr;
+	}
+
+	for(GameObject go : m_GameObjects) {
+		go.Shutdown();
+	}
+
+	// Release the camera objects.
+	if(m_Camera) {
+		delete m_Camera;
+		m_Camera = nullptr;
+	}
+
+	if(m_DisplayCamera) {
+		delete m_DisplayCamera;
+		m_DisplayCamera = nullptr;
+	}
+
+	// Release the Direct3D object.
+	if(m_Direct3D) {
+		m_Direct3D->Shutdown();
+		delete m_Direct3D;
+		m_Direct3D = nullptr;
+	}
+}
+

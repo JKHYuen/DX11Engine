@@ -14,7 +14,7 @@ public:
     void SetLookAt(float, float, float);
     void SetPosition(float, float, float);
 
-    void GenerateOrthoMatrix(float, float, float);
+    void GenerateOrthoMatrix(float width, float nearPlane, float depthPlane);
     void GetOrthoMatrix(XMMATRIX&);
 
     void GenerateViewMatrix();

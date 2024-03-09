@@ -23,7 +23,7 @@ bool ModelClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 	// Load the texture for this model.
 	for(size_t i = 0; i < textureFileNames.size(); i++) {
 		m_Textures.emplace_back();
-		if(!m_Textures[i].Initialize(device, deviceContext, textureFileNames[i].data(), false /*isCubeMap*/)) {
+		if(!m_Textures[i].Initialize(device, deviceContext, textureFileNames[i].data(), DXGI_FORMAT_R8G8B8A8_UNORM, false /*isCubeMap*/)) {
 			return false;
 		}
 	}

@@ -42,26 +42,26 @@ public:
     void DisableAlphaBlending();
 
 private:
-    bool m_vsync_enabled {};
-    int m_videoCardMemory {};
-    char m_videoCardDescription[128] {};
-    IDXGISwapChain* m_swapChain {};
-    ID3D11Device* m_device {};
-    ID3D11DeviceContext* m_deviceContext {};
-    ID3D11RenderTargetView* m_renderTargetView {};
+    bool m_Vsync_enabled {};
+    int m_VideoCardMemory {};
+    char m_VideoCardDescription[128] {};
+    IDXGISwapChain* m_SwapChain {};
+    ID3D11Device* m_Device {};
+    ID3D11DeviceContext* m_DeviceContext {};
+    ID3D11RenderTargetView* m_RenderTargetView {};
     
-    ID3D11Texture2D* m_depthStencilBuffer {};
-    ID3D11DepthStencilView* m_depthStencilView {};
-    ID3D11DepthStencilState* m_depthStencilState {};
-    ID3D11DepthStencilState* m_depthDisabledStencilState {};
+    ID3D11Texture2D* m_DepthStencilBuffer {};
+    ID3D11DepthStencilView* m_DepthStencilView {};
+    ID3D11DepthStencilState* m_DepthStencilState {};
+    ID3D11DepthStencilState* m_DepthDisabledStencilState {};
 
-    ID3D11RasterizerState* m_rasterStateBackCull {};
-    ID3D11RasterizerState* m_rasterStateFrontCull {};
-    DirectX::XMMATRIX m_projectionMatrix {};
-    DirectX::XMMATRIX m_worldMatrix {};
-    DirectX::XMMATRIX m_orthoMatrix {};
-    D3D11_VIEWPORT m_viewport {};
+    ID3D11RasterizerState* m_RasterStateBackCull {};
+    ID3D11RasterizerState* m_RasterStateFrontCull {};
+    DirectX::XMMATRIX m_ProjectionMatrix {};
+    DirectX::XMMATRIX m_WorldMatrix {};
+    DirectX::XMMATRIX m_OrthoMatrix {};
+    D3D11_VIEWPORT m_Viewport {};
 
-    ID3D11BlendState* m_alphaEnableBlendingState {};
-    ID3D11BlendState* m_alphaDisableBlendingState {};
+    ID3D11BlendState* m_AlphaEnableBlendingState {};
+    ID3D11BlendState* m_AlphaDisableBlendingState {};
 };

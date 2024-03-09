@@ -8,8 +8,12 @@ TextureClass::TextureClass() {}
 TextureClass::TextureClass(const TextureClass& other) {}
 TextureClass::~TextureClass() {}
 
-bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, bool isCubeMap) {
-	return isCubeMap ? InitializeCubeMap(device, deviceContext, filePath) : InitializeTexture(device, deviceContext, filePath);
+bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, DXGI_FORMAT format,  bool isCubeMap) {
+	return isCubeMap ? InitializeCubeMapFromDisk(device, deviceContext, filePath) : InitializeTexture(device, deviceContext, filePath, format);
+}
+
+bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::array<ID3D11Texture2D*, 6>& sourceHDRTexArray) {
+	return InitializeCubeMapArray(device, deviceContext, sourceHDRTexArray);
 }
 
 // NOTE: use rastertek loader if tga file, else, stb_image; because tga function seems to be significantly faster
@@ -72,17 +76,16 @@ bool TextureClass::LoadTexture(ID3D11Device* device, ID3D11DeviceContext* device
 	return true;
 }
 
-// NOTE: hard coded format - DXGI_FORMAT_R8G8B8A8_UNORM
-bool TextureClass::InitializeTexture(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath) {
+bool TextureClass::InitializeTexture(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, DXGI_FORMAT format) {
 	HRESULT hResult {};
 	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc {};
 
-	if(!LoadTexture(device, deviceContext, filePath, DXGI_FORMAT_R8G8B8A8_UNORM, &m_Texture)) {
+	if(!LoadTexture(device, deviceContext, filePath, format, &m_Texture)) {
 		return false;
 	}
 
 	// Setup the shader resource view description.
-	srvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	srvDesc.Format = format;
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.MipLevels = -1;
@@ -99,23 +102,27 @@ bool TextureClass::InitializeTexture(ID3D11Device* device, ID3D11DeviceContext* 
 	return true;
 }
 
-// NOTE: only supports cubemaps that are 6 JPG textures by default for now
-bool TextureClass::InitializeCubeMap(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& folderPath) {
-	D3D11_TEXTURE2D_DESC textureArrayDesc {};
-	HRESULT hResult {};
-	D3D11_SHADER_RESOURCE_VIEW_DESC cubeMapSrvDesc {};
-
+// NOTE: only supports cubemaps that are 6 JPG textures if loading directly from disk
+bool TextureClass::InitializeCubeMapFromDisk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& folderPath) {
 	for(size_t i = 0; i < 6; i++) {
 		if(!LoadTexture(device, deviceContext, folderPath + "/" + kCubeMapFaceName[i] + ".jpg", DXGI_FORMAT_R8G8B8A8_UNORM, &m_CubeMapSourceTextureArray[i])) {
 			return false;
 		}
 	}
 
-	D3D11_TEXTURE2D_DESC texElementDesc;
-	m_CubeMapSourceTextureArray[0]->GetDesc(&texElementDesc);
+	InitializeCubeMapArray(device, deviceContext, m_CubeMapSourceTextureArray);
+}
 
-	textureArrayDesc.Height = m_Height;
-	textureArrayDesc.Width = m_Width;
+bool TextureClass::InitializeCubeMapArray(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::array<ID3D11Texture2D*, 6>& sourceHDRTexArray) {
+	D3D11_TEXTURE2D_DESC textureArrayDesc {};
+	HRESULT hResult {};
+	D3D11_SHADER_RESOURCE_VIEW_DESC cubeMapSrvDesc {};
+
+	D3D11_TEXTURE2D_DESC texElementDesc;
+	sourceHDRTexArray[0]->GetDesc(&texElementDesc);
+
+	textureArrayDesc.Height = texElementDesc.Height;
+	textureArrayDesc.Width = texElementDesc.Width;
 	textureArrayDesc.ArraySize = 6;
 	textureArrayDesc.Format = texElementDesc.Format;
 	//textureDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
@@ -129,16 +136,17 @@ bool TextureClass::InitializeCubeMap(ID3D11Device* device, ID3D11DeviceContext* 
 	textureArrayDesc.CPUAccessFlags = 0;
 	textureArrayDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
 
-	// Source: https://stackoverflow.com/a/34325668
+	// Initialize empty texture array
 	ID3D11Texture2D* texArray = nullptr;
 	hResult = device->CreateTexture2D(&textureArrayDesc, 0, &texArray);
 	if(FAILED(hResult)) {
 		return false;
 	}
 
+	// Source: https://stackoverflow.com/a/34325668
 	// Copy individual texture elements into texture array.
 	D3D11_BOX sourceRegion {};
-	//Here i copy the mip map levels of the textures
+	//Here I copy the mip map levels of the textures
 	for(UINT x = 0; x < 6; x++) {
 		for(UINT mipLevel = 0; mipLevel < textureArrayDesc.MipLevels; mipLevel++) {
 			sourceRegion.left = 0;
@@ -152,7 +160,7 @@ bool TextureClass::InitializeCubeMap(ID3D11Device* device, ID3D11DeviceContext* 
 			if(sourceRegion.bottom == 0 || sourceRegion.right == 0)
 				break;
 
-			deviceContext->CopySubresourceRegion(texArray, D3D11CalcSubresource(mipLevel, x, textureArrayDesc.MipLevels), 0, 0, 0, m_CubeMapSourceTextureArray[x], mipLevel, &sourceRegion);
+			deviceContext->CopySubresourceRegion(texArray, D3D11CalcSubresource(mipLevel, x, textureArrayDesc.MipLevels), 0, 0, 0, sourceHDRTexArray[x], mipLevel, &sourceRegion);
 		}
 	}
 

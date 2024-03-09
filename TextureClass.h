@@ -10,7 +10,9 @@ public:
     TextureClass(const TextureClass&);
     ~TextureClass();
 
-    bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filename, bool isCubeMap = false);
+    bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filename, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM, bool isCubeMap = false);
+    bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::array<ID3D11Texture2D*, 6>& sourceHDRTexArray);
+
     void Shutdown();
 
     ID3D11ShaderResourceView* GetTextureSRV();
@@ -41,10 +43,13 @@ private:
     bool LoadTexture(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, DXGI_FORMAT format, ID3D11Texture2D** pTexture);
 
     // load single texture from file, store results into m_Texture and m_TextureView
-    bool InitializeTexture(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath);
+    bool InitializeTexture(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, DXGI_FORMAT format);
 
     // load cubemap (folderPath contains folder of 6 textures with filenames in kCubeMapFaceName)
-    bool InitializeCubeMap(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& folderPath);
+    bool InitializeCubeMapFromDisk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& folderPath);
+
+    bool InitializeCubeMapArray(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::array<ID3D11Texture2D*, 6>& sourceHDRTexArray);
+
 
     // Temp pointer to load texture binary data (declared as member only for memory cleanup in Shutdown())
     unsigned char* m_UCharTexData {};

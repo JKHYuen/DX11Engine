@@ -36,7 +36,7 @@ XMFLOAT3 LightClass::GetPosition() {
     return m_Position;
 }
 
-void LightClass::GenerateOrthoMatrix(float width, float depthPlane, float nearPlane) {
+void LightClass::GenerateOrthoMatrix(float width, float nearPlane, float depthPlane) {
     m_OrthoMatrix = XMMatrixOrthographicLH(width, width, nearPlane, depthPlane);
 }
 

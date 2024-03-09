@@ -21,7 +21,7 @@ private:
 
     // optionally member scoped, 
     // see https://stackoverflow.com/questions/54000030/how-when-to-release-resources-and-resource-views-in-directx
-    ID3D11Texture2D* m_Texture{};
+    ID3D11Texture2D* m_Texture {};
 
     ID3D11ShaderResourceView* m_TextureView {};
     int m_Width{};

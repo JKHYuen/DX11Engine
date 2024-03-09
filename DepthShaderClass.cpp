@@ -109,7 +109,6 @@ bool DepthShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount
 
 bool DepthShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilename, WCHAR* psFilename) {
 	HRESULT result {};
-	// Initialize the pointers this function will use to null.
 	ID3D10Blob* errorMessage {};
 	ID3D10Blob* vertexShaderBuffer {};
 	ID3D10Blob* pixelShaderBuffer {};
@@ -117,7 +116,7 @@ bool DepthShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* 
 	unsigned int numElements {};
 	D3D11_BUFFER_DESC matrixBufferDesc {};
 
-	D3D11_SAMPLER_DESC samplerDesc {};
+	//D3D11_SAMPLER_DESC samplerDesc {};
 
 	// Compile the vertex shader code.
 	result = D3DCompileFromFile(vsFilename, NULL, NULL, "DepthVertexShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,

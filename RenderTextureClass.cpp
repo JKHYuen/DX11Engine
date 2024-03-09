@@ -11,7 +11,7 @@ RenderTextureClass::RenderTextureClass() {
 RenderTextureClass::RenderTextureClass(const RenderTextureClass& other) {}
 RenderTextureClass::~RenderTextureClass() {}
 
-bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int textureWidth, int textureHeight, float screenDepth, float screenNear, DXGI_FORMAT textureFormat) {
+bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int textureWidth, int textureHeight, float nearZ, float farZ, DXGI_FORMAT textureFormat, float perspectiveFOV) {
     D3D11_TEXTURE2D_DESC textureDesc {};
     HRESULT result {};
     D3D11_RENDER_TARGET_VIEW_DESC renderTargetViewDesc {};
@@ -184,39 +184,12 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* d
     m_Viewport.TopLeftY = 0;
 
     // Setup the projection matrix.
-    m_ProjectionMatrix = XMMatrixPerspectiveFovLH((3.141592654f / 4.0f), ((float)textureWidth / (float)textureHeight), screenNear, screenDepth);
+    m_ProjectionMatrix = XMMatrixPerspectiveFovLH(perspectiveFOV, ((float)textureWidth / (float)textureHeight), nearZ, farZ);
 
     // Create an orthographic projection matrix for 2D rendering.
-    m_OrthoMatrix = XMMatrixOrthographicLH((float)textureWidth, (float)textureHeight, screenNear, screenDepth);
+    m_OrthoMatrix = XMMatrixOrthographicLH((float)textureWidth, (float)textureHeight, nearZ, farZ);
 
     return true;
-}
-
-void RenderTextureClass::Shutdown() {
-    if(m_DepthStencilView) {
-        m_DepthStencilView->Release();
-        m_DepthStencilView = nullptr;
-    }
-
-    if(m_DepthStencilBuffer) {
-        m_DepthStencilBuffer->Release();
-        m_DepthStencilBuffer = nullptr;
-    }
-
-    if(m_ShaderResourceView) {
-        m_ShaderResourceView->Release();
-        m_ShaderResourceView = nullptr;
-    }
-
-    if(m_RenderTargetView) {
-        m_RenderTargetView->Release();
-        m_RenderTargetView = nullptr;
-    }
-
-    if(m_RenderTargetTexture) {
-        m_RenderTargetTexture->Release();
-        m_RenderTargetTexture = nullptr;
-    }
 }
 
 void RenderTextureClass::SetRenderTarget(ID3D11DeviceContext* deviceContext) {
@@ -255,14 +228,6 @@ void RenderTextureClass::GetOrthoMatrix(XMMATRIX& orthoMatrix) {
     orthoMatrix = m_OrthoMatrix;
 }
 
-int RenderTextureClass::GetTextureWidth() {
-    return m_TextureWidth;
-}
-
-int RenderTextureClass::GetTextureHeight() {
-    return m_TextureHeight;
-}
-
 void RenderTextureClass::TurnZBufferOn() {
     m_DeviceContext->OMSetDepthStencilState(m_DepthStencilState, 1);
 }
@@ -297,4 +262,29 @@ void RenderTextureClass::DisableAlphaBlending() {
     m_DeviceContext->OMSetBlendState(m_AlphaDisableBlendingState, blendFactor, 0xffffffff);
 }
 
+void RenderTextureClass::Shutdown() {
+    if(m_DepthStencilView) {
+        m_DepthStencilView->Release();
+        m_DepthStencilView = nullptr;
+    }
 
+    if(m_DepthStencilBuffer) {
+        m_DepthStencilBuffer->Release();
+        m_DepthStencilBuffer = nullptr;
+    }
+
+    if(m_ShaderResourceView) {
+        m_ShaderResourceView->Release();
+        m_ShaderResourceView = nullptr;
+    }
+
+    if(m_RenderTargetView) {
+        m_RenderTargetView->Release();
+        m_RenderTargetView = nullptr;
+    }
+
+    if(m_RenderTargetTexture) {
+        m_RenderTargetTexture->Release();
+        m_RenderTargetTexture = nullptr;
+    }
+}

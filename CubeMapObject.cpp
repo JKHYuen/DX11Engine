@@ -1,6 +1,7 @@
 #include "CubeMapObject.h"
 #include "ModelClass.h"
 #include "TextureClass.h"
+#include "RenderTextureClass.h"
 #include "HDRTexture.h"
 #include <fstream>
 
@@ -8,51 +9,86 @@ CubeMapObject::CubeMapObject() {}
 CubeMapObject::CubeMapObject(const CubeMapObject& other) {}
 CubeMapObject::~CubeMapObject() {}
 
-bool CubeMapObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, const std::string& textureFolderName) {
-	/// Load shader
-	bool result;
-	wchar_t vsFilename[128];
-	wchar_t psFilename[128];
-	int error;
-
-	// Set the filename of the vertex shader.
-	//error = wcscpy_s(vsFilename, 128, L"../DX11Engine/CubeMap.vs");
-	error = wcscpy_s(vsFilename, 128, L"../DX11Engine/HDRCubeMap.vs");
-	if(error != 0) {
-		return false;
-	}
-
-	// Set the filename of the pixel shader.
-	//error = wcscpy_s(psFilename, 128, L"../DX11Engine/CubeMap.ps");
-	error = wcscpy_s(psFilename, 128, L"../DX11Engine/HDRCubeMap.ps");
-	if(error != 0) {
-		return false;
-	}
-
+bool CubeMapObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, const std::string& fileName, int cubeFaceResolution) {
+	/// Load shaders
 	// Initialize the vertex and pixel shaders.
-	result = InitializeShader(device, hwnd, vsFilename, psFilename);
+	bool result = InitializeShader(device, hwnd, L"HDRCubeMap", &m_HDREquiVertexShader, &m_HDREquiPixelShader);
+	if(!result) {
+		return false;
+	}
+
+	result = InitializeShader(device, hwnd, L"CubeMap", &m_CubeMapVertexShader, &m_CubeMapPixelShader);
 	if(!result) {
 		return false;
 	}
 	///
 
-	/// Load unit cube
+	// Load unit cube
 	result = InitializeUnitCubeBuffers(device);
 	if(!result) {
 		return false;
 	}
 
-	//m_CubeMapTex = new TextureClass();
-	//result = m_CubeMapTex->Initialize(device, deviceContext, "../DX11Engine/data/" + textureFolderName, /* isCubemap */ true);
-	//if(!result) {
-	//	return false;
-	//}
-
+	/// Load HDR cubemap texture from disk and render to 6 cubemap textures
 	m_HDRCubeMapTex = new HDRTexture();
-	result = m_HDRCubeMapTex->Initialize(device, deviceContext, "../DX11Engine/data/kloppenheim_03_4k.hdr");
+	result = m_HDRCubeMapTex->Initialize(device, deviceContext, "../DX11Engine/data/" + fileName + ".hdr");
 	if(!result) {
 		return false;
 	}
+
+	// TODO: Generate 6 texture cubemap from HDR
+	// TODO: CLEANUP
+	// Initialize 6 render textures for cubemap capture from equirectangularly mapped HDR texture
+	std::array<RenderTextureClass*, 6> hdrRenderTextureArray {};
+	for(size_t i = 0; i < 6; i++) {
+		hdrRenderTextureArray[i] = new RenderTextureClass();
+		result = hdrRenderTextureArray[i]->Initialize(device, deviceContext, cubeFaceResolution, cubeFaceResolution, 0.1f, 10.0f, DXGI_FORMAT_R32G32B32A32_FLOAT, XMConvertToRadians(90.0f));
+		if(!result) {
+			return false;
+		}
+	}
+
+	// View matrices for the 6 different cube directions
+	XMFLOAT3 float3_000  {  0.0f,  0.0f,  0.0f };
+	XMFLOAT3 float3_100  {  1.0f,  0.0f,  0.0f };
+	XMFLOAT3 float3_010  {  0.0f,  1.0f,  0.0f };
+	XMFLOAT3 float3_n100 { -1.0f,  0.0f,  0.0f };
+	XMFLOAT3 float3_00n1 {  0.0f,  0.0f, -1.0f };
+	XMFLOAT3 float3_0n10 {  0.0f, -1.0f,  0.0f };
+	XMFLOAT3 float3_001  {  0.0f,  0.0f,  1.0f };
+	const std::array<XMMATRIX, 6> cubeMapCaptureViewMats = {
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_100),  XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_n100), XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_010),  XMLoadFloat3(&float3_00n1)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_0n10),	XMLoadFloat3(&float3_001)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_001),	XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
+	};
+
+	// Same projection matrix for all captures (90 degree FOV)
+	XMMATRIX cubemapCapturecaptureProjectionMatrix {};
+	hdrRenderTextureArray[0]->GetProjectionMatrix(cubemapCapturecaptureProjectionMatrix);
+
+	std::array<ID3D11Texture2D*, 6> sourceCubeMapTextures{};
+	for(size_t i = 0; i < 6; i++) {
+		hdrRenderTextureArray[i]->SetRenderTarget(deviceContext);
+		hdrRenderTextureArray[i]->ClearRenderTarget(deviceContext, 0.5f, 0.0f, 0.0f, 1.0f);
+
+		result = Render(deviceContext, cubeMapCaptureViewMats[i], cubemapCapturecaptureProjectionMatrix, false /*isSkyBoxRender*/);
+		if(!result) {
+			return false;
+		}
+
+		sourceCubeMapTextures[i] = hdrRenderTextureArray[i]->GetTexture();
+	}
+
+	// Create cubemap texture array
+	m_CubeMapTex = new TextureClass();
+	result = m_CubeMapTex->Initialize(device, deviceContext, sourceCubeMapTextures);
+	if(!result) {
+		return false;
+	}
+	///
 
 	return true;
 }
@@ -120,52 +156,55 @@ bool CubeMapObject::InitializeUnitCubeBuffers(ID3D11Device* device) {
 	return true;
 }
 
-bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilename, WCHAR* psFilename) {
+bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shaderName, ID3D11VertexShader** ppVertShader, ID3D11PixelShader** ppPixelShader) {
 	HRESULT result {};
 	ID3D10Blob* errorMessage {};
 	ID3D10Blob* vertexShaderBuffer {};
 	ID3D10Blob* pixelShaderBuffer {};
 
+	std::wstring vsFileName = L"../DX11Engine/" + shaderName + L".vs";
+	std::wstring psFileName = L"../DX11Engine/" + shaderName + L".ps";
+
 	// Compile the vertex shader code.
-	result = D3DCompileFromFile(vsFilename, NULL, NULL, "Vert", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
+	result = D3DCompileFromFile(vsFileName.c_str(), NULL, NULL, "Vert", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&vertexShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
 		// If the shader failed to compile it should have writen something to the error message.
 		if(errorMessage) {
-			OutputShaderErrorMessage(errorMessage, hwnd, vsFilename);
+			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)vsFileName.c_str());
 		}
 		// If there was  nothing in the error message then it simply could not find the shader file itself.
 		else {
-			MessageBox(hwnd, vsFilename, L"Missing Shader File", MB_OK);
+			MessageBox(hwnd, vsFileName.c_str(), L"Missing Shader File", MB_OK);
 		}
 
 		return false;
 	}
 
 	// Compile the pixel shader code.
-	result = D3DCompileFromFile(psFilename, NULL, NULL, "Frag", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
+	result = D3DCompileFromFile(psFileName.c_str(), NULL, NULL, "Frag", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&pixelShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
 		// If the shader failed to compile it should have writen something to the error message.
 		if(errorMessage) {
-			OutputShaderErrorMessage(errorMessage, hwnd, psFilename);
+			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)psFileName.c_str());
 		}
 		// If there was nothing in the error message then it simply could not find the file itself.
 		else {
-			MessageBox(hwnd, psFilename, L"Missing Shader File", MB_OK);
+			MessageBox(hwnd, psFileName.c_str(), L"Missing Shader File", MB_OK);
 		}
 
 		return false;
 	}
 
 	// Create the vertex shader from the buffer.
-	result = device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, &m_VertexShader);
+	result = device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, ppVertShader);
 	if(FAILED(result)) {
 		return false;
 	}
 
 	// Create the pixel shader from the buffer.
-	result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_PixelShader);
+	result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, ppPixelShader);
 	if(FAILED(result)) {
 		return false;
 	}
@@ -241,7 +280,7 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsF
 	//samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 	// Create the texture sampler state.
-	result = device->CreateSamplerState(&cubeMapSamplerDesc, &m_SampleState);
+	result = device->CreateSamplerState(&cubeMapSamplerDesc, &m_ClampSampleState);
 	if(FAILED(result)) {
 		return false;
 	}
@@ -250,7 +289,7 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsF
 }
 
 
-bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix) {
+bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, bool isSkyBoxRender) {
 	/// Render Unit Cube
 	unsigned int stride = sizeof(VertexType);
 	unsigned int offset = 0;
@@ -259,13 +298,15 @@ bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatr
 	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	/// Update cubemap shader resources
-	// removing translation in view matrix by truncating 4x4 matrix to 3x3
-	XMFLOAT3X3 viewMatrix3x3 {};
-	XMStoreFloat3x3(&viewMatrix3x3, viewMatrix);
-	viewMatrix = XMLoadFloat3x3(&viewMatrix3x3);
+	//if(isSkyBoxRender) {
+		// removing translation in view matrix by truncating 4x4 matrix to 3x3
+		XMFLOAT3X3 viewMatrix3x3{};
+		XMStoreFloat3x3(&viewMatrix3x3, viewMatrix);
+		viewMatrix = XMLoadFloat3x3(&viewMatrix3x3);
 
-	viewMatrix = DirectX::XMMatrixTranspose(viewMatrix);
-	projectionMatrix = DirectX::XMMatrixTranspose(projectionMatrix);
+		viewMatrix = DirectX::XMMatrixTranspose(viewMatrix);
+		projectionMatrix = DirectX::XMMatrixTranspose(projectionMatrix);
+	//}
 
 	// Write to matrix constant buffer
 	D3D11_MAPPED_SUBRESOURCE mappedResource {};
@@ -284,16 +325,28 @@ bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatr
 	deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_MatrixBuffer);
 
 	// Set shader texture resource in the pixel shader.
-	//ID3D11ShaderResourceView* cubeMapTexture = m_CubeMapTex->GetTextureSRV();
-	ID3D11ShaderResourceView* cubeMapTexture = m_HDRCubeMapTex->GetTextureSRV();
+	ID3D11ShaderResourceView* cubeMapTexture {};
+	if(isSkyBoxRender) {
+		cubeMapTexture = m_CubeMapTex->GetTextureSRV();
+	}
+	else{
+		cubeMapTexture = m_HDRCubeMapTex->GetTextureSRV();
+	}
+
 	deviceContext->PSSetShaderResources(0, 1, &cubeMapTexture);
 
 	/// Render cubemap shader on unit cube
 	deviceContext->IASetInputLayout(m_Layout);
+	if(isSkyBoxRender) {
+		deviceContext->VSSetShader(m_CubeMapVertexShader, NULL, 0);
+		deviceContext->PSSetShader(m_CubeMapPixelShader, NULL, 0);
+	}
+	else {
+		deviceContext->VSSetShader(m_HDREquiVertexShader, NULL, 0);
+		deviceContext->PSSetShader(m_HDREquiPixelShader, NULL, 0);
+	}
 
-	deviceContext->VSSetShader(m_VertexShader, NULL, 0);
-	deviceContext->PSSetShader(m_PixelShader, NULL, 0);
-	deviceContext->PSSetSamplers(0, 1, &m_SampleState);
+	deviceContext->PSSetSamplers(0, 1, &m_ClampSampleState);
 
 	deviceContext->DrawIndexed(k_UnitCubeIndexCount, 0, 0);
 
@@ -336,9 +389,9 @@ void CubeMapObject::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd
 // Shutdown the vertex and pixel shaders as well as the related objects.
 void CubeMapObject::Shutdown() {
 	// Release the sampler state.
-	if(m_SampleState) {
-		m_SampleState->Release();
-		m_SampleState = nullptr;
+	if(m_ClampSampleState) {
+		m_ClampSampleState->Release();
+		m_ClampSampleState = nullptr;
 	}
 
 	// Release the matrix constant buffer.
@@ -354,15 +407,15 @@ void CubeMapObject::Shutdown() {
 	}
 
 	// Release the pixel shader.
-	if(m_PixelShader) {
-		m_PixelShader->Release();
-		m_PixelShader = nullptr;
+	if(m_CubeMapPixelShader) {
+		m_CubeMapPixelShader->Release();
+		m_CubeMapPixelShader = nullptr;
 	}
 
 	// Release the vertex shader.
-	if(m_VertexShader) {
-		m_VertexShader->Release();
-		m_VertexShader = nullptr;
+	if(m_CubeMapVertexShader) {
+		m_CubeMapVertexShader->Release();
+		m_CubeMapVertexShader = nullptr;
 	}
 
 	if(m_HDRCubeMapTex) {

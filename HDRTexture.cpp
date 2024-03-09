@@ -8,14 +8,12 @@ HDRTexture::~HDRTexture() {}
 bool HDRTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath) {
 	HRESULT hResult{};
 
-	//stbi_set_flip_vertically_on_load(false);
 	int nrComponents;
 	m_TextureData = stbi_loadf(filePath.c_str(), &m_Width, &m_Height, &nrComponents, 4);
 	if(!m_TextureData) {
 		return false;
 	}
 
-	// Setup the description of the texture.
 	D3D11_TEXTURE2D_DESC textureDesc {};
 	textureDesc.Height = m_Height;
 	textureDesc.Width = m_Width;
@@ -38,20 +36,17 @@ bool HDRTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 
 	deviceContext->UpdateSubresource(m_Texture, 0, NULL, m_TextureData, m_Width * 4 * sizeof(float), 0);
 
-	// Setup the shader resource view description.
 	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc {};
 	srvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.MipLevels = -1;
 
-	// Create the shader resource view for the texture.
 	hResult = device->CreateShaderResourceView(m_Texture, &srvDesc, &m_TextureView);
 	if(FAILED(hResult)) {
 		return false;
 	}
 
-	// Generate mipmaps for this texture.
 	deviceContext->GenerateMips(m_TextureView);
 
 	stbi_image_free(m_TextureData);

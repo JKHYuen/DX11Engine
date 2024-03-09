@@ -69,28 +69,32 @@ public:
     CubeMapObject(const CubeMapObject&);
     ~CubeMapObject();
 
-    bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, const std::string& textureFolderName);
+    bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, const std::string& fileName, int cubeFaceResolution);
 
     void Shutdown();
-    bool Render(ID3D11DeviceContext*, XMMATRIX, XMMATRIX);
+    bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, bool isSkyBoxRender = true);
 
 private:
     void OutputShaderErrorMessage(ID3D10Blob*, HWND, WCHAR*);
-    bool InitializeShader(ID3D11Device*, HWND, WCHAR*, WCHAR*);
+    bool InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shaderName, ID3D11VertexShader** ppVertShader, ID3D11PixelShader** ppPixelShader);
     bool InitializeUnitCubeBuffers(ID3D11Device* device);
 
 private:
-    ID3D11VertexShader* m_VertexShader {};
-    ID3D11PixelShader* m_PixelShader {};
-    ID3D11InputLayout* m_Layout {};
-    ID3D11SamplerState* m_SampleState {};
-    ID3D11Buffer* m_MatrixBuffer {};
+    ID3D11VertexShader* m_CubeMapVertexShader {};
+    ID3D11PixelShader* m_CubeMapPixelShader {};
 
+    ID3D11VertexShader* m_HDREquiVertexShader{};
+    ID3D11PixelShader* m_HDREquiPixelShader{};
+
+    ID3D11Buffer* m_VertexBuffer{};
+    ID3D11Buffer* m_IndexBuffer{};
+    ID3D11InputLayout* m_Layout {};
+    ID3D11SamplerState* m_ClampSampleState {};
+
+    ID3D11Buffer* m_MatrixBuffer {};
     ID3D11Buffer* m_CameraBuffer {};
     ID3D11Buffer* m_MaterialParamBuffer {};
 
-    ID3D11Buffer* m_VertexBuffer {};
-    ID3D11Buffer* m_IndexBuffer {};
 
     TextureClass* m_CubeMapTex {};
     HDRTexture* m_HDRCubeMapTex {};

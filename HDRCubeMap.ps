@@ -11,17 +11,11 @@ float2 SampleSphericalMap(float3 v) {
     float2 uv = float2(atan2(v.z, v.x), asin(-v.y));
     uv *= invAtan;
     uv += 0.5;
-   
+    
     return uv;
 }
 
 float4 Frag(PixelInputType i) : SV_TARGET {
     float4 color = CubeMapTexture.Sample(SampleType, SampleSphericalMap(normalize(i.uvw)));
-    
-    //// apply contrast
-    //color.rgb = ((color.rgb - 0.5f) * max(1.15, 0)) + 0.5f;
-    //// apply brightness
-    //color.rgb += 0.07;
-    
     return color;
 }
