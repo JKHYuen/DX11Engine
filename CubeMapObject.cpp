@@ -5,30 +5,98 @@
 #include "HDRTexture.h"
 #include <fstream>
 
+static constexpr int kUnitCubeVertexCount = 36;
+static constexpr int kUnitCubeIndexCount = 36;
+// x, y, z, u, v
+static constexpr float kUnitCubeVertices[] = {
+	-1.0 , 1.0, -1.0, 0.0 , 0.0,
+	 1.0 , 1.0, -1.0, 1.0 , 0.0,
+	-1.0, -1.0, -1.0, 0.0,  1.0,
+	-1.0, -1.0, -1.0, 0.0,  1.0,
+	 1.0 , 1.0, -1.0, 1.0 , 0.0,
+	 1.0 ,-1.0, -1.0, 1.0 , 1.0,
+	 1.0 , 1.0, -1.0, 0.0 , 0.0,
+	 1.0 , 1.0,  1.0, 1.0 , 0.0,
+	 1.0 ,-1.0, -1.0, 0.0 , 1.0,
+	 1.0 ,-1.0, -1.0, 0.0 , 1.0,
+	 1.0 , 1.0,  1.0, 1.0 , 0.0,
+	 1.0 ,-1.0,  1.0, 1.0 , 1.0,
+	 1.0 , 1.0,  1.0, 0.0 , 0.0,
+	-1.0,  1.0,  1.0, 1.0,  0.0,
+	 1.0 ,-1.0,  1.0, 0.0 , 1.0,
+	 1.0 ,-1.0,  1.0, 0.0 , 1.0,
+	-1.0,  1.0,  1.0, 1.0,  0.0,
+	-1.0, -1.0,  1.0, 1.0,  1.0,
+	-1.0,  1.0,  1.0, 0.0,  0.0,
+	-1.0,  1.0, -1.0, 1.0,  0.0,
+	-1.0, -1.0,  1.0, 0.0,  1.0,
+	-1.0, -1.0,  1.0, 0.0,  1.0,
+	-1.0,  1.0, -1.0, 1.0,  0.0,
+	-1.0, -1.0, -1.0, 1.0,  1.0,
+	-1.0,  1.0,  1.0, 0.0,  0.0,
+	 1.0 , 1.0,  1.0, 1.0 , 0.0,
+	-1.0,  1.0, -1.0, 0.0,  1.0,
+	-1.0,  1.0, -1.0, 0.0,  1.0,
+	 1.0 , 1.0,  1.0, 1.0 , 0.0,
+	 1.0 , 1.0, -1.0, 1.0 , 1.0,
+	-1.0, -1.0, -1.0, 0.0,  0.0,
+	 1.0 ,-1.0, -1.0, 1.0 , 0.0,
+	-1.0, -1.0,  1.0, 0.0,  1.0,
+	-1.0, -1.0,  1.0, 0.0,  1.0,
+	 1.0 ,-1.0, -1.0, 1.0 , 0.0,
+	 1.0 ,-1.0,  1.0, 1.0 , 1.0,
+};
+
+// View matrices for the 6 different cube directions
+static constexpr XMFLOAT3 float3_000  {  0.0f,   0.0f,  0.0f };
+static constexpr XMFLOAT3 float3_100  {  1.0f,   0.0f,  0.0f };
+static constexpr XMFLOAT3 float3_010  {  0.0f,   1.0f,  0.0f };
+static constexpr XMFLOAT3 float3_n100 { -1.0f,   0.0f,  0.0f };
+static constexpr XMFLOAT3 float3_00n1 {  0.0f,   0.0f, -1.0f };
+static constexpr XMFLOAT3 float3_0n10 {  0.0f,  -1.0f,  0.0f };
+static constexpr XMFLOAT3 float3_001  {  0.0f,   0.0f,  1.0f };
+static const std::array<XMMATRIX, 6> kCubeMapCaptureViewMats = {
+	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_100),  XMLoadFloat3(&float3_010)),
+	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_n100), XMLoadFloat3(&float3_010)),
+	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_010),  XMLoadFloat3(&float3_00n1)),
+	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_0n10),	XMLoadFloat3(&float3_001)),
+	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_001),	XMLoadFloat3(&float3_010)),
+	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
+};
+
+static const std::wstring kHDRCubeMapShaderName       = L"HDRCubeMap";
+static const std::wstring kConvoluteCubeMapShaderName = L"ConvoluteCubeMap";
+static const std::wstring kPrefilterCubeMapShaderName = L"PreFilterCubeMap";
+static const std::wstring kSkyboxRenderShaderName     = L"CubeMap";
+
 CubeMapObject::CubeMapObject() {}
 CubeMapObject::CubeMapObject(const CubeMapObject& other) {}
 CubeMapObject::~CubeMapObject() {}
 
-// TODO: remove HDRTextureClass
+// TODO: REMOVE HDRTexture
 bool CubeMapObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, const std::string& fileName, int cubeFaceResolution) {
-	/// Load shaders
-	// Initialize the vertex and pixel shaders.
-	bool result = InitializeShader(device, hwnd, L"HDRCubeMap", &m_HDREquiVertexShader, &m_HDREquiPixelShader);
+	/// Initialize the vertex and pixel shaders
+	bool result = InitializeShader(device, hwnd, kHDRCubeMapShaderName, &m_HDREquiVertexShader, &m_HDREquiPixelShader);
 	if(!result) {
 		return false;
 	}
 
-	result = InitializeShader(device, hwnd, L"ConvoluteCubeMap", &m_ConvolutionVertexShader, &m_ConvolutionPixelShader);
+	result = InitializeShader(device, hwnd, kConvoluteCubeMapShaderName, &m_ConvolutionVertexShader, &m_ConvolutionPixelShader);
 	if(!result) {
 		return false;
 	}
 
-	result = InitializeShader(device, hwnd, L"CubeMap", &m_CubeMapVertexShader, &m_CubeMapPixelShader);
+	result = InitializeShader(device, hwnd, kPrefilterCubeMapShaderName, &m_PrefilterVertexShader, &m_PrefilterPixelShader);
 	if(!result) {
 		return false;
 	}
 
-	/// Load unit cube
+	result = InitializeShader(device, hwnd, kSkyboxRenderShaderName, &m_CubeMapVertexShader, &m_CubeMapPixelShader);
+	if(!result) {
+		return false;
+	}
+
+	/// Load unit cube model
 	result = InitializeUnitCubeBuffers(device);
 	if(!result) {
 		return false;
@@ -41,15 +109,23 @@ bool CubeMapObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* device
 		return false;
 	}
 
+	constexpr int kMaxPrefilterMipLevels = 9;
+
 	// Initialize 6 render textures for cubemap capture from equirectangularly mapped HDR texture
 	std::array<RenderTextureClass*, 6> renderTextureArray {};
 	for(size_t i = 0; i < 6; i++) {
 		renderTextureArray[i] = new RenderTextureClass();
-		result = renderTextureArray[i]->Initialize(device, deviceContext, cubeFaceResolution, cubeFaceResolution, 0.1f, 10.0f, DXGI_FORMAT_R32G32B32A32_FLOAT, XMConvertToRadians(90.0f));
+		result = renderTextureArray[i]->Initialize(
+			device, deviceContext, cubeFaceResolution, cubeFaceResolution, 0.1f, 10.0f,
+			DXGI_FORMAT_R32G32B32A32_FLOAT, XMConvertToRadians(90.0f),
+			kMaxPrefilterMipLevels /* MipLevels (for prefilter step)*/
+		);
 		if(!result) {
 			return false;
 		}
 	}
+
+	// TODO: render directly into "sourceCubeMapTextures" with render target views (use D3D11_RTV_DIMENSION_TEXTURE2DARRAY and Texture2DArray member in desc)
 
 	// Same projection matrix for all captures (90 degree FOV)
 	XMMATRIX cubemapCapturecaptureProjectionMatrix {};
@@ -57,9 +133,9 @@ bool CubeMapObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* device
 
 	std::array<ID3D11Texture2D*, 6> sourceCubeMapTextures{};
 	for(size_t i = 0; i < 6; i++) {
-		renderTextureArray[i]->SetRenderTarget(deviceContext);
+		renderTextureArray[i]->SetRenderTarget();
 		// Red clear color for debugging
-		renderTextureArray[i]->ClearRenderTarget(deviceContext, 0.5f, 0.0f, 0.0f, 1.0f);
+		renderTextureArray[i]->ClearRenderTarget(0.5f, 0.0f, 0.0f, 1.0f);
 
 		result = Render(deviceContext, kCubeMapCaptureViewMats[i], cubemapCapturecaptureProjectionMatrix, kHDRCapture);
 		if(!result) {
@@ -76,20 +152,17 @@ bool CubeMapObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* device
 		return false;
 	}
 
-	/// Render 6 textures with convolution shader and build irradiance map 
-	// Initialize 6 render textures for convolution cubemap capture
+	/// Capture 6 textures with convolution shader and build irradiance cibemap (diffuse IBL)
 	for(size_t i = 0; i < 6; i++) {
 		renderTextureArray[i] = new RenderTextureClass();
 		result = renderTextureArray[i]->Initialize(device, deviceContext, 32, 32, 0.1f, 10.0f, DXGI_FORMAT_R32G32B32A32_FLOAT, XMConvertToRadians(90.0f));
 		if(!result) {
 			return false;
 		}
-	}
 
-	for(size_t i = 0; i < 6; i++) {
-		renderTextureArray[i]->SetRenderTarget(deviceContext);
+		renderTextureArray[i]->SetRenderTarget();
 		// Red clear color for debugging
-		renderTextureArray[i]->ClearRenderTarget(deviceContext, 0.5f, 0.0f, 0.0f, 1.0f);
+		renderTextureArray[i]->ClearRenderTarget(0.5f, 0.0f, 0.0f, 1.0f);
 
 		result = Render(deviceContext, kCubeMapCaptureViewMats[i], cubemapCapturecaptureProjectionMatrix, kConvolution);
 		if(!result) {
@@ -99,17 +172,46 @@ bool CubeMapObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* device
 		sourceCubeMapTextures[i] = renderTextureArray[i]->GetTexture();
 	}
 
-	// Create cubemap texture array (and SRV)
+	// Create irradiance cubemap SRV
 	m_IrradianceCubeMapTex = new TextureClass();
 	result = m_IrradianceCubeMapTex->Initialize(device, deviceContext, sourceCubeMapTextures);
 	if(!result) {
 		return false;
 	}
 
+	/// Render 6 textures with prefilter shader (with roughness dependent mipmaps) and build prefiltered environment map (speclular IBL)
+	constexpr int kMaxPrefilterResolution = 512;
+
+	m_PrefilteredCubeMapTex = new RenderTextureClass();
+	m_PrefilteredCubeMapTex->Initialize(device, deviceContext, kMaxPrefilterResolution, kMaxPrefilterResolution, 0.1f, 10.0f, DXGI_FORMAT_R32G32B32A32_FLOAT, XMConvertToRadians(90.0f), kMaxPrefilterMipLevels, 6, true /*isCubeMap*/);
+	if(!result) {
+		return false;
+	}
+
+	// Capture 6 cubemap directions
+	for(int mipSlice = 0; mipSlice < kMaxPrefilterMipLevels; mipSlice++) {
+		int currMipSize = kMaxPrefilterResolution * std::pow(0.5, mipSlice);
+		for(int i = 0; i < 6; i++) {
+			result = m_PrefilteredCubeMapTex->SetTextureArrayRenderTarget(device, i, 6, mipSlice, currMipSize, currMipSize);
+			if(!result) {
+				return false;
+			}
+
+			m_PrefilteredCubeMapTex->ClearRenderTarget(0.5f, 0.0f, 0.0f, 1.0f);
+
+			float roughness = (float)mipSlice / (float)(kMaxPrefilterMipLevels - 1);
+			result = Render(deviceContext, kCubeMapCaptureViewMats[i], cubemapCapturecaptureProjectionMatrix, kPrefilter, roughness);
+			if(!result) {
+				return false;
+			}
+		}
+	}
+
 	/// Clean up local resources 
 	for(size_t i = 0; i < 6; i++) {
 		renderTextureArray[i]->Shutdown();
 		delete renderTextureArray[i];
+		renderTextureArray[i] = nullptr;
 		sourceCubeMapTextures[i]->Release();
 	}
 
@@ -268,7 +370,7 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstri
 	pixelShaderBuffer->Release();
 	pixelShaderBuffer = nullptr;
 
-	// Setup the description of the dynamic matrix constant buffer that is in the vertex shader.
+	/// Setup the description of dynamic matrix cbuffer in vertex shader
 	D3D11_BUFFER_DESC matrixBufferDesc {};
 	matrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	matrixBufferDesc.ByteWidth = sizeof(MatrixBufferType);
@@ -277,13 +379,28 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstri
 	matrixBufferDesc.MiscFlags = 0;
 	matrixBufferDesc.StructureByteStride = 0;
 
-	// Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
 	result = device->CreateBuffer(&matrixBufferDesc, NULL, &m_MatrixBuffer);
 	if(FAILED(result)) {
 		return false;
 	}
 
-	// Create a texture sampler state description.
+	/// Set up description of prefilter cbuffer in frag shader (for roughness param)
+	if(shaderName == kPrefilterCubeMapShaderName) {
+		D3D11_BUFFER_DESC prefilterBufferDesc{};
+		prefilterBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		prefilterBufferDesc.ByteWidth = sizeof(PrefilterBufferType);
+		prefilterBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		prefilterBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		prefilterBufferDesc.MiscFlags = 0;
+		prefilterBufferDesc.StructureByteStride = 0;
+
+		result = device->CreateBuffer(&prefilterBufferDesc, NULL, &m_PrefilterParamBuffer);
+		if(FAILED(result)) {
+			return false;
+		}
+	}
+
+	/// Create a texture sampler state description.
 	D3D11_SAMPLER_DESC cubeMapSamplerDesc {};
 	cubeMapSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	cubeMapSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -299,8 +416,8 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstri
 
 	// LODs disabled for now, cubemap mipmaps not figured out yet
 	cubeMapSamplerDesc.MinLOD = 0;
-	cubeMapSamplerDesc.MaxLOD = 0;
-	//samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	//cubeMapSamplerDesc.MaxLOD = 0;
+	cubeMapSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
 	// Create the texture sampler state.
 	result = device->CreateSamplerState(&cubeMapSamplerDesc, &m_ClampSampleState);
@@ -312,7 +429,7 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstri
 }
 
 
-bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, RenderType renderType) {
+bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, RenderType renderType, float roughness) {
 	/// Render Unit Cube
 	unsigned int stride = sizeof(VertexType);
 	unsigned int offset = 0;
@@ -329,7 +446,7 @@ bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatr
 	viewMatrix = DirectX::XMMatrixTranspose(viewMatrix);
 	projectionMatrix = DirectX::XMMatrixTranspose(projectionMatrix);
 
-	// Write to matrix constant buffer
+	/// Write to matrix constant buffer
 	D3D11_MAPPED_SUBRESOURCE mappedResource {};
 	HRESULT result = deviceContext->Map(m_MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	if(FAILED(result)) {
@@ -337,18 +454,28 @@ bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatr
 	}
 
 	MatrixBufferType* dataPtr = (MatrixBufferType*)mappedResource.pData;
-
 	dataPtr->view = viewMatrix;
 	dataPtr->projection = projectionMatrix;
 
 	deviceContext->Unmap(m_MatrixBuffer, 0);
-	unsigned int bufferNumber = 0;
-	deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_MatrixBuffer);
+	deviceContext->VSSetConstantBuffers(0, 1, &m_MatrixBuffer);
 
-	// Set shader texture resource in the pixel shader.
-	ID3D11ShaderResourceView* cubeMapTexture {};
+	/// Write to roughness cbuffer if this is cubemap prefilter render
+	if(renderType == kPrefilter) {
+		HRESULT result = deviceContext->Map(m_PrefilterParamBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+		if(FAILED(result)) {
+			return false;
+		}
+
+		PrefilterBufferType* dataPtr = (PrefilterBufferType*)mappedResource.pData;
+		dataPtr->roughness = roughness;
+
+		deviceContext->Unmap(m_PrefilterParamBuffer, 0);
+		deviceContext->PSSetConstantBuffers(0, 1, &m_PrefilterParamBuffer);
+	}
 
 	/// Render cubemap shader on unit cube
+	ID3D11ShaderResourceView* cubeMapTexture {};
 	switch(renderType) {
 		case kHDRCapture:
 			cubeMapTexture = m_HDRCubeMapTex->GetTextureSRV();
@@ -360,10 +487,16 @@ bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatr
 			deviceContext->VSSetShader(m_ConvolutionVertexShader, NULL, 0);
 			deviceContext->PSSetShader(m_ConvolutionPixelShader, NULL, 0);
 			break;
-		case kSkyBox:
+		case kPrefilter:
 			cubeMapTexture = m_CubeMapTex->GetTextureSRV();
+			deviceContext->VSSetShader(m_PrefilterVertexShader, NULL, 0);
+			deviceContext->PSSetShader(m_PrefilterPixelShader, NULL, 0);
+			break;
+		case kSkyBox:
+			//cubeMapTexture = m_CubeMapTex->GetTextureSRV();
 			// DEBUG
 			//cubeMapTexture = m_IrradianceCubeMapTex->GetTextureSRV();
+			cubeMapTexture = m_PrefilteredCubeMapTex->GetTextureSRV();
 			deviceContext->VSSetShader(m_CubeMapVertexShader, NULL, 0);
 			deviceContext->PSSetShader(m_CubeMapPixelShader, NULL, 0);
 			break;
@@ -418,36 +551,68 @@ void CubeMapObject::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd
 
 // Shutdown the vertex and pixel shaders as well as the related objects.
 void CubeMapObject::Shutdown() {
-	// Release the sampler state.
 	if(m_ClampSampleState) {
 		m_ClampSampleState->Release();
 		m_ClampSampleState = nullptr;
 	}
 
-	// Release the matrix constant buffer.
 	if(m_MatrixBuffer) {
 		m_MatrixBuffer->Release();
 		m_MatrixBuffer = nullptr;
 	}
 
-	// Release the layout.
+	if(m_PrefilterParamBuffer) {
+		m_PrefilterParamBuffer->Release();
+		m_PrefilterParamBuffer = nullptr;
+	}
+
 	if(m_Layout) {
 		m_Layout->Release();
 		m_Layout = nullptr;
 	}
 
-	// Release the pixel shader.
+	/// Shaders
 	if(m_CubeMapPixelShader) {
 		m_CubeMapPixelShader->Release();
 		m_CubeMapPixelShader = nullptr;
 	}
 
-	// Release the vertex shader.
 	if(m_CubeMapVertexShader) {
 		m_CubeMapVertexShader->Release();
 		m_CubeMapVertexShader = nullptr;
 	}
 
+	if(m_HDREquiPixelShader) {
+		m_HDREquiPixelShader->Release();
+		m_HDREquiPixelShader = nullptr;
+	}
+
+	if(m_HDREquiVertexShader) {
+		m_HDREquiVertexShader->Release();
+		m_HDREquiVertexShader = nullptr;
+	}
+
+	if(m_ConvolutionPixelShader) {
+		m_ConvolutionPixelShader->Release();
+		m_ConvolutionPixelShader = nullptr;
+	}
+
+	if(m_ConvolutionVertexShader) {
+		m_ConvolutionVertexShader->Release();
+		m_ConvolutionVertexShader = nullptr;
+	}
+
+	if(m_PrefilterPixelShader) {
+		m_PrefilterPixelShader->Release();
+		m_PrefilterPixelShader = nullptr;
+	}
+
+	if(m_PrefilterVertexShader) {
+		m_PrefilterVertexShader->Release();
+		m_PrefilterVertexShader = nullptr;
+	}
+
+	/// Textures
 	if(m_HDRCubeMapTex) {
 		m_HDRCubeMapTex->Shutdown();
 		m_HDRCubeMapTex = nullptr;
@@ -456,6 +621,11 @@ void CubeMapObject::Shutdown() {
 	if(m_CubeMapTex) {
 		m_CubeMapTex->Shutdown();
 		m_CubeMapTex = nullptr;
+	}
+
+	if(m_PrefilteredCubeMapTex) {
+		m_PrefilteredCubeMapTex->Shutdown();
+		m_PrefilteredCubeMapTex = nullptr;
 	}
 }
 

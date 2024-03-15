@@ -1,6 +1,7 @@
 #include "TextureClass.h"
 
 #include <stdio.h>
+#include <iostream>
 
 #include "stb_image.h"
 
@@ -8,20 +9,10 @@ TextureClass::TextureClass() {}
 TextureClass::TextureClass(const TextureClass& other) {}
 TextureClass::~TextureClass() {}
 
-bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, DXGI_FORMAT format,  bool isCubeMap) {
-	return isCubeMap ? InitializeCubeMapFromDisk(device, deviceContext, filePath) : InitializeTexture(device, deviceContext, filePath, format);
-}
-
-bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::array<ID3D11Texture2D*, 6>& sourceHDRTexArray) {
-	return InitializeCubeMapArray(device, deviceContext, sourceHDRTexArray);
-}
-
-// NOTE: use rastertek loader if tga file, else, stb_image; because tga function seems to be significantly faster
-bool TextureClass::LoadTexture(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, DXGI_FORMAT format, ID3D11Texture2D** pTexture) {
-	D3D11_TEXTURE2D_DESC textureDesc {};
-	HRESULT hResult {};
-
-	std::string fileTypeName {filePath, filePath.length() - 3, 3};
+bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, DXGI_FORMAT format, int mipLevels) {
+	/// Load Texture
+	/// NOTE: use rastertek loader if tga file, else, stb_image; because tga function seems to be significantly faster
+	std::string fileTypeName{ filePath, filePath.length() - 3, 3 };
 	if(fileTypeName == "tga") {
 		m_IsSTBLoad = false;
 		// loads data to m_UCharTexData, m_Width and m_Height
@@ -42,10 +33,11 @@ bool TextureClass::LoadTexture(ID3D11Device* device, ID3D11DeviceContext* device
 	}
 
 	// Setup the description of the texture.
+	D3D11_TEXTURE2D_DESC textureDesc{};
 	textureDesc.Height = m_Height;
 	textureDesc.Width = m_Width;
 	textureDesc.ArraySize = 1;
-	textureDesc.MipLevels = 0;
+	textureDesc.MipLevels = mipLevels;
 	textureDesc.Format = format;
 	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 	textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
@@ -55,14 +47,15 @@ bool TextureClass::LoadTexture(ID3D11Device* device, ID3D11DeviceContext* device
 	textureDesc.CPUAccessFlags = 0;
 
 	// Create the empty texture.
-	hResult = device->CreateTexture2D(&textureDesc, NULL, pTexture);
+	HRESULT hResult = device->CreateTexture2D(&textureDesc, NULL, &m_Texture);
 	if(FAILED(hResult)) {
 		stbi_image_free(m_UCharTexData);
 		return false;
 	}
 
-	deviceContext->UpdateSubresource(*pTexture, 0, NULL, m_UCharTexData, m_Width * 4, 0);
+	deviceContext->UpdateSubresource(m_Texture, 0, NULL, m_UCharTexData, m_Width * 4, 0);
 
+	// Texture load clean up
 	if(m_UCharTexData) {
 		if(m_IsSTBLoad) {
 			stbi_image_free(m_UCharTexData);
@@ -73,18 +66,8 @@ bool TextureClass::LoadTexture(ID3D11Device* device, ID3D11DeviceContext* device
 		}
 	}
 
-	return true;
-}
-
-bool TextureClass::InitializeTexture(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, DXGI_FORMAT format) {
-	HRESULT hResult {};
+	/// Setup the shader resource view description.
 	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc {};
-
-	if(!LoadTexture(device, deviceContext, filePath, format, &m_Texture)) {
-		return false;
-	}
-
-	// Setup the shader resource view description.
 	srvDesc.Format = format;
 	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
@@ -102,51 +85,35 @@ bool TextureClass::InitializeTexture(ID3D11Device* device, ID3D11DeviceContext* 
 	return true;
 }
 
-// NOTE: only supports cubemaps that are 6 JPG textures if loading directly from disk
-bool TextureClass::InitializeCubeMapFromDisk(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& folderPath) {
-	for(size_t i = 0; i < 6; i++) {
-		if(!LoadTexture(device, deviceContext, folderPath + "/" + kCubeMapFaceName[i] + ".jpg", DXGI_FORMAT_R8G8B8A8_UNORM, &m_CubeMapSourceTextureArray[i])) {
-			return false;
-		}
-	}
-
-	InitializeCubeMapArray(device, deviceContext, m_CubeMapSourceTextureArray);
-}
-
-bool TextureClass::InitializeCubeMapArray(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::array<ID3D11Texture2D*, 6>& sourceHDRTexArray) {
-	D3D11_TEXTURE2D_DESC textureArrayDesc {};
-	HRESULT hResult {};
-	D3D11_SHADER_RESOURCE_VIEW_DESC cubeMapSrvDesc {};
-
+bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::array<ID3D11Texture2D*, 6>& sourceHDRTexArray) {
 	D3D11_TEXTURE2D_DESC texElementDesc;
 	sourceHDRTexArray[0]->GetDesc(&texElementDesc);
 
+	D3D11_TEXTURE2D_DESC textureArrayDesc {};
 	textureArrayDesc.Height = texElementDesc.Height;
 	textureArrayDesc.Width = texElementDesc.Width;
 	textureArrayDesc.ArraySize = 6;
 	textureArrayDesc.Format = texElementDesc.Format;
-	//textureDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	//textureDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
-	//textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	textureArrayDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	textureArrayDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 	textureArrayDesc.MipLevels = texElementDesc.MipLevels;
 	textureArrayDesc.SampleDesc.Count = 1;
 	textureArrayDesc.SampleDesc.Quality = 0;
 	textureArrayDesc.Usage = D3D11_USAGE_DEFAULT;
 	textureArrayDesc.CPUAccessFlags = 0;
-	textureArrayDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+	textureArrayDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE | D3D11_RESOURCE_MISC_GENERATE_MIPS;
 
 	// Initialize empty texture array
 	ID3D11Texture2D* texArray = nullptr;
-	hResult = device->CreateTexture2D(&textureArrayDesc, 0, &texArray);
+	HRESULT hResult = device->CreateTexture2D(&textureArrayDesc, 0, &texArray);
 	if(FAILED(hResult)) {
 		return false;
 	}
 
+	std::cout << textureArrayDesc.MipLevels << std::endl;
+
 	// Source: https://stackoverflow.com/a/34325668
 	// Copy individual texture elements into texture array.
-	D3D11_BOX sourceRegion {};
-	//Here I copy the mip map levels of the textures
+	D3D11_BOX sourceRegion{};
 	for(UINT x = 0; x < 6; x++) {
 		for(UINT mipLevel = 0; mipLevel < textureArrayDesc.MipLevels; mipLevel++) {
 			sourceRegion.left = 0;
@@ -165,6 +132,7 @@ bool TextureClass::InitializeCubeMapArray(ID3D11Device* device, ID3D11DeviceCont
 	}
 
 	// Setup the shader resource view description.
+	D3D11_SHADER_RESOURCE_VIEW_DESC cubeMapSrvDesc{};
 	cubeMapSrvDesc.Format = textureArrayDesc.Format;
 	cubeMapSrvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
 	cubeMapSrvDesc.TextureCube.MostDetailedMip = 0;
@@ -176,8 +144,7 @@ bool TextureClass::InitializeCubeMapArray(ID3D11Device* device, ID3D11DeviceCont
 		return false;
 	}
 
-	// Generate mipmaps for this texture
-	//deviceContext->GenerateMips(m_TextureView);
+	deviceContext->GenerateMips(m_TextureView);
 
 	return true;
 }

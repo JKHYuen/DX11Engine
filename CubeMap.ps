@@ -7,6 +7,7 @@ struct PixelInputType {
 };
 
 float4 Frag(PixelInputType i) : SV_TARGET {
-    float4 color = CubeMapTexture.Sample(SampleType, i.uvw);
+    //float4 color = CubeMapTexture.Sample(SampleType, i.uvw);
+    float4 color = CubeMapTexture.SampleLevel(SampleType, i.uvw, 1.2);
     return color;
 }

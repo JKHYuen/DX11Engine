@@ -235,6 +235,12 @@
     <None Include="ConvoluteCubeMap.ps">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="PreFilterCubeMap.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="PreFilterCubeMap.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Cube.txt">

@@ -1,5 +1,4 @@
 // Cook-Torrence BRDF adapted from https://learnopengl.com/PBR/Lighting
-
 Texture2D albedoMap : register(t0);
 Texture2D normalMap : register(t1);
 Texture2D metallicMap : register(t2);
@@ -12,6 +11,7 @@ TextureCube irradianceMap : register(t6);
 
 SamplerState SamplerWrap : register(s0);
 SamplerState SamplerClamp : register(s1);
+//SamplerComparisonState SamplerClamp : register(s1);
 
 cbuffer LightBuffer {
     float4 directionalLightColor;
@@ -21,7 +21,7 @@ cbuffer LightBuffer {
 
 cbuffer MaterialParamBuffer {
     float uvScale;
-    float4 padding1;
+    float3 padding;
 };
 
 struct PixelInputType {
@@ -37,6 +37,7 @@ struct PixelInputType {
 
 static const float PI = 3.14159265359;
 
+// Normal distribution function
 float DistributionGGX(float3 N, float3 H, float roughness) {
     float a = roughness * roughness;
     float a2 = a * a;
@@ -81,9 +82,9 @@ float4 PBRPixelShader(
 PixelInputType i) : SV_TARGET {
     i.uv *= uvScale;
     
-    ///////////////////////////
-    /// Calculate PBR Color ///
-    ///////////////////////////
+    ///////////////////////////////////
+    /// Calculate PBR Radiance (Lo) ///
+    ///////////////////////////////////
     
     float3 albedo = pow(albedoMap.Sample(SamplerWrap, i.uv).rgb, 2.2);
     float ao = aoMap.Sample(SamplerWrap, i.uv).r;
@@ -151,23 +152,21 @@ PixelInputType i) : SV_TARGET {
     ////////////////////////
     /// Calculate Shadow ///
     ////////////////////////
-    
-    // Set the bias value for fixing the floating point precision issues.
-    //float bias = 0.001f;
-    float bias = max(0.01 * (dot(normal, -lightDirection)), 0.005);
 
     // Calculate the projected texture coordinates.
-    float2 projectTexCoord;
-    projectTexCoord.x = i.lightViewPosition.x / i.lightViewPosition.w * 0.5f + 0.5f;
-    projectTexCoord.y = -i.lightViewPosition.y / i.lightViewPosition.w * 0.5f + 0.5f;
+    float2 projectTexCoord = float2(i.lightViewPosition.x, -i.lightViewPosition.y);
+    projectTexCoord = projectTexCoord / i.lightViewPosition.w * 0.5 + 0.5;
 
     // Calculate the depth of the light.
     float lightDepthValue = i.lightViewPosition.z / i.lightViewPosition.w;
         
+    // Set the bias value for fixing the floating point precision issues.
+    //float bias = 0.001f;
+    float bias = max(0.01 * (dot(normal, -lightDirection)), 0.005);
     // Subtract the bias from the lightDepthValue.
     lightDepthValue = lightDepthValue - bias;
         
-    // Sample the shadow map depth value from the depth texture using the sampler at the projected texture coordinate location.
+    // Shadowmap PCF multisampling
     float shadowFactor = 0.0;
     float width, height, numOfLevels;
     depthMap.GetDimensions(0, width, height, numOfLevels);

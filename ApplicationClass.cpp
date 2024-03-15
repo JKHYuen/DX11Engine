@@ -86,7 +86,7 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	///////////////////////////////
 
 	// Load cubemap
-	// TODO: move raster state change into CubeMapObject class
+	// TODO: move raster state change into CubeMapObject class?
 	m_Direct3D->SetToFrontCullRasterState();
 	m_CubeMapObject = new CubeMapObject();
 	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k
@@ -267,7 +267,7 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 
 bool ApplicationClass::Frame(InputClass* input) {
 	int mouseX, mouseY;
-	bool result, mouseDown;
+	bool mouseDown;
 	float frameTime {};
 
 	// Calculate delta time
@@ -323,7 +323,6 @@ bool ApplicationClass::Frame(InputClass* input) {
 
 	// Camera Rotation
 	float mouseSensitivity = 10.0f * m_DeltaTime;
-	//m_Camera->SetRotation(m_Camera->GetRotationX() + input->GetMouseAxisVertical() * mouseSensitivity, m_Camera->GetRotationY() + input->GetMouseAxisHorizontal() * mouseSensitivity, m_Camera->GetRotationZ());
 	m_Camera->SetRotation(m_Camera->GetRotationX() + input->GetMouseAxisHorizontal() * mouseSensitivity, m_Camera->GetRotationY() + input->GetMouseAxisVertical() * mouseSensitivity, m_Camera->GetRotationZ());
 
 	// Camera Translation
@@ -446,8 +445,8 @@ bool ApplicationClass::UpdateMouseStrings(int mouseX, int mouseY, bool mouseDown
 
 bool ApplicationClass::RenderSceneDepthTexture() {
 	// Set the render target to be the render texture and clear it.
-	m_ShadowMapRenderTexture->SetRenderTarget(m_Direct3D->GetDeviceContext());
-	m_ShadowMapRenderTexture->ClearRenderTarget(m_Direct3D->GetDeviceContext(), 1.0f, 1.0f, 1.0f, 1.0f);
+	m_ShadowMapRenderTexture->SetRenderTarget();
+	m_ShadowMapRenderTexture->ClearRenderTarget(1.0f, 1.0f, 1.0f, 1.0f);
 
 	m_Direct3D->SetToFrontCullRasterState();
 
@@ -464,8 +463,8 @@ bool ApplicationClass::RenderSceneDepthTexture() {
 
 bool ApplicationClass::RenderSceneToScreenTexture() {
 	// Set the render target to be the render texture and clear it.
-	m_ScreenRenderTexture->SetRenderTarget(m_Direct3D->GetDeviceContext());
-	m_ScreenRenderTexture->ClearRenderTarget(m_Direct3D->GetDeviceContext(), 0.01f, 0.01f, 0.015f, 1.0f);
+	m_ScreenRenderTexture->SetRenderTarget();
+	m_ScreenRenderTexture->ClearRenderTarget(0.01f, 0.01f, 0.015f, 1.0f);
 
 	m_Camera->Render();
 
@@ -502,11 +501,9 @@ bool ApplicationClass::RenderSceneToScreenTexture() {
 		}
 	}
 
-	// TODO: cubemap
 	m_Direct3D->SetToFrontCullRasterState();
 	m_CubeMapObject->Render(m_Direct3D->GetDeviceContext(), viewMatrix, projectionMatrix, CubeMapObject::kSkyBox);
 	m_Direct3D->SetToBackCullRasterState();
-
 
 	//m_screenRenderTexture->TurnZBufferOff();
 	//m_screenRenderTexture->EnableAlphaBlending();

@@ -91,6 +91,8 @@
     <None Include="PointLight.vs" />
     <None Include="PostProcess.ps" />
     <None Include="PostProcess.vs" />
+    <None Include="PreFilterCubeMap.ps" />
+    <None Include="PreFilterCubeMap.vs" />
     <None Include="Texture.ps" />
     <None Include="Texture.vs" />
   </ItemGroup>

@@ -5,6 +5,7 @@ HDRTexture::HDRTexture() {}
 HDRTexture::HDRTexture(const HDRTexture&) {}
 HDRTexture::~HDRTexture() {}
 
+// TODO: integrate with TextureClass
 bool HDRTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath) {
 	HRESULT hResult{};
 
@@ -18,7 +19,7 @@ bool HDRTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 	textureDesc.Height = m_Height;
 	textureDesc.Width = m_Width;
 	textureDesc.ArraySize = 1;
-	textureDesc.MipLevels = 0;
+	textureDesc.MipLevels = 1;
 	textureDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
 	textureDesc.MiscFlags = 0;
@@ -46,8 +47,6 @@ bool HDRTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 	if(FAILED(hResult)) {
 		return false;
 	}
-
-	//deviceContext->GenerateMips(m_TextureView);
 
 	stbi_image_free(m_TextureData);
 

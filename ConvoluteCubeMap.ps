@@ -15,7 +15,6 @@ float4 Frag(PixelInputType i) : SV_TARGET {
     float3 up = float3(0.0, 1.0, 0.0);
     float3 right = normalize(cross(up, N));
     up = normalize(cross(N, right));
-    
 
     float sampleDelta = 0.025;
     float nrSamples = 0.0;
