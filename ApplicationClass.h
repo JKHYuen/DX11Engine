@@ -14,7 +14,7 @@
 #include "DepthShaderClass.h"
 
 #include "RenderTextureClass.h"
-#include "DisplayPlaneClass.h"
+#include "QuadModel.h"
 
 #include "TextClass.h"
 #include "LightClass.h"
@@ -25,7 +25,7 @@
 #include "GameObject.h"
 #include "CubeMapObject.h"
 
-constexpr bool gFullScreen = false;
+constexpr bool gFullScreen = true;
 constexpr bool gVsyncEnabled = true;
 constexpr float gScreenDepth = 1000.0f;
 constexpr float gScreenNear = 0.1f;
@@ -60,7 +60,7 @@ private:
 	D3DClass* m_Direct3D {};
 	TimerClass* m_Timer {};
 	CameraClass* m_Camera {};
-	CameraClass* m_DisplayCamera {};
+	CameraClass* m_ScreenDisplayCamera {};
 
 	std::vector<GameObject> m_GameObjects {};
 
@@ -74,8 +74,8 @@ private:
 	// Screen Render Texture
 	RenderTextureClass* m_ScreenRenderTexture {};
 	RenderTextureClass* m_ShadowMapRenderTexture {};
-	DisplayPlaneClass* m_ScreenDisplayPlane {};
-	DisplayPlaneClass* m_DepthDebugDisplayPlane {};
+	QuadModel* m_ScreenDisplayPlane {};
+	QuadModel* m_DepthDebugDisplayPlane {};
 
 	CubeMapObject* m_CubeMapObject {};
 

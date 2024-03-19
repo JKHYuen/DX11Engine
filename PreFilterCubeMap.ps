@@ -22,11 +22,11 @@ float DistributionGGX(float3 N, float3 H, float roughness) {
     float NdotH = max(dot(N, H), 0.0);
     float NdotH2 = NdotH * NdotH;
 
-    float nom = a2;
+    float num = a2;
     float denom = (NdotH2 * (a2 - 1.0) + 1.0);
     denom = PI * denom * denom;
 
-    return nom / denom;
+    return num / denom;
 }
 
 // http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
@@ -99,9 +99,6 @@ float4 Frag(PixelInputType i) : SV_TARGET {
             
             prefilteredColor += CubeMapTexture.SampleLevel(WrapSampleType, L, mipLevel).rgb * NdotL;
             totalWeight += NdotL;
-                        
-            //prefilteredColor += CubeMapTexture.Sample(WrapSampleType, L).rgb * NdotL;
-            //totalWeight += NdotL;
         }
     }
     

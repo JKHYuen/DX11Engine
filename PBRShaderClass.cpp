@@ -177,6 +177,7 @@ bool PBRShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vs
         return false;
     }
 
+    // For shadow map
     samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
     samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
@@ -186,7 +187,7 @@ bool PBRShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vs
     samplerDesc.BorderColor[2] = 1;
     samplerDesc.BorderColor[3] = 1;
     samplerDesc.MaxAnisotropy = 1;
-    result = device->CreateSamplerState(&samplerDesc, &m_sampleStateClamp);
+    result = device->CreateSamplerState(&samplerDesc, &m_sampleStateBorder);
     if(FAILED(result)) {
         return false;
     }
@@ -278,7 +279,7 @@ bool PBRShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vs
     return true;
 }
 
-bool PBRShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* albedoMap, ID3D11ShaderResourceView* normalMap, ID3D11ShaderResourceView* metallicMap, ID3D11ShaderResourceView* roughnessMap, ID3D11ShaderResourceView* aoMap, ID3D11ShaderResourceView* heightMap, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, LightClass* light, XMFLOAT3 cameraPosition, float time, float uvScale, float heightMapScale) {
+bool PBRShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* albedoMap, ID3D11ShaderResourceView* normalMap, ID3D11ShaderResourceView* metallicMap, ID3D11ShaderResourceView* roughnessMap, ID3D11ShaderResourceView* aoMap, ID3D11ShaderResourceView* heightMap, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut,LightClass* light, XMFLOAT3 cameraPosition, float time, float uvScale, float heightMapScale) {
     HRESULT result;
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     unsigned int bufferNumber;
@@ -400,6 +401,8 @@ bool PBRShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, 
     deviceContext->PSSetShaderResources(4, 1, &aoMap);
     deviceContext->PSSetShaderResources(5, 1, &shadowMap);
     deviceContext->PSSetShaderResources(6, 1, &irradianceMap);
+    deviceContext->PSSetShaderResources(7, 1, &prefilteredMap);
+    deviceContext->PSSetShaderResources(8, 1, &BRDFLut);
 
     // Bind vertex shader textures.
     // height map
@@ -526,9 +529,9 @@ void PBRShaderClass::Shutdown() {
         m_sampleStateWrap = nullptr;
     }
 
-    if(m_sampleStateClamp) {
-        m_sampleStateClamp->Release();
-        m_sampleStateClamp = nullptr;
+    if(m_sampleStateBorder) {
+        m_sampleStateBorder->Release();
+        m_sampleStateBorder = nullptr;
     }
 
     // Release the layout.
@@ -594,7 +597,7 @@ void PBRShaderClass::RenderShader(ID3D11DeviceContext* deviceContext, int indexC
 
     // Set the sampler state in the pixel shader.
     deviceContext->PSSetSamplers(0, 1, &m_sampleStateWrap);
-    deviceContext->PSSetSamplers(1, 1, &m_sampleStateClamp);
+    deviceContext->PSSetSamplers(1, 1, &m_sampleStateBorder);
 
     deviceContext->VSSetSamplers(0, 1, &m_sampleStateWrap);
 

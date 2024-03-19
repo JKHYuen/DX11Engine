@@ -75,7 +75,7 @@ bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, LightClass* l
 	return true;
 }
 
-bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, LightClass* light, XMFLOAT3 cameraPos, float time) {
+bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, LightClass* light, XMFLOAT3 cameraPos, float time) {
 	XMMATRIX srtMatrix = XMMatrixMultiply(XMMatrixMultiply(
 		XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z),
 		XMMatrixRotationY(time * m_RotationYSpeed)),
@@ -84,7 +84,7 @@ bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix,
 
 	m_Model->Render(deviceContext);
 	// Render the model using the light shader.
-	return m_PBRShader->Render(deviceContext, m_Model->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_Model->GetTexture(0), m_Model->GetTexture(1), m_Model->GetTexture(2), m_Model->GetTexture(3), m_Model->GetTexture(4), m_Model->GetTexture(5), shadowMap, irradianceMap, light, cameraPos, time, m_UVScale, m_HeightMapScale);
+	return m_PBRShader->Render(deviceContext, m_Model->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_Model->GetTexture(0), m_Model->GetTexture(1), m_Model->GetTexture(2), m_Model->GetTexture(3), m_Model->GetTexture(4), m_Model->GetTexture(5), shadowMap, irradianceMap, prefilteredMap, BRDFLut, light, cameraPos, time, m_UVScale, m_HeightMapScale);
 }
 
 void GameObject::Shutdown() {

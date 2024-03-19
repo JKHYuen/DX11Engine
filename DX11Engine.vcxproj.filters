@@ -81,7 +81,7 @@
     <ClCompile Include="FullScreenTest.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="DisplayPlaneClass.cpp">
+    <ClCompile Include="QuadModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CubeMapObject.cpp">
@@ -146,7 +146,7 @@
     <ClInclude Include="RenderTextureClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DisplayPlaneClass.h">
+    <ClInclude Include="QuadModel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="GameObject.h">
@@ -239,6 +239,12 @@
       <Filter>Source Files\Shaders</Filter>
     </None>
     <None Include="PreFilterCubeMap.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="IntegrateBRDF.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="IntegrateBRDF.vs">
       <Filter>Source Files\Shaders</Filter>
     </None>
   </ItemGroup>

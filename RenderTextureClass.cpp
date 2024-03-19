@@ -7,8 +7,9 @@ RenderTextureClass::~RenderTextureClass() {}
 bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int textureWidth, int textureHeight, float nearZ, float farZ, DXGI_FORMAT textureFormat, float perspectiveFOV, int mipLevels, int texArraySize, bool b_IsCubeMap) {
     HRESULT result {};
 
+    // force proper cubemap array size
     if(b_IsCubeMap) {
-        assert(texArraySize == 6);
+        texArraySize = 6;
     }
 
     m_DeviceContext = deviceContext;
@@ -38,6 +39,10 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* d
         textureDesc.MiscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
     }
 
+    if(b_GenerateMips) {
+        textureDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+    }
+
     // Create the render target texture.
     result = device->CreateTexture2D(&textureDesc, NULL, &m_RenderTargetTexture);
     if(FAILED(result)) {
@@ -65,16 +70,17 @@ bool RenderTextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* d
         shaderResourceViewDesc.Texture2D.MostDetailedMip = 0;
         shaderResourceViewDesc.Texture2D.MipLevels = mipLevels;
     }
+    else if(b_IsCubeMap) {
+        shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+        shaderResourceViewDesc.TextureCube.MostDetailedMip = 0;
+        shaderResourceViewDesc.TextureCube.MipLevels = mipLevels;
+    }
     else {
         shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
         shaderResourceViewDesc.Texture2DArray.MostDetailedMip = 0;
         shaderResourceViewDesc.Texture2DArray.MipLevels = mipLevels;
         shaderResourceViewDesc.Texture2DArray.FirstArraySlice = 0;
         shaderResourceViewDesc.Texture2DArray.ArraySize = texArraySize;
-    }
-
-    if(b_IsCubeMap) {
-        shaderResourceViewDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
     }
 
     // Create the shader resource view.
@@ -213,7 +219,7 @@ void RenderTextureClass::SetRenderTarget() {
     m_DeviceContext->RSSetViewports(1, &m_Viewport);
 }
 
-bool RenderTextureClass::SetTextureArrayRenderTarget(ID3D11Device* device, int targetArrayIndex, int arraySize, int targetMipSlice, int targetWidth, int targetHeight) {
+bool RenderTextureClass::SetTextureArrayRenderTarget(ID3D11Device* device, int targetArrayIndex, int targetMipSlice, int targetWidth, int targetHeight, int arraySize) {
 
     D3D11_TEXTURE2D_DESC texElementDesc;
     m_RenderTargetTexture->GetDesc(&texElementDesc);
@@ -223,7 +229,7 @@ bool RenderTextureClass::SetTextureArrayRenderTarget(ID3D11Device* device, int t
     renderTargetViewDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
     renderTargetViewDesc.Texture2DArray.MipSlice = targetMipSlice;
     renderTargetViewDesc.Texture2DArray.FirstArraySlice = targetArrayIndex;
-    renderTargetViewDesc.Texture2DArray.ArraySize = -1;
+    renderTargetViewDesc.Texture2DArray.ArraySize = arraySize;
 
     // Create new render target view pointing to target array index and mip level
     HRESULT result = device->CreateRenderTargetView(m_RenderTargetTexture, &renderTargetViewDesc, &m_RenderTargetView);
@@ -236,7 +242,7 @@ bool RenderTextureClass::SetTextureArrayRenderTarget(ID3D11Device* device, int t
     depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
     depthStencilViewDesc.Texture2DArray.MipSlice = targetMipSlice;
     depthStencilViewDesc.Texture2DArray.FirstArraySlice = targetArrayIndex;
-    depthStencilViewDesc.Texture2DArray.ArraySize = -1;
+    depthStencilViewDesc.Texture2DArray.ArraySize = arraySize; 
 
     // Create the new depth stencil view.
     result = device->CreateDepthStencilView(m_DepthStencilBuffer, &depthStencilViewDesc, &m_DepthStencilView);

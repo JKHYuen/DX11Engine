@@ -1,7 +1,6 @@
 #include "TextureClass.h"
 
 #include <stdio.h>
-#include <iostream>
 
 #include "stb_image.h"
 
@@ -85,6 +84,7 @@ bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceC
 	return true;
 }
 
+// NOTE: currentlly unused, can be used to load 6 textures on disk into a cubemap srv
 bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::array<ID3D11Texture2D*, 6>& sourceHDRTexArray) {
 	D3D11_TEXTURE2D_DESC texElementDesc;
 	sourceHDRTexArray[0]->GetDesc(&texElementDesc);
@@ -108,8 +108,6 @@ bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceC
 	if(FAILED(hResult)) {
 		return false;
 	}
-
-	std::cout << textureArrayDesc.MipLevels << std::endl;
 
 	// Source: https://stackoverflow.com/a/34325668
 	// Copy individual texture elements into texture array.

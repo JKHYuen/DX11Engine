@@ -9,12 +9,11 @@ public:
     RenderTextureClass(const RenderTextureClass&);
     ~RenderTextureClass();
 
-    // NOTE: b_UseDepthAndBlend always false if texArraySize > 1
     bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int textureWidth, int textureHeight, float nearZ, float farZ, DXGI_FORMAT textureFormat, float perspectiveFOV = XM_PIDIV4, int mipLevels = 1, int texArraySize = 1, bool b_IsCubeMap = false);
     void Shutdown();
 
     void SetRenderTarget();
-    bool SetTextureArrayRenderTarget(ID3D11Device* device, int targetArrayIndex, int maxMipLevel, int targetMipSlice, int targetWidth, int targetHeight);
+    bool SetTextureArrayRenderTarget(ID3D11Device* device, int targetArrayIndex, int targetMipSlice, int targetWidth, int targetHeight, int arraySize = -1);
     void ClearRenderTarget(float red, float green, float blue, float alpha);
 
     ID3D11ShaderResourceView* GetTextureSRV();

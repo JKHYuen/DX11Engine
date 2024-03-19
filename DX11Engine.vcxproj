@@ -22,7 +22,7 @@
     <ClCompile Include="ApplicationClass.cpp" />
     <ClCompile Include="CubeMapObject.cpp" />
     <ClCompile Include="DepthShaderClass.cpp" />
-    <ClCompile Include="DisplayPlaneClass.cpp" />
+    <ClCompile Include="QuadModel.cpp" />
     <ClCompile Include="FontClass.cpp" />
     <ClCompile Include="FontShaderClass.cpp" />
     <ClCompile Include="FullScreenTest.cpp" />
@@ -48,7 +48,7 @@
     <ClInclude Include="ApplicationClass.h" />
     <ClInclude Include="CubeMapObject.h" />
     <ClInclude Include="DepthShaderClass.h" />
-    <ClInclude Include="DisplayPlaneClass.h" />
+    <ClInclude Include="QuadModel.h" />
     <ClInclude Include="FontClass.h" />
     <ClInclude Include="FontShaderClass.h" />
     <ClInclude Include="GameObject.h" />
@@ -69,6 +69,7 @@
     <ClInclude Include="TimerClass.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="IntegrateBRDF.ps" />
     <None Include="CubeMap.ps" />
     <None Include="CubeMap.vs" />
     <None Include="ConvoluteCubeMap.ps" />
@@ -79,6 +80,7 @@
     <None Include="Font.vs" />
     <None Include="HDRCubeMap.ps" />
     <None Include="HDRCubeMap.vs" />
+    <None Include="IntegrateBRDF.vs" />
     <None Include="Light.vs" />
     <None Include="Light.ps" />
     <None Include="MultiTexture.ps" />

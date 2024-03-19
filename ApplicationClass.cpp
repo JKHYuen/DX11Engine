@@ -28,10 +28,11 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	m_Camera->SetPosition(0.0f, 4.0f, -10.0f);
 
 	// Create camera to view screen render texture
-	m_DisplayCamera = new CameraClass();
+	m_ScreenDisplayCamera = new CameraClass();
 	// Display Camera is orthographic
-	m_DisplayCamera->SetPosition(0.0f, 0.0f, -1.0f);
-	//m_displayCamera->SetPosition(0.0f, 0.0f, -2.4f);
+	m_ScreenDisplayCamera->SetPosition(0.0f, 0.0f, -1.0f);
+	// Initialize stationary camera to view full screen quads
+	m_ScreenDisplayCamera->Render();
 
 	///////////////////////////////
 	// Screen Render Texture //
@@ -45,7 +46,7 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	}
 
 	// Create and initialize the screen display quad
-	m_ScreenDisplayPlane = new DisplayPlaneClass();
+	m_ScreenDisplayPlane = new QuadModel();
 	result = m_ScreenDisplayPlane->Initialize(m_Direct3D->GetDevice(), screenWidth / 2.0f, screenHeight / 2.0f);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize screen quad.", L"Error", MB_OK);
@@ -86,12 +87,14 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	///////////////////////////////
 
 	// Load cubemap
-	// TODO: move raster state change into CubeMapObject class?
-	m_Direct3D->SetToFrontCullRasterState();
+	XMMATRIX screenCameraViewMatrix{};
+	m_ScreenDisplayCamera->GetViewMatrix(screenCameraViewMatrix);
+	XMMATRIX screenOrthoMatrix {};
+	m_Direct3D->GetOrthoMatrix(screenOrthoMatrix);
+
 	m_CubeMapObject = new CubeMapObject();
-	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k
-	result = m_CubeMapObject->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), hwnd, "industrial_sunset_puresky_4k", 2048);
-	m_Direct3D->SetToBackCullRasterState();
+	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k | abandoned_tiled_room_4k
+	result = m_CubeMapObject->Initialize(m_Direct3D, hwnd, "industrial_sunset_puresky_4k", 2048, 9, 32, 512, 512, screenCameraViewMatrix, screenOrthoMatrix, m_ScreenDisplayPlane);
 
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize cubemap.", L"Error", MB_OK);
@@ -111,11 +114,12 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 
 	const std::vector<GameObjectData> sampleSceneObjects = {
 		// Objects
-		{"sphere", "rust",         {-3.0f, 4.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
-		{"sphere", "stonewall",  {0.0f, 4.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
-		{"cube", "metal_grid", {3.0f, 4.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
-		// floor
-		{"plane",  "dirt",    {0.0f, 0.0f, 0.0f}, {5.0f, 1.0f, 5.0f}, 0.0f, 10.0f, 0.5f},
+		{"sphere", "rust",      {-3.0f, 4.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
+		{"sphere", "stonewall", {0.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
+		{"cube", "metal_grid",  {3.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
+		{"sphere", "marble",    {0.0f, 8.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
+		// floor			    					 
+		{"plane",  "bog",      {0.0f, 0.0f, 0.0f},  {5.0f, 1.0f, 5.0f}, 0.0f, 10.0f, 0.5f},
 	};
 
 	m_GameObjects.reserve(sampleSceneObjects.size());
@@ -146,7 +150,7 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	}
 
 	// Create and initialize the debug display of shadow map
-	m_DepthDebugDisplayPlane = new DisplayPlaneClass();
+	m_DepthDebugDisplayPlane = new QuadModel();
 	result = m_DepthDebugDisplayPlane->Initialize(m_Direct3D->GetDevice(), screenHeight / 6.0f, screenHeight / 6.0f);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize debug quad.", L"Error", MB_OK);
@@ -157,7 +161,7 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	m_Light = new LightClass();
 
 	// Directional light
-	//m_Light->SetDirectionalColor(9.0f, 5.0f, 2.0f, 1.0f); // sunlight color
+	// m_Light->SetDirectionalColor(9.0f, 5.0f, 2.0f, 1.0f); // sunlight color
 	m_Light->SetDirectionalColor(9.0f, 8.0f, 7.0f, 1.0f);
 	m_Light->SetDirection(0.0f, -1.0f, 0.0f);
 
@@ -496,13 +500,17 @@ bool ApplicationClass::RenderSceneToScreenTexture() {
 
 	// Opaque 3D PBR Objects
 	for(GameObject go : m_GameObjects) {
-		if(!go.Render(m_Direct3D->GetDeviceContext(), viewMatrix, projectionMatrix, m_ShadowMapRenderTexture->GetTextureSRV(), m_CubeMapObject->GetIrradianceSRV(), m_Light, m_Camera->GetPosition(), m_Time)) {
+		if(!go.Render(m_Direct3D->GetDeviceContext(), viewMatrix, projectionMatrix, m_ShadowMapRenderTexture->GetTextureSRV(), m_CubeMapObject->GetIrradianceMapSRV(), m_CubeMapObject->GetPrefilteredMapSRV(), m_CubeMapObject->GetPrecomputedBRDFSRV(), m_Light, m_Camera->GetPosition(), m_Time)) {
 			return false;
 		}
 	}
 
+	ID3D11ShaderResourceView* nullSRV[6] = {nullptr, nullptr,nullptr, nullptr, nullptr, nullptr};
+	m_Direct3D->GetDeviceContext()->PSSetShaderResources(0, 6, nullSRV);
+
+	// TODO: figure out elegant solution for raster states
 	m_Direct3D->SetToFrontCullRasterState();
-	m_CubeMapObject->Render(m_Direct3D->GetDeviceContext(), viewMatrix, projectionMatrix, CubeMapObject::kSkyBox);
+	m_CubeMapObject->Render(m_Direct3D->GetDeviceContext(), viewMatrix, projectionMatrix, CubeMapObject::kSkyBoxRender);
 	m_Direct3D->SetToBackCullRasterState();
 
 	//m_screenRenderTexture->TurnZBufferOff();
@@ -523,13 +531,11 @@ bool ApplicationClass::RenderToBackBuffer() {
 
 	// Clear the buffers to begin the scene.
 	m_Direct3D->BeginScene(0.0f, 0.0f, 0.0f, 1.0f);
-	// Generate the view matrix based on the camera's position.
-	m_DisplayCamera->Render();
 
 	// Get the world, view, and projection matrices from the camera and d3d objects.
 	XMMATRIX worldMatrix {}, viewMatrix {}, projectionMatrix {}, orthoMatrix {};
 	m_Direct3D->GetWorldMatrix(worldMatrix);
-	m_DisplayCamera->GetViewMatrix(viewMatrix);
+	m_ScreenDisplayCamera->GetViewMatrix(viewMatrix);
 	//m_direct3D->GetProjectionMatrix(projectionMatrix);
 	m_Direct3D->GetOrthoMatrix(orthoMatrix);
 
@@ -543,6 +549,10 @@ bool ApplicationClass::RenderToBackBuffer() {
 
 	// Render the display plane using the texture shader and the render texture resource.
 	m_ScreenDisplayPlane->Render(m_Direct3D->GetDeviceContext());
+	//if(!m_PostProcessShader->Render(m_Direct3D->GetDeviceContext(), m_ScreenDisplayPlane->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_ScreenRenderTexture->GetTextureSRV())) {
+	//	return false;
+	//}
+
 	if(!m_PostProcessShader->Render(m_Direct3D->GetDeviceContext(), m_ScreenDisplayPlane->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_ScreenRenderTexture->GetTextureSRV())) {
 		return false;
 	}
@@ -555,7 +565,13 @@ bool ApplicationClass::RenderToBackBuffer() {
 	m_DepthDebugDisplayPlane->Render(m_Direct3D->GetDeviceContext());
 	float depthQuadPosX = -m_ScreenWidth / 2.0f + m_ScreenHeight / 6.0f;
 	float depthQuadPosY = -m_ScreenHeight / 2.0f + m_ScreenHeight / 6.0f;
-	m_DebugDepthShader->Render(m_Direct3D->GetDeviceContext(), m_DepthDebugDisplayPlane->GetIndexCount(), XMMatrixTranslation(depthQuadPosX, depthQuadPosY, 0), viewMatrix, orthoMatrix, m_ShadowMapRenderTexture->GetTextureSRV());
+	//if(!m_DebugDepthShader->Render(m_Direct3D->GetDeviceContext(), m_DepthDebugDisplayPlane->GetIndexCount(), XMMatrixTranslation(depthQuadPosX, depthQuadPosY, 0), viewMatrix, orthoMatrix, m_ShadowMapRenderTexture->GetTextureSRV())) {
+	//	return false;
+	//}
+
+	//if(!m_DebugDepthShader->Render(m_Direct3D->GetDeviceContext(), m_DepthDebugDisplayPlane->GetIndexCount(), XMMatrixTranslation(depthQuadPosX, depthQuadPosY, 0), viewMatrix, orthoMatrix, m_CubeMapObject->GetPrecomputedBRDFSRV())) {
+	//	return false;
+	//}
 
 	///////////////////////////////
 	// DEBUG Text (UI) //
@@ -704,9 +720,9 @@ void ApplicationClass::Shutdown() {
 		m_Camera = nullptr;
 	}
 
-	if(m_DisplayCamera) {
-		delete m_DisplayCamera;
-		m_DisplayCamera = nullptr;
+	if(m_ScreenDisplayCamera) {
+		delete m_ScreenDisplayCamera;
+		m_ScreenDisplayCamera = nullptr;
 	}
 
 	// Release the Direct3D object.
