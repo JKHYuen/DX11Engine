@@ -31,12 +31,13 @@ cbuffer MaterialParamBuffer {
 struct PixelInputType {
     float4 position : SV_POSITION;
     float2 uv : TEXCOORD0;
-    float3 viewDirection : TEXCOORD1;
+    float3 cameraPosition : TEXCOORD1;
+    float4 lightViewPosition : TEXCOORD2;
+    float4 worldPosition : TEXCOORD3;
+    
     float3 normal : NORMAL;
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
-    
-    float4 lightViewPosition : TEXCOORD2;
 };
 
 static const float PI = 3.14159265359;
@@ -99,6 +100,8 @@ PixelInputType i) : SV_TARGET {
     float metallic = metallicMap.Sample(SamplerWrap, i.uv).r;
     float roughness = roughnessMap.Sample(SamplerWrap, i.uv).r;
     
+    float3 viewDirection = normalize(i.cameraPosition - i.worldPosition.xyz);
+    
     // calculate reflectance at normal incidence; if dia-electric (like plastic) use F0 
     // of 0.04 and if it's a metal, use the albedo color as F0 (metallic workflow)    
     float3 F0 = 0.04;
@@ -109,7 +112,7 @@ PixelInputType i) : SV_TARGET {
     //for (int i = 0; i < 4; ++i) {
     // calculate per-light radiance
     float3 L = -lightDirection;
-    float3 H = normalize(i.viewDirection + L);
+    float3 H = normalize(viewDirection + L);
     //float distance = length(lightPositions[i] - WorldPos);
     //float attenuation = 1.0 / (distance * distance);
     //float3 radiance = lightColors[i] * attenuation;
@@ -117,11 +120,11 @@ PixelInputType i) : SV_TARGET {
 
     // Cook-Torrance BRDF
     float NDF = DistributionGGX(normal, H, roughness);
-    float G = GeometrySmith(normal, i.viewDirection, L, roughness);
-    float3 F = FresnelSchlick(max(dot(i.viewDirection, H), 0.0), F0);
+    float G = GeometrySmith(normal, viewDirection, L, roughness);
+    float3 F = FresnelSchlick(max(dot(viewDirection, H), 0.0), F0);
            
     float3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(normal, i.viewDirection), 0.0) * max(dot(normal, L), 0.0) + 0.0001; // + 0.0001 to prevent divide by zero
+    float denominator = 4.0 * max(dot(normal, viewDirection), 0.0) * max(dot(normal, L), 0.0) + 0.0001; // + 0.0001 to prevent divide by zero
     float3 specular = numerator / denominator;
         
     // kS is equal to Fresnel
@@ -146,9 +149,9 @@ PixelInputType i) : SV_TARGET {
     /////////////////////////////
     ///  IBL Ambient Lighting ///
     /////////////////////////////
-    float3 R = reflect(-i.viewDirection, normal);
+    float3 R = reflect(-viewDirection, normal);
     
-    float3 indirect_kS = FresnelSchlickRoughness(max(dot(normal, i.viewDirection), 0.0), F0, roughness);
+    float3 indirect_kS = FresnelSchlickRoughness(max(dot(normal, viewDirection), 0.0), F0, roughness);
     float3 indirect_kD = 1.0 - indirect_kS;
     indirect_kD *= 1.0 - metallic;
     
@@ -156,7 +159,7 @@ PixelInputType i) : SV_TARGET {
     float3 diffuse = irradiance * albedo;
   
     float3 prefilteredColor = prefilterMap.SampleLevel(SamplerWrap, R, roughness * MAX_REFLECTION_LOD).rgb;
-    float2 envBRDF = brdfLUT.Sample(SamplerBorder, float2(max(dot(normal, i.viewDirection), 0.0), roughness)).rg;
+    float2 envBRDF = brdfLUT.Sample(SamplerBorder, float2(max(dot(normal, viewDirection), 0.0), roughness)).rg;
     float3 indirectSpecular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
   
     float3 ambient = (indirect_kD * diffuse + indirectSpecular) * ao;

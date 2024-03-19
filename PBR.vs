@@ -25,12 +25,13 @@ struct VertexInputType {
 struct PixelInputType {
     float4 position : SV_POSITION;
     float2 uv : TEXCOORD0;
-    float3 viewDirection : TEXCOORD1;
+    float3 cameraPosition : TEXCOORD1;
+    float4 lightViewPosition : TEXCOORD2;
+    float4 worldPosition : TEXCOORD3;
+    
     float3 normal : NORMAL;
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
-    
-    float4 lightViewPosition : TEXCOORD2;
 };
 
 PixelInputType PBRVertexShader(VertexInputType input) {
@@ -52,10 +53,10 @@ PixelInputType PBRVertexShader(VertexInputType input) {
     output.uv = input.uv;
     
     // Calculate the position of the vertex in the world.
-    float4 worldPosition = mul(input.position, worldMatrix);
+    output.worldPosition = mul(input.position, worldMatrix);
 
     // Determine the viewing direction based on the position of the camera and the position of the vertex in the world.
-    output.viewDirection = normalize(cameraPosition.xyz - worldPosition.xyz);
+    output.cameraPosition = cameraPosition.xyz;
     
     // TBN
     output.normal = normalize(mul(input.normal, (float3x3) worldMatrix));
