@@ -378,73 +378,6 @@ bool D3DClass::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hw
 	return true;
 }
 
-void D3DClass::Shutdown() {
-	// Before shutting down set to windowed mode or when you release the swap chain it will throw an exception.
-	if(m_SwapChain) {
-		m_SwapChain->SetFullscreenState(false, NULL);
-	}
-
-	if(m_AlphaEnableBlendingState) {
-		m_AlphaEnableBlendingState->Release();
-		m_AlphaEnableBlendingState = nullptr;
-	}
-
-	if(m_AlphaDisableBlendingState) {
-		m_AlphaDisableBlendingState->Release();
-		m_AlphaDisableBlendingState = nullptr;
-	}
-
-	if(m_DepthDisabledStencilState) {
-		m_DepthDisabledStencilState->Release();
-		m_DepthDisabledStencilState = nullptr;
-	}
-
-	if(m_RasterStateBackCull) {
-		m_RasterStateBackCull->Release();
-		m_RasterStateBackCull = nullptr;
-	}
-
-	if(m_RasterStateFrontCull) {
-		m_RasterStateFrontCull->Release();
-		m_RasterStateFrontCull = nullptr;
-	}
-
-	if(m_DepthStencilView) {
-		m_DepthStencilView->Release();
-		m_DepthStencilView = nullptr;
-	}
-
-	if(m_DepthStencilState) {
-		m_DepthStencilState->Release();
-		m_DepthStencilState = nullptr;
-	}
-
-	if(m_DepthStencilBuffer) {
-		m_DepthStencilBuffer->Release();
-		m_DepthStencilBuffer = nullptr;
-	}
-
-	if(m_RenderTargetView) {
-		m_RenderTargetView->Release();
-		m_RenderTargetView = nullptr;
-	}
-
-	if(m_DeviceContext) {
-		m_DeviceContext->Release();
-		m_DeviceContext = nullptr;
-	}
-
-	if(m_Device) {
-		m_Device->Release();
-		m_Device = nullptr;
-	}
-
-	if(m_SwapChain) {
-		m_SwapChain->Release();
-		m_SwapChain = nullptr;
-	}
-}
-
 void D3DClass::BeginScene(float red, float green, float blue, float alpha) {
 	float color[4];
 
@@ -552,3 +485,69 @@ void D3DClass::DisableAlphaBlending() {
 	m_DeviceContext->OMSetBlendState(m_AlphaDisableBlendingState, blendFactor, 0xffffffff);
 }
 
+void D3DClass::Shutdown() {
+	// Before shutting down set to windowed mode or when you release the swap chain it will throw an exception.
+	if(m_SwapChain) {
+		m_SwapChain->SetFullscreenState(false, NULL);
+	}
+
+	if(m_AlphaEnableBlendingState) {
+		m_AlphaEnableBlendingState->Release();
+		m_AlphaEnableBlendingState = nullptr;
+	}
+
+	if(m_AlphaDisableBlendingState) {
+		m_AlphaDisableBlendingState->Release();
+		m_AlphaDisableBlendingState = nullptr;
+	}
+
+	if(m_DepthDisabledStencilState) {
+		m_DepthDisabledStencilState->Release();
+		m_DepthDisabledStencilState = nullptr;
+	}
+
+	if(m_RasterStateBackCull) {
+		m_RasterStateBackCull->Release();
+		m_RasterStateBackCull = nullptr;
+	}
+
+	if(m_RasterStateFrontCull) {
+		m_RasterStateFrontCull->Release();
+		m_RasterStateFrontCull = nullptr;
+	}
+
+	if(m_DepthStencilView) {
+		m_DepthStencilView->Release();
+		m_DepthStencilView = nullptr;
+	}
+
+	if(m_DepthStencilState) {
+		m_DepthStencilState->Release();
+		m_DepthStencilState = nullptr;
+	}
+
+	if(m_DepthStencilBuffer) {
+		m_DepthStencilBuffer->Release();
+		m_DepthStencilBuffer = nullptr;
+	}
+
+	if(m_RenderTargetView) {
+		m_RenderTargetView->Release();
+		m_RenderTargetView = nullptr;
+	}
+
+	if(m_DeviceContext) {
+		m_DeviceContext->Release();
+		m_DeviceContext = nullptr;
+	}
+
+	if(m_Device) {
+		m_Device->Release();
+		m_Device = nullptr;
+	}
+
+	if(m_SwapChain) {
+		m_SwapChain->Release();
+		m_SwapChain = nullptr;
+	}
+}

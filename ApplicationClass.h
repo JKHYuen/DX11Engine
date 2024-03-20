@@ -2,30 +2,11 @@
 #include <windows.h>
 #include <vector>
 #include <chrono>
-#include <iostream>
 
-#include "d3dclass.h"
-#include "InputClass.h"
-#include "CameraClass.h"
-#include "ModelClass.h"
-#include "PBRShaderClass.h"
-#include "TextureShaderClass.h"
-#include "FontShaderClass.h"
-#include "DepthShaderClass.h"
+constexpr bool gFullScreen = false;
+constexpr int gDefaultWindowedWidth = 1280;
+constexpr int gDefaultWindowedHeight = 720;
 
-#include "RenderTextureClass.h"
-#include "QuadModel.h"
-
-#include "TextClass.h"
-#include "LightClass.h"
-#include "SpriteClass.h"
-#include "TimerClass.h"
-#include "FpsClass.h"
-
-#include "GameObject.h"
-#include "CubeMapObject.h"
-
-constexpr bool gFullScreen = true;
 constexpr bool gVsyncEnabled = true;
 constexpr float gScreenDepth = 1000.0f;
 constexpr float gScreenNear = 0.1f;
@@ -35,6 +16,25 @@ constexpr float gShadowMapDepth = 50.0f;
 constexpr float gShadowMapNear = 1.0f;
 
 using ChronoTimePoint = std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>>;
+
+class D3DClass;
+class InputClass;
+class CameraClass;
+class TextureShaderClass;
+class FontShaderClass;
+class SpriteClass;
+class RenderTextureClass;
+class QuadModel;
+
+class FontClass;
+class TextClass;
+class LightClass;
+class SpriteClass;
+class TimerClass;
+class FpsClass;
+
+class GameObject;
+class CubeMapObject;
 
 class ApplicationClass {
 public:

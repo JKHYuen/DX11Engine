@@ -1,4 +1,5 @@
 #include "ModelClass.h"
+#include <fstream>
 
 ModelClass::ModelClass() {}
 ModelClass::ModelClass(const ModelClass& other) {}
@@ -29,32 +30,6 @@ bool ModelClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 	}
 
 	return true;
-}
-
-void ModelClass::Shutdown() {
-	// Release the model texture.
-	for(auto tex : m_Textures) {
-		tex.Shutdown();
-	}
-
-	// Shutdown the vertex and index buffers.
-	// Release the index buffer.
-	if(m_IndexBuffer) {
-		m_IndexBuffer->Release();
-		m_IndexBuffer = nullptr;
-	}
-
-	// Release the vertex buffer.
-	if(m_VertexBuffer) {
-		m_VertexBuffer->Release();
-		m_VertexBuffer = nullptr;
-	}
-
-	// Release the model data.
-	if(m_Model) {
-		delete[] m_Model;
-		m_Model = nullptr;
-	}
 }
 
 void ModelClass::Render(ID3D11DeviceContext* deviceContext) {
@@ -311,5 +286,29 @@ void ModelClass::CalculateTangentBinormal(TempVertexType vertex1, TempVertexType
 	binormal.z = binormal.z / length;
 }
 
+void ModelClass::Shutdown() {
+	// Release the model texture.
+	for(auto tex : m_Textures) {
+		tex.Shutdown();
+	}
 
+	// Shutdown the vertex and index buffers.
+	// Release the index buffer.
+	if(m_IndexBuffer) {
+		m_IndexBuffer->Release();
+		m_IndexBuffer = nullptr;
+	}
+
+	// Release the vertex buffer.
+	if(m_VertexBuffer) {
+		m_VertexBuffer->Release();
+		m_VertexBuffer = nullptr;
+	}
+
+	// Release the model data.
+	if(m_Model) {
+		delete[] m_Model;
+		m_Model = nullptr;
+	}
+}
 

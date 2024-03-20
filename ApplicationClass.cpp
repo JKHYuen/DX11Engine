@@ -1,5 +1,26 @@
 ﻿#include "ApplicationClass.h"
 
+#include "D3DClass.h"
+#include "InputClass.h"
+#include "CameraClass.h"
+#include "TextureShaderClass.h"
+#include "FontShaderClass.h"
+
+#include "RenderTextureClass.h"
+#include "QuadModel.h"
+
+#include "FontClass.h"
+#include "TextClass.h"
+#include "LightClass.h"
+#include "SpriteClass.h"
+#include "TimerClass.h"
+#include "FpsClass.h"
+
+#include "GameObject.h"
+#include "CubeMapObject.h"
+
+#include <iostream>
+
 ApplicationClass::ApplicationClass() {}
 ApplicationClass::ApplicationClass(const ApplicationClass& other) {}
 ApplicationClass::~ApplicationClass() {}
@@ -94,14 +115,13 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 
 	m_CubeMapObject = new CubeMapObject();
 	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k | abandoned_tiled_room_4k
-	result = m_CubeMapObject->Initialize(m_Direct3D, hwnd, "industrial_sunset_puresky_4k", 2048, 9, 32, 512, 512, screenCameraViewMatrix, screenOrthoMatrix, m_ScreenDisplayPlane);
-
+	result = m_CubeMapObject->Initialize(m_Direct3D, hwnd, "rural_landscape_4k", 2048, 9, 32, 512, 512, screenCameraViewMatrix, screenOrthoMatrix, m_ScreenDisplayPlane);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize cubemap.", L"Error", MB_OK);
 		return false;
 	}
 
-	// Temp scene object system
+	// Temp scene system
 	struct GameObjectData {
 		std::string modelName {};
 		std::string materialName {};
@@ -109,17 +129,19 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 		XMFLOAT3 scale {1.0f, 1.0f, 1.0f};
 		float yRotSpeed {};
 		float uvScale = 1.0f;
-		float heightMapScale = 0.1f;
+		float vertexDisplacementMapScale = 0.1f;
+		float parallaxMapHeightScale = 0.0f;
 	};
 
 	const std::vector<GameObjectData> sampleSceneObjects = {
 		// Objects
-		{"sphere", "rust",      {-3.0f, 4.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
-		{"sphere", "stonewall", {0.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
-		{"sphere", "metal_grid",  {3.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
-		{"sphere", "marble",    {0.0f, 8.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f},
-		// floor			    					 
-		{"plane",  "bog",      {0.0f, 0.0f, 0.0f},  {5.0f, 1.0f, 5.0f}, 0.0f, 10.0f, 0.5f},
+		{"sphere", "rust",       {-3.0f, 4.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
+		{"sphere", "stonewall",  {0.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
+		{"sphere", "metal_grid", {3.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
+		{"sphere", "marble",     {0.0f, 7.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
+		{"cube",   "marble",     {0.0f, 11.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
+		// Floor			    					 
+		{"plane",  "bog",       {0.0f, 0.0f, 0.0f},  {5.0f, 1.0f, 5.0f}, 0.0f, 9.0f, 0.0f, 0.02f},
 	};
 
 	m_GameObjects.reserve(sampleSceneObjects.size());
@@ -134,13 +156,13 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 		m_GameObjects[i].SetScale(sampleSceneObjects[i].scale);
 		m_GameObjects[i].SetYRotationSpeed(sampleSceneObjects[i].yRotSpeed);
 		m_GameObjects[i].SetUVScale(sampleSceneObjects[i].uvScale);
-		m_GameObjects[i].SetHeightMapScale(sampleSceneObjects[i].heightMapScale);
+		m_GameObjects[i].SetDisplacementMapHeightScale(sampleSceneObjects[i].vertexDisplacementMapScale);
+		m_GameObjects[i].SetParallaxMapHeightScale(sampleSceneObjects[i].parallaxMapHeightScale);
 	}
 
 	///////////////////////////////
 	// Lighting //
 	///////////////////////////////
-
 	// Create and initialize the shadow map texture
 	m_ShadowMapRenderTexture = new RenderTextureClass();
 	result = m_ShadowMapRenderTexture->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), gShadowmapWidth, gShadowmapHeight, gShadowMapNear, gShadowMapDepth, DXGI_FORMAT_R32G32B32A32_FLOAT);
@@ -165,7 +187,7 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	m_Light->SetDirectionalColor(9.0f, 8.0f, 7.0f, 1.0f);
 	m_Light->SetDirection(0.0f, -1.0f, 0.0f);
 
-	m_Light->GenerateOrthoMatrix(20.0f, gShadowMapNear, gShadowMapDepth);
+	m_Light->GenerateOrthoMatrix(40.0f, gShadowMapNear, gShadowMapDepth);
 
 	//// Set the number of lights we will use.
 	//m_numLights = 4;
@@ -549,10 +571,6 @@ bool ApplicationClass::RenderToBackBuffer() {
 
 	// Render the display plane using the texture shader and the render texture resource.
 	m_ScreenDisplayPlane->Render(m_Direct3D->GetDeviceContext());
-	//if(!m_PostProcessShader->Render(m_Direct3D->GetDeviceContext(), m_ScreenDisplayPlane->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_ScreenRenderTexture->GetTextureSRV())) {
-	//	return false;
-	//}
-
 	if(!m_PostProcessShader->Render(m_Direct3D->GetDeviceContext(), m_ScreenDisplayPlane->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_ScreenRenderTexture->GetTextureSRV())) {
 		return false;
 	}
@@ -566,10 +584,6 @@ bool ApplicationClass::RenderToBackBuffer() {
 	float depthQuadPosX = -m_ScreenWidth / 2.0f + m_ScreenHeight / 6.0f;
 	float depthQuadPosY = -m_ScreenHeight / 2.0f + m_ScreenHeight / 6.0f;
 	//if(!m_DebugDepthShader->Render(m_Direct3D->GetDeviceContext(), m_DepthDebugDisplayPlane->GetIndexCount(), XMMatrixTranslation(depthQuadPosX, depthQuadPosY, 0), viewMatrix, orthoMatrix, m_ShadowMapRenderTexture->GetTextureSRV())) {
-	//	return false;
-	//}
-
-	//if(!m_DebugDepthShader->Render(m_Direct3D->GetDeviceContext(), m_DepthDebugDisplayPlane->GetIndexCount(), XMMatrixTranslation(depthQuadPosX, depthQuadPosY, 0), viewMatrix, orthoMatrix, m_CubeMapObject->GetPrecomputedBRDFSRV())) {
 	//	return false;
 	//}
 

@@ -29,44 +29,50 @@ struct PixelInputType {
     float4 lightViewPosition : TEXCOORD2;
     float4 worldPosition : TEXCOORD3;
     
+    float3 tangentCameraPosition : TEXCOORD4;
+    float3 tangentFragPosition : TEXCOORD5;
+    
     float3 normal : NORMAL;
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
 };
 
-PixelInputType PBRVertexShader(VertexInputType input) {
-    PixelInputType output;
+PixelInputType PBRVertexShader(VertexInputType i) {
+    PixelInputType o;
     
     // Change the position vector to be 4 units for proper matrix calculations.
-    input.position.w = 1.0f;
-       
-    float height = heightMap.SampleLevel(Sampler, input.uv, 0).r;
-    //float3 heightValue = (height.x * input.tangent) + (height.y * input.binormal) + (height.z * input.normal);
-    input.position.xyz += input.normal * height * heightMapScale;
+    i.position.w = 1.0f;
+    
+    // Vertex displacement
+    if (heightMapScale != 0) {
+        float height = heightMap.SampleLevel(Sampler, i.uv, 0).r;
+        i.position.xyz += i.normal * height * heightMapScale;
+    }
     
     // Calculate the position of the vertex against the world, view, and projection matrices.
-    output.position = mul(input.position, worldMatrix);
-    output.position = mul(output.position, viewMatrix);
-    output.position = mul(output.position, projectionMatrix);
+    o.position = mul(i.position, worldMatrix);
+    o.position = mul(o.position, viewMatrix);
+    o.position = mul(o.position, projectionMatrix);
     
     // Store the texture coordinates for the pixel shader.
-    output.uv = input.uv;
+    o.uv = i.uv;
     
-    // Calculate the position of the vertex in the world.
-    output.worldPosition = mul(input.position, worldMatrix);
-
-    // Determine the viewing direction based on the position of the camera and the position of the vertex in the world.
-    output.cameraPosition = cameraPosition.xyz;
+    o.worldPosition = mul(i.position, worldMatrix);
+    o.cameraPosition = cameraPosition.xyz;
     
     // TBN
-    output.normal = normalize(mul(input.normal, (float3x3) worldMatrix));
-    output.tangent = normalize(mul(input.tangent, (float3x3) worldMatrix));
-    output.binormal = normalize(mul(input.binormal, (float3x3) worldMatrix));
+    o.tangent = normalize(mul(i.tangent, (float3x3) worldMatrix));
+    o.binormal = normalize(mul(i.binormal, (float3x3) worldMatrix));
+    o.normal = normalize(mul(i.normal, (float3x3) worldMatrix));
+    
+    float3x3 TBN = transpose(float3x3(o.tangent, o.binormal, o.normal));
+    o.tangentCameraPosition = mul(cameraPosition.xyz, TBN);
+    o.tangentFragPosition = mul(o.worldPosition.xyz, TBN);
     
     // Shadow Mapping
-    output.lightViewPosition = mul(input.position, worldMatrix);
-    output.lightViewPosition = mul(output.lightViewPosition, lightViewMatrix);
-    output.lightViewPosition = mul(output.lightViewPosition, lightProjectionMatrix);
+    o.lightViewPosition = mul(i.position, worldMatrix);
+    o.lightViewPosition = mul(o.lightViewPosition, lightViewMatrix);
+    o.lightViewPosition = mul(o.lightViewPosition, lightProjectionMatrix);
 
-    return output;
+    return o;
 }

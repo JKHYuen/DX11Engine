@@ -1,6 +1,9 @@
 #include "PBRShaderClass.h"
 #include "LightClass.h"
 
+#include <d3dcompiler.h>
+#include <fstream>
+
 PBRShaderClass::PBRShaderClass() {}
 PBRShaderClass::PBRShaderClass(const PBRShaderClass& other) {}
 PBRShaderClass::~PBRShaderClass() {}
@@ -11,7 +14,6 @@ bool PBRShaderClass::Initialize(ID3D11Device* device, HWND hwnd) {
     int error;
     bool result;
 
-    // TODO: convert to wstring
     // Set the filename of the vertex shader.
     error = wcscpy_s(vsFilename, 128, L"../DX11Engine/PBR.vs");
     if(error != 0) {
@@ -156,7 +158,7 @@ bool PBRShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vs
     pixelShaderBuffer->Release();
     pixelShaderBuffer = nullptr;
 
-    // Create a texture sampler state description.
+    /// Create the texture sampler states
     samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -171,7 +173,6 @@ bool PBRShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vs
     samplerDesc.MinLOD = 0;
     samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-    // Create the texture sampler states
     result = device->CreateSamplerState(&samplerDesc, &m_sampleStateWrap);
     if(FAILED(result)) {
         return false;
@@ -179,9 +180,9 @@ bool PBRShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vs
 
     // For shadow map
     samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_BORDER;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_BORDER;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_BORDER;
     samplerDesc.BorderColor[0] = 1;
     samplerDesc.BorderColor[1] = 1;
     samplerDesc.BorderColor[2] = 1;
@@ -192,7 +193,16 @@ bool PBRShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vs
         return false;
     }
 
-    // Setup the description of the dynamic matrix constant buffer that is in the vertex shader.
+    // For BRDF LUT
+    samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+    samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+    result = device->CreateSamplerState(&samplerDesc, &m_sampleStateClamp);
+    if(FAILED(result)) {
+        return false;
+    }
+
+    /// Setup constant buffers
     matrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
     matrixBufferDesc.ByteWidth = sizeof(MatrixBufferType);
     matrixBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -279,7 +289,7 @@ bool PBRShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vs
     return true;
 }
 
-bool PBRShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* albedoMap, ID3D11ShaderResourceView* normalMap, ID3D11ShaderResourceView* metallicMap, ID3D11ShaderResourceView* roughnessMap, ID3D11ShaderResourceView* aoMap, ID3D11ShaderResourceView* heightMap, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut,LightClass* light, XMFLOAT3 cameraPosition, float time, float uvScale, float heightMapScale) {
+bool PBRShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* albedoMap, ID3D11ShaderResourceView* normalMap, ID3D11ShaderResourceView* metallicMap, ID3D11ShaderResourceView* roughnessMap, ID3D11ShaderResourceView* aoMap, ID3D11ShaderResourceView* heightMap, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut,LightClass* light, XMFLOAT3 cameraPosition, float time, float uvScale, float displacementHeightScale, float parallaxHeightScale) {
     HRESULT result;
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     unsigned int bufferNumber;
@@ -350,7 +360,7 @@ bool PBRShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, 
 
     // Copy the camera position into the constant buffer.
     cameraDataPtr->cameraPosition = cameraPosition;
-    cameraDataPtr->heightMapScale = heightMapScale;
+    cameraDataPtr->displacementHeightScale = displacementHeightScale;
 
     // Unlock the camera constant buffer.
     deviceContext->Unmap(m_cameraBuffer, 0);
@@ -399,10 +409,12 @@ bool PBRShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, 
     deviceContext->PSSetShaderResources(2, 1, &metallicMap);
     deviceContext->PSSetShaderResources(3, 1, &roughnessMap);
     deviceContext->PSSetShaderResources(4, 1, &aoMap);
-    deviceContext->PSSetShaderResources(5, 1, &shadowMap);
-    deviceContext->PSSetShaderResources(6, 1, &irradianceMap);
-    deviceContext->PSSetShaderResources(7, 1, &prefilteredMap);
-    deviceContext->PSSetShaderResources(8, 1, &BRDFLut);
+    deviceContext->PSSetShaderResources(5, 1, &heightMap);
+
+    deviceContext->PSSetShaderResources(6, 1, &shadowMap);
+    deviceContext->PSSetShaderResources(7, 1, &irradianceMap);
+    deviceContext->PSSetShaderResources(8, 1, &prefilteredMap);
+    deviceContext->PSSetShaderResources(9, 1, &BRDFLut);
 
     // Bind vertex shader textures.
     // height map
@@ -446,6 +458,7 @@ bool PBRShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, 
     materialParamDataPtr = (MaterialParamBufferType*)mappedResource.pData;
 
     materialParamDataPtr->uvScale = uvScale;
+    materialParamDataPtr->parallaxHeightScale = parallaxHeightScale;
     materialParamDataPtr->padding = {};
 
     deviceContext->Unmap(m_materialParamBuffer, 0);
@@ -487,6 +500,58 @@ bool PBRShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, 
     return true;
 }
 
+void PBRShaderClass::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR* shaderFilename) {
+    char* compileErrors;
+    unsigned __int64 bufferSize, i;
+    std::ofstream fout;
+
+    // Get a pointer to the error message text buffer.
+    compileErrors = (char*)(errorMessage->GetBufferPointer());
+
+    // Get the length of the message.
+    bufferSize = errorMessage->GetBufferSize();
+
+    // Open a file to write the error message to.
+    fout.open("shader-error.txt");
+
+    // Write out the error message.
+    for(i = 0; i < bufferSize; i++) {
+        fout << compileErrors[i];
+    }
+
+    // Close the file.
+    fout.close();
+
+    // Release the error message.
+    errorMessage->Release();
+    errorMessage = nullptr;
+
+    // Pop a message up on the screen to notify the user to check the text file for compile errors.
+    MessageBox(hwnd, L"Error compiling shader.  Check shader-error.txt for message.", shaderFilename, MB_OK);
+
+    return;
+}
+
+void PBRShaderClass::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount) {
+    // Set the vertex input layout.
+    deviceContext->IASetInputLayout(m_layout);
+
+    // Set the vertex and pixel shaders that will be used to render this triangle.
+    deviceContext->VSSetShader(m_vertexShader, NULL, 0);
+    deviceContext->PSSetShader(m_pixelShader, NULL, 0);
+
+    // Set the sampler states
+    deviceContext->PSSetSamplers(0, 1, &m_sampleStateWrap);
+    deviceContext->PSSetSamplers(1, 1, &m_sampleStateBorder);
+    deviceContext->PSSetSamplers(2, 1, &m_sampleStateClamp);
+
+    deviceContext->VSSetSamplers(0, 1, &m_sampleStateWrap);
+
+    // Render
+    deviceContext->DrawIndexed(indexCount, 0, 0);
+
+    return;
+}
 
 void PBRShaderClass::Shutdown() {
     // Release the light constant buffer.
@@ -534,6 +599,11 @@ void PBRShaderClass::Shutdown() {
         m_sampleStateBorder = nullptr;
     }
 
+    if(m_sampleStateClamp) {
+        m_sampleStateClamp->Release();
+        m_sampleStateClamp = nullptr;
+    }
+
     // Release the layout.
     if(m_layout) {
         m_layout->Release();
@@ -551,58 +621,6 @@ void PBRShaderClass::Shutdown() {
         m_vertexShader->Release();
         m_vertexShader = nullptr;
     }
-
-    return;
-}
-
-void PBRShaderClass::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR* shaderFilename) {
-    char* compileErrors;
-    unsigned __int64 bufferSize, i;
-    std::ofstream fout;
-
-    // Get a pointer to the error message text buffer.
-    compileErrors = (char*)(errorMessage->GetBufferPointer());
-
-    // Get the length of the message.
-    bufferSize = errorMessage->GetBufferSize();
-
-    // Open a file to write the error message to.
-    fout.open("shader-error.txt");
-
-    // Write out the error message.
-    for(i = 0; i < bufferSize; i++) {
-        fout << compileErrors[i];
-    }
-
-    // Close the file.
-    fout.close();
-
-    // Release the error message.
-    errorMessage->Release();
-    errorMessage = nullptr;
-
-    // Pop a message up on the screen to notify the user to check the text file for compile errors.
-    MessageBox(hwnd, L"Error compiling shader.  Check shader-error.txt for message.", shaderFilename, MB_OK);
-
-    return;
-}
-
-void PBRShaderClass::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount) {
-    // Set the vertex input layout.
-    deviceContext->IASetInputLayout(m_layout);
-
-    // Set the vertex and pixel shaders that will be used to render this triangle.
-    deviceContext->VSSetShader(m_vertexShader, NULL, 0);
-    deviceContext->PSSetShader(m_pixelShader, NULL, 0);
-
-    // Set the sampler state in the pixel shader.
-    deviceContext->PSSetSamplers(0, 1, &m_sampleStateWrap);
-    deviceContext->PSSetSamplers(1, 1, &m_sampleStateBorder);
-
-    deviceContext->VSSetSamplers(0, 1, &m_sampleStateWrap);
-
-    // Render the triangle.
-    deviceContext->DrawIndexed(indexCount, 0, 0);
 
     return;
 }

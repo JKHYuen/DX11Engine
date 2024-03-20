@@ -1,10 +1,7 @@
 #include "CubeMapObject.h"
-#include "ModelClass.h"
 #include "QuadModel.h"
-#include "TextureClass.h"
 #include "RenderTextureClass.h"
 #include "HDRTexture.h"
-#include "CameraClass.h"
 #include "D3DClass.h"
 #include <fstream>
 

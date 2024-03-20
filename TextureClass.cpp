@@ -9,7 +9,9 @@ TextureClass::TextureClass(const TextureClass& other) {}
 TextureClass::~TextureClass() {}
 
 bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, DXGI_FORMAT format, int mipLevels) {
-	/// Load Texture
+	bool b_GenerateMips = mipLevels == 0 || mipLevels > 1;
+
+	/// Load texture from disk
 	/// NOTE: use rastertek loader if tga file, else, stb_image; because tga function seems to be significantly faster
 	std::string fileTypeName{ filePath, filePath.length() - 3, 3 };
 	if(fileTypeName == "tga") {
@@ -22,8 +24,6 @@ bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceC
 	}
 	else {
 		m_IsSTBLoad = true;
-
-		//stbi_set_flip_vertically_on_load(false);
 		int nrComponents;
 		m_UCharTexData = stbi_load(filePath.c_str(), &m_Width, &m_Height, &nrComponents, 4);
 		if(!m_UCharTexData) {
@@ -39,11 +39,15 @@ bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceC
 	textureDesc.MipLevels = mipLevels;
 	textureDesc.Format = format;
 	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
-	textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
+	textureDesc.MiscFlags = 0;
 	textureDesc.SampleDesc.Count = 1;
 	textureDesc.SampleDesc.Quality = 0;
 	textureDesc.Usage = D3D11_USAGE_DEFAULT;
 	textureDesc.CPUAccessFlags = 0;
+
+	if(b_GenerateMips) {
+		textureDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+	}
 
 	// Create the empty texture.
 	HRESULT hResult = device->CreateTexture2D(&textureDesc, NULL, &m_Texture);
@@ -78,8 +82,9 @@ bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceC
 		return false;
 	}
 
-	// Generate mipmaps for this texture.
-	deviceContext->GenerateMips(m_TextureView);
+	if(b_GenerateMips) {
+		deviceContext->GenerateMips(m_TextureView);
+	}
 
 	return true;
 }

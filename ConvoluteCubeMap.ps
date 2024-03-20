@@ -1,5 +1,5 @@
 TextureCube CubeMapTexture : register(t0);
-SamplerState WrapSampleType : register(s0);
+SamplerState WrapSampler : register(s0);
 
 struct PixelInputType {
     float4 position : SV_POSITION;
@@ -25,7 +25,7 @@ float4 Frag(PixelInputType i) : SV_TARGET {
             // tangent space to world
             float3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * N;
             
-            irradiance += CubeMapTexture.Sample(WrapSampleType, sampleVec).rgb * cos(theta) * sin(theta);
+            irradiance += CubeMapTexture.Sample(WrapSampler, sampleVec).rgb * cos(theta) * sin(theta);
             nrSamples++;
         }
     }

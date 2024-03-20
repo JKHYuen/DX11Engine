@@ -1,20 +1,22 @@
-// Cook-Torrence BRDF adapted from https://learnopengl.com/PBR/Lighting
+// Cook-Torrence BRDF adapted from: https://learnopengl.com/PBR/Lighting
 Texture2D albedoMap    : register(t0);
 Texture2D normalMap    : register(t1);
 Texture2D metallicMap  : register(t2);
 Texture2D roughnessMap : register(t3);
 Texture2D aoMap        : register(t4);
+Texture2D heightMap    : register(t5);
 
 // Shadow map
-Texture2D depthMap : register(t5);
+Texture2D depthMap : register(t6);
 
 // IBL
-TextureCube irradianceMap : register(t6);
-TextureCube prefilterMap  : register(t7);
-Texture2D brdfLUT         : register(t8);
+TextureCube irradianceMap : register(t7);
+TextureCube prefilterMap  : register(t8);
+Texture2D brdfLUT         : register(t9);
 
-SamplerState SamplerWrap  : register(s0);
+SamplerState SamplerWrap   : register(s0);
 SamplerState SamplerBorder : register(s1);
+SamplerState SamplerClamp  : register(s2);
 //SamplerComparisonState SamplerBorder : register(s1);
 
 cbuffer LightBuffer {
@@ -25,7 +27,8 @@ cbuffer LightBuffer {
 
 cbuffer MaterialParamBuffer {
     float uvScale;
-    float3 padding;
+    float parallaxHeightScale;
+    float2 padding;
 };
 
 struct PixelInputType {
@@ -35,6 +38,10 @@ struct PixelInputType {
     float4 lightViewPosition : TEXCOORD2;
     float4 worldPosition : TEXCOORD3;
     
+    // For parallax occlusion
+    float3 tangentCameraPosition : TEXCOORD4;
+    float3 tangentFragPosition   : TEXCOORD5;
+    
     float3 normal : NORMAL;
     float3 tangent : TANGENT;
     float3 binormal : BINORMAL;
@@ -42,6 +49,8 @@ struct PixelInputType {
 
 static const float PI = 3.14159265359;
 static const float MAX_REFLECTION_LOD = 9.0;
+static const float MIN_PARALLAX_LAYERS = 64;
+static const float MAX_PARALLAX_LAYERS = 128;
 
 // Normal distribution function
 float DistributionGGX(float3 N, float3 H, float roughness) {
@@ -84,17 +93,119 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
     return F0 + (max(1.0 - roughness, F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
-float4 PBRPixelShader(
-PixelInputType i) : SV_TARGET {
-    i.uv *= uvScale;
+// Parallax mapping adapted from: https://learnopengl.com/Advanced-Lighting/Parallax-Mapping
+float2 ParallaxMapping(float2 texCoords, float3 viewDir) {
+    float numLayers = lerp(MAX_PARALLAX_LAYERS, MIN_PARALLAX_LAYERS, abs(dot(float3(0.0, 0.0, 1.0), viewDir)));
+    // calculate the size of each layer
+    float layerDepth = 1.0 / numLayers;
+    // depth of current layer
+    float currentLayerDepth = 0.0;
+    // the amount to shift the texture coordinates per layer (from vector P)
+    float2 P = viewDir.xy / viewDir.z * parallaxHeightScale;
+    float2 deltaTexCoords = P / numLayers;
+  
+    // get initial values
+    float2 currentTexCoords = texCoords;
+    float currentDepthMapValue = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
+      
+    [loop]
+    while (currentLayerDepth < currentDepthMapValue) {
+        // shift texture coordinates along direction of P
+        currentTexCoords -= deltaTexCoords;
+        // get depthmap value at current texture coordinates
+        currentDepthMapValue = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
+        // get depth of next layer
+        currentLayerDepth += layerDepth;
+    }
     
+    // get texture coordinates before collision (reverse operations)
+    float2 prevTexCoords = currentTexCoords + deltaTexCoords;
+
+    // get depth after and before collision for linear interpolation
+    float afterDepth = currentDepthMapValue - currentLayerDepth;
+    float beforeDepth = 1.0 - heightMap.Sample(SamplerWrap, prevTexCoords).r - currentLayerDepth + layerDepth;
+ 
+    // interpolation of texture coordinates
+    float weight = afterDepth / (afterDepth - beforeDepth);
+    float2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
+
+    return finalTexCoords;
+}
+
+// Parallax map self shadowing adpated from: https://chanhaeng.blogspot.com/2019/01/normalparllax-mapping-with-self.html
+float ParallaxSoftShadowMultiplier(float3 lightDir, float2 initialTexCoords, float initialHeight) {
+    float shadowMultiplier = 0.0;
+    
+    float dotDir = max(dot(float3(0, 0, 1), lightDir), 0.0);
+
+    // calculate lighting only for surface oriented to the light source
+    if(dotDir > 0) {
+        // calculate initial parameters
+        float numSamplesUnderSurface = 0;
+        shadowMultiplier = 0;
+        float numLayers = lerp(MAX_PARALLAX_LAYERS, MIN_PARALLAX_LAYERS, dotDir);
+        float layerHeight = initialHeight / numLayers;
+        float2 texStep = parallaxHeightScale * lightDir.xy / lightDir.z / numLayers;
+
+        // current parameters
+        float currentLayerHeight = initialHeight - layerHeight;
+        float2 currentTexCoords = initialTexCoords + texStep;
+        float depthFromTexture = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
+        int stepIndex = 1;
+        
+        // while point is below depth 0.0
+        [loop]
+        while (currentLayerHeight > 0.0) {
+            // if point is under the surface
+            if (depthFromTexture < currentLayerHeight) {
+                // calculate partial shadowing factor
+                numSamplesUnderSurface += 1;
+                float newShadowMultiplier = (currentLayerHeight - depthFromTexture) * (1.0 - stepIndex / numLayers);
+                shadowMultiplier = max(shadowMultiplier, newShadowMultiplier);
+            }
+
+            // offset to the next layer
+            stepIndex += 1;
+            currentLayerHeight -= layerHeight;
+            currentTexCoords += texStep;
+            depthFromTexture = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
+        }
+        
+             // Shadowing factor should be 1 if there were no points under the surface
+        if(numSamplesUnderSurface < 1) {
+            shadowMultiplier = 1;
+        }
+        else {
+            shadowMultiplier = 1.0 - shadowMultiplier;
+        }
+
+        // Shadowing factor should be 0 if there were no points under the surface
+        //if (numSamplesUnderSurface < 1)
+        //    shadowMultiplier = 0;
+    }
+
+    return shadowMultiplier;
+}
+
+float4 PBRPixelShader(PixelInputType i) : SV_TARGET {
+    i.uv *= uvScale;
+
+    //////////////////////////
+    /// Parallax Occlusion ///
+    //////////////////////////
+    if(parallaxHeightScale != 0) {
+        // offset texture coordinates with Parallax Mapping
+        float3 tangentViewDir = normalize(i.tangentCameraPosition - i.tangentFragPosition);
+        i.uv = ParallaxMapping(i.uv, tangentViewDir);
+    }
+
     ///////////////////////////////////
     /// Calculate PBR Radiance (Lo) ///
     ///////////////////////////////////
     // Use linear space for albedo
     float3 albedo = pow(albedoMap.Sample(SamplerWrap, i.uv).rgb, 2.2);
     float ao = aoMap.Sample(SamplerWrap, i.uv).r;
-    float3 bumpMap = normalMap.Sample(SamplerWrap, i.uv) * 2.0 - 1.0;
+    float3 bumpMap = normalMap.Sample(SamplerWrap, i.uv).xyz * 2.0 - 1.0;
     float3 normal = normalize((bumpMap.x * i.tangent) + (bumpMap.y * i.binormal) + (bumpMap.z * i.normal));
     
     float metallic = metallicMap.Sample(SamplerWrap, i.uv).r;
@@ -159,7 +270,7 @@ PixelInputType i) : SV_TARGET {
     float3 diffuse = irradiance * albedo;
   
     float3 prefilteredColor = prefilterMap.SampleLevel(SamplerWrap, R, roughness * MAX_REFLECTION_LOD).rgb;
-    float2 envBRDF = brdfLUT.Sample(SamplerBorder, float2(max(dot(normal, viewDirection), 0.0), roughness)).rg;
+    float2 envBRDF = brdfLUT.Sample(SamplerClamp, float2(max(dot(normal, viewDirection), 0.0), roughness)).rg;
     float3 indirectSpecular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
   
     float3 ambient = (indirect_kD * diffuse + indirectSpecular) * ao;
@@ -194,11 +305,19 @@ PixelInputType i) : SV_TARGET {
     }
     shadowFactor /= 25.0;
     
-    if (lightDepthValue > 1.0)
+    if(lightDepthValue > 1.0)
         shadowFactor = 0.0;
-
+    
     float3 color = ambient + Lo * shadowFactor;
-
+    
+    // Parallax self shadowing, not very efficient, not applied very correctly. But it looks okay.
+    if(parallaxHeightScale != 0) {
+        float selfShadowFactor;
+        float3x3 TBN = transpose(float3x3(i.tangent, i.binormal, i.normal));
+        selfShadowFactor = pow(ParallaxSoftShadowMultiplier(mul(normalize(-lightDirection), TBN), i.uv, 1.0 - heightMap.Sample(SamplerWrap, i.uv).r), 10.0);
+        color *= selfShadowFactor;
+    }
+    
     return float4(color, 1.0);
 }
 

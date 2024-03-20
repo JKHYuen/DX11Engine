@@ -1,7 +1,6 @@
 #pragma once
 #include <d3d11.h>
 #include <directxmath.h>
-#include <fstream>
 #include <vector>
 
 #include "textureclass.h"

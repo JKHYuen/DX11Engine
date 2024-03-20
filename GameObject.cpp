@@ -5,41 +5,32 @@
 #include "DepthShaderClass.h"
 #include "ModelClass.h"
 #include "LightClass.h"
-#include "RenderTextureClass.h"
 
 bool GameObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, const std::string& modelName, const std::string& textureName) {
 	bool result;
 
-	// TODO: convert to wstring
+	// TODO: convert to wstring?
+	std::string filePathPrefix {"../DX11Engine/data/" + textureName + "/" + textureName};
 	const std::vector<std::string> textureFileNames {
-		"../DX11Engine/data/" + textureName + "/" + textureName + "_albedo.tga",
-		"../DX11Engine/data/" + textureName + "/" + textureName + "_normal.tga",
-		"../DX11Engine/data/" + textureName + "/" + textureName + "_metallic.tga",
-		"../DX11Engine/data/" + textureName + "/" + textureName + "_roughness.tga",
-		"../DX11Engine/data/" + textureName + "/" + textureName + "_ao.tga",
-		"../DX11Engine/data/" + textureName + "/" + textureName + "_height.tga"
+		filePathPrefix + "_albedo.tga",
+		filePathPrefix + "_normal.tga",
+		filePathPrefix + "_metallic.tga",
+		filePathPrefix + "_roughness.tga",
+		filePathPrefix + "_ao.tga",
+		filePathPrefix + "_height.tga"
 	};
 
-	/*const std::vector<std::string> textureFileNames {
-	"../DX11Engine/data/" + textureName + "/png/" + textureName + "_albedo.png",
-	"../DX11Engine/data/" + textureName + "/png/" + textureName + "_normal.png",
-	"../DX11Engine/data/" + textureName + "/png/" + textureName + "_metallic.png",
-	"../DX11Engine/data/" + textureName + "/png/" + textureName + "_roughness.png",
-	"../DX11Engine/data/" + textureName + "/png/" + textureName + "_ao.png",
-	"../DX11Engine/data/" + textureName + "/png/" + textureName + "_height.tga"
-	};*/
-
-	// Create and initialize the model object.
+	// Create and initialize the model object
 	m_Model = new ModelClass();
 	result = m_Model->Initialize(device, deviceContext, 
 		"../DX11Engine/data/" + modelName + ".txt",
 		textureFileNames
 	);
-
 	if(!result) {
 		return false;
 	}
 
+	/// Initialize Shaders
 	m_DepthShader = new DepthShaderClass();
 	result = m_DepthShader->Initialize(device, windowHandle);
 	if(!result) {
@@ -47,11 +38,10 @@ bool GameObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 		return false;
 	}
 
-	// Create and initialize the light shader object.
 	m_PBRShader = new PBRShaderClass();
 	result = m_PBRShader->Initialize(device, windowHandle);
 	if(!result) {
-		MessageBox(windowHandle, L"Could not initialize the light shader object.", L"Error", MB_OK);
+		MessageBox(windowHandle, L"Could not initialize the PBR shader object.", L"Error", MB_OK);
 		return false;
 	}
 
@@ -84,7 +74,7 @@ bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix,
 
 	m_Model->Render(deviceContext);
 	// Render the model using the light shader.
-	return m_PBRShader->Render(deviceContext, m_Model->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_Model->GetTexture(0), m_Model->GetTexture(1), m_Model->GetTexture(2), m_Model->GetTexture(3), m_Model->GetTexture(4), m_Model->GetTexture(5), shadowMap, irradianceMap, prefilteredMap, BRDFLut, light, cameraPos, time, m_UVScale, m_HeightMapScale);
+	return m_PBRShader->Render(deviceContext, m_Model->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_Model->GetTexture(0), m_Model->GetTexture(1), m_Model->GetTexture(2), m_Model->GetTexture(3), m_Model->GetTexture(4), m_Model->GetTexture(5), shadowMap, irradianceMap, prefilteredMap, BRDFLut, light, cameraPos, time, m_UVScale, m_DisplacementHeightScale, m_ParallaxHeightScale);
 }
 
 void GameObject::Shutdown() {

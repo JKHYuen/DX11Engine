@@ -30,8 +30,12 @@ public:
 		m_UVScale = newScale;
 	}
 
-	void SetHeightMapScale(float newScale) {
-		m_HeightMapScale = newScale;
+	void SetDisplacementMapHeightScale(float newScale) {
+		m_DisplacementHeightScale = newScale;
+	}
+
+	void SetParallaxMapHeightScale(float newScale) {
+		m_ParallaxHeightScale = newScale;
 	}
 
 	void SetPosition(DirectX::XMFLOAT3 vec) {
@@ -49,7 +53,8 @@ public:
 private:
 	float m_RotationYSpeed {};
 	float m_UVScale {};
-	float m_HeightMapScale {};
+	float m_DisplacementHeightScale {};
+	float m_ParallaxHeightScale {};
 
 	DirectX::XMFLOAT3 m_Position {};
 	DirectX::XMFLOAT3 m_Scale { 1.0f, 1.0f, 1.0f };
