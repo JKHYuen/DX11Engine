@@ -1,9 +1,4 @@
 #pragma once
-#pragma comment(lib, "winmm.lib")
-
-#include <windows.h>
-#include <mmsystem.h>
-#include <iostream>
 
 class FpsClass {
 public:
@@ -11,12 +6,17 @@ public:
     FpsClass(const FpsClass&);
     ~FpsClass();
 
-    void Initialize();
-    int  Frame();
+    void Initialize(float sampleDuration);
+    float Frame(float deltaTime);
 
 private:
-    int m_fps   {};
-    int m_count {};
-    unsigned long m_startTime {};
+    int m_FrameCount {};
+    unsigned long m_LastInterval {};
+    float m_SampleDuration {};
     int m_previousFps {};
+
+    float m_CurrentFrameCount {};
+    float m_CurrentFrameDuration {};
+    float m_BestFrameDuration {};
+    float m_WorstFrameDuration {};
 };

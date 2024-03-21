@@ -1,5 +1,13 @@
 #include "SystemClass.h"
 
+#include "D3DClass.h"
+#include "InputClass.h"
+#include "ApplicationClass.h"
+
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_dx11.h"
+
 SystemClass::SystemClass() {}
 SystemClass::SystemClass(const SystemClass& other) {}
 SystemClass::~SystemClass() {}
@@ -27,28 +35,21 @@ bool SystemClass::Initialize() {
 		return false;
 	}
 
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
+
+	// Setup Platform/Renderer backends
+	ImGui_ImplWin32_Init(m_hwnd);
+	ImGui_ImplDX11_Init(m_application->GetD3DClass()->GetDevice(), m_application->GetD3DClass()->GetDeviceContext());
+
 	return true;
 }
 
-void SystemClass::Shutdown() {
-	// Release the application class object.
-	if(m_application) {
-		m_application->Shutdown();
-		delete m_application;
-		m_application = nullptr;
-	}
-
-	// Release the input object.
-	if(m_input) {
-		delete m_input;
-		m_input = nullptr;
-	}
-
-	// Shutdown the window.
-	ShutdownWindows();
-
-	return;
-}
 
 void SystemClass::Run() {
 	MSG msg {};
@@ -82,11 +83,17 @@ void SystemClass::Run() {
 bool SystemClass::Frame() {
 	bool result;
 
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+	ImGui::ShowDemoWindow(); // Show demo window! :)
+
 	// Do the input frame processing.
 	result = m_input->Frame();
 	if(!result) {
 		return false;
 	}
+
 
 	// Do the frame processing for the application class object.
 	result = m_application->Frame(m_input);
@@ -181,7 +188,48 @@ void SystemClass::InitializeWindows(int& screenWidth, int& screenHeight) {
 	//ClipCursor(&rect);
 }
 
-void SystemClass::ShutdownWindows() {
+LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam) {
+	extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	if(ImGui_ImplWin32_WndProcHandler(hwnd, umessage, wparam, lparam))
+		return true;
+
+	switch(umessage) {
+		// Check if the window is being destroyed.
+		case WM_DESTROY:
+			PostQuitMessage(0);
+			return 0;
+
+		// Check if the window is being closed.
+		case WM_CLOSE:
+			PostQuitMessage(0);
+			return 0;
+
+		// All other messages pass to the message handler in the system class.
+		default:
+			return g_ApplicationHandle->MessageHandler(hwnd, umessage, wparam, lparam);
+	}
+}
+
+void SystemClass::Shutdown() {
+	/// Release the application class object.
+	if(m_application) {
+		m_application->Shutdown();
+		delete m_application;
+		m_application = nullptr;
+	}
+
+	/// Release the input object.
+	if(m_input) {
+		delete m_input;
+		m_input = nullptr;
+	}
+
+	/// Shutdown ImGui
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
+
+	/// Shutdown the window.
 	// Show the mouse cursor.
 	ShowCursor(true);
 
@@ -204,23 +252,6 @@ void SystemClass::ShutdownWindows() {
 	return;
 }
 
-LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam) {
-	switch(umessage) {
-		// Check if the window is being destroyed.
-		case WM_DESTROY:
-			PostQuitMessage(0);
-			return 0;
-
-		// Check if the window is being closed.
-		case WM_CLOSE:
-			PostQuitMessage(0);
-			return 0;
-
-		// All other messages pass to the message handler in the system class.
-		default:
-			return g_ApplicationHandle->MessageHandler(hwnd, umessage, wparam, lparam);
-	}
-}
 
 
 

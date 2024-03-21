@@ -1,8 +1,9 @@
 #pragma once
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include "InputClass.h"
-#include "ApplicationClass.h"
+
+class InputClass;
+class ApplicationClass;
 
 class SystemClass {
 public:
@@ -19,7 +20,6 @@ public:
 private:
 	bool Frame();
 	void InitializeWindows(int&, int&);
-	void ShutdownWindows();
 
 private:
 	LPCWSTR m_applicationName {};

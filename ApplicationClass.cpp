@@ -19,6 +19,9 @@
 #include "GameObject.h"
 #include "CubeMapObject.h"
 
+#include "imgui.h"
+#include "imgui_impl_dx11.h"
+
 #include <iostream>
 
 ApplicationClass::ApplicationClass() {}
@@ -270,10 +273,10 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	///////////////////////////////
 	// Create and initialize the fps object.
 	m_Fps = new FpsClass();
-	m_Fps->Initialize();
+	m_Fps->Initialize(1.0f);
 
 	// Set the initial fps and fps string.
-	strcpy_s(fpsString, "Fps: 0");
+	strcpy_s(fpsString, "0");
 
 	// Create and initialize the text object for the fps string.
 	m_FpsString = new TextClass();
@@ -299,11 +302,11 @@ bool ApplicationClass::Frame(InputClass* input) {
 	// Calculate delta time
 	ChronoTimePoint currentFrameTimePoint = std::chrono::steady_clock::now();
 	m_DeltaTime = (currentFrameTimePoint - m_LastFrameTimePoint).count();
+	m_LastFrameTimePoint = currentFrameTimePoint;
 
 	// TEMP
-	//std::cout << m_deltaTime * 1000.0f << " ms" << std::endl;
+	//std::cout << m_DeltaTime * 1000.0f << " ms" << std::endl;
 
-	m_LastFrameTimePoint = currentFrameTimePoint;
 	m_Time = (currentFrameTimePoint - m_StartTime).count();
 
 	// Update the system stats.
@@ -336,7 +339,7 @@ bool ApplicationClass::Frame(InputClass* input) {
 	}
 
 	/// USER INPUT
-// Check if the user pressed escape and wants to exit the application.
+	// Exit app if escape is pressed
 	if(input->IsEscapeKeyDown()) {
 		return false;
 	}
@@ -381,10 +384,9 @@ bool ApplicationClass::Frame(InputClass* input) {
 
 bool ApplicationClass::UpdateFps() {
 	char tempString[16], finalString[16];
-	float red, green, blue;
 
 	// Update the fps each frame.
-	int fps = m_Fps->Frame();
+	int fps = (int)m_Fps->Frame(m_DeltaTime);
 
 	// fps from the previous frame was the same
 	if(fps == -1) {
@@ -400,24 +402,22 @@ bool ApplicationClass::UpdateFps() {
 	sprintf_s(tempString, "%d", fps);
 
 	// Setup the fps string.
-	strcpy_s(finalString, "Fps: ");
-	strcat_s(finalString, tempString);
+	strcpy_s(finalString, tempString);
+	//strcat_s(finalString, tempString);
 
-	// If fps is 60 or above set the fps color to green.
+	float red, green, blue;
 	if(fps >= 60) {
-		red = 0.0f;
+		red = 1.0f;
 		green = 1.0f;
-		blue = 0.0f;
+		blue = 1.0f;
 	}
 
-	// If fps is below 60 set the fps color to yellow.
 	if(fps < 60) {
 		red = 1.0f;
 		green = 1.0f;
 		blue = 0.0f;
 	}
 
-	// If fps is below 30 set the fps color to red.
 	if(fps < 30) {
 		red = 1.0f;
 		green = 0.0f;
@@ -519,12 +519,12 @@ bool ApplicationClass::RenderSceneToScreenTexture() {
 	float animatedDir = std::sin(m_Time * 0.5f);
 	float lightDirX = animatedDir;
 	float lightDirY = -(animatedDir * 0.5f + 0.8f);
-	float lightDirZ = -0.5f;
+	float lightDirZ = 0.5f;
 
 	// Update the directional light and shadow depth map
 	XMVECTOR dirVec = XMVectorSet(lightDirX, lightDirY, lightDirZ, 0.0f);
 	dirVec = XMVector3Normalize(dirVec);
-	m_Light->SetDirection(XMVectorGetX(dirVec), XMVectorGetY(dirVec), XMVectorGetX(dirVec));
+	m_Light->SetDirection(XMVectorGetX(dirVec), XMVectorGetY(dirVec), XMVectorGetZ(dirVec));
 
 	// Note: a bit hacky
 	float direcLightRenderDist = 15.0f;
@@ -546,13 +546,20 @@ bool ApplicationClass::RenderSceneToScreenTexture() {
 	m_CubeMapObject->Render(m_Direct3D->GetDeviceContext(), viewMatrix, projectionMatrix, CubeMapObject::kSkyBoxRender);
 	m_Direct3D->SetToBackCullRasterState();
 
-	//m_screenRenderTexture->TurnZBufferOff();
-	//m_screenRenderTexture->EnableAlphaBlending();
 
-	// TODO: Transparent Objects
+	//m_ScreenRenderTexture->TurnZBufferOff();
+	//m_ScreenRenderTexture->EnableAlphaBlending();
 
-	//m_screenRenderTexture->TurnZBufferOn();
-	//m_screenRenderTexture->DisableAlphaBlending();
+	//// TODO: Transparent Objects
+	//for(GameObject go : m_GameObjects) {
+	//	if(!go.Render(m_Direct3D->GetDeviceContext(), viewMatrix, projectionMatrix, m_ShadowMapRenderTexture->GetTextureSRV(), m_CubeMapObject->GetIrradianceMapSRV(), m_CubeMapObject->GetPrefilteredMapSRV(), m_CubeMapObject->GetPrecomputedBRDFSRV(), m_Light, m_Camera->GetPosition(), m_Time)) {
+	//		return false;
+	//	}
+	//}
+
+	//m_ScreenRenderTexture->TurnZBufferOn();
+	//m_ScreenRenderTexture->DisableAlphaBlending();
+
 
 	return true;
 }
@@ -623,6 +630,9 @@ bool ApplicationClass::RenderToBackBuffer() {
 	// Turn the Z buffer back on now that all 2D rendering has completed.
 	m_Direct3D->TurnZBufferOn();
 	m_Direct3D->DisableAlphaBlending();
+
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 	// Present the rendered scene to the screen.
 	m_Direct3D->EndScene();

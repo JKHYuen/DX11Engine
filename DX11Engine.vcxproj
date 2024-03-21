@@ -22,6 +22,13 @@
     <ClCompile Include="ApplicationClass.cpp" />
     <ClCompile Include="CubeMapObject.cpp" />
     <ClCompile Include="DepthShaderClass.cpp" />
+    <ClCompile Include="Include\imgui\imgui.cpp" />
+    <ClCompile Include="Include\imgui\imgui_demo.cpp" />
+    <ClCompile Include="Include\imgui\imgui_draw.cpp" />
+    <ClCompile Include="Include\imgui\imgui_impl_dx11.cpp" />
+    <ClCompile Include="Include\imgui\imgui_impl_win32.cpp" />
+    <ClCompile Include="Include\imgui\imgui_tables.cpp" />
+    <ClCompile Include="Include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="QuadModel.cpp" />
     <ClCompile Include="FontClass.cpp" />
     <ClCompile Include="FontShaderClass.cpp" />
@@ -47,6 +54,14 @@
     <ClInclude Include="ApplicationClass.h" />
     <ClInclude Include="CubeMapObject.h" />
     <ClInclude Include="DepthShaderClass.h" />
+    <ClInclude Include="Include\imgui\imconfig.h" />
+    <ClInclude Include="Include\imgui\imgui.h" />
+    <ClInclude Include="Include\imgui\imgui_impl_dx11.h" />
+    <ClInclude Include="Include\imgui\imgui_impl_win32.h" />
+    <ClInclude Include="Include\imgui\imgui_internal.h" />
+    <ClInclude Include="Include\imgui\imstb_rectpack.h" />
+    <ClInclude Include="Include\imgui\imstb_textedit.h" />
+    <ClInclude Include="Include\imgui\imstb_truetype.h" />
     <ClInclude Include="QuadModel.h" />
     <ClInclude Include="FontClass.h" />
     <ClInclude Include="FontShaderClass.h" />
@@ -70,6 +85,7 @@
     <Text Include="Cube.txt" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Include\imgui\imgui.natstepfilter" />
     <None Include="Shaders\ConvoluteCubeMap.ps" />
     <None Include="Shaders\ConvoluteCubeMap.vs" />
     <None Include="Shaders\CubeMap.ps" />
@@ -98,6 +114,9 @@
     <None Include="Shaders\PreFilterCubeMap.vs" />
     <None Include="Shaders\Texture.ps" />
     <None Include="Shaders\Texture.vs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="Include\imgui\imgui.natvis" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -157,10 +176,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)/include/; $(SolutionDir)/include/imgui</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);d3d11.lib;dxgi.lib;d3dcompiler.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -186,11 +207,12 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)\include; $(SolutionDir)\Shaders</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)/include/; $(SolutionDir)/include/imgui</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);d3d11.lib;dxgi.lib;d3dcompiler.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

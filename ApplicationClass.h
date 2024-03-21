@@ -46,6 +46,8 @@ public:
 	void Shutdown();
 	bool Frame(InputClass*);
 
+	D3DClass* GetD3DClass() { return m_Direct3D; };
+
 private:
 	bool RenderToBackBuffer();
 	bool RenderSceneToScreenTexture();
@@ -102,4 +104,5 @@ private:
 	float m_DeltaTime {};
 	// Time since App launch
 	float m_Time {};
+
 };

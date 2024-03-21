@@ -1,32 +1,39 @@
 #include "fpsclass.h"
 
+#include <limits>
+#include <iostream>
+
 FpsClass::FpsClass() {}
 FpsClass::FpsClass(const FpsClass& other) {}
 FpsClass::~FpsClass() {}
 
-void FpsClass::Initialize() {
-    m_fps   = 0;
-    m_count = 0;
-    m_previousFps = -1;
-
-    m_startTime = timeGetTime();
+// Sample duration is in seconds
+void FpsClass::Initialize(float sampleDuration) {
+    m_SampleDuration = sampleDuration;
 }
 
-int FpsClass::Frame() {
-    m_count++;
+float FpsClass::Frame(float deltaTime) {
+	float frameDuration = deltaTime;
+	m_CurrentFrameCount++;
+	m_CurrentFrameDuration += frameDuration;
 
-    if(timeGetTime() >= (m_startTime + 1000)) {
-        m_fps = m_count;
-        m_count = 0;
+	if(frameDuration < m_BestFrameDuration) {
+		m_BestFrameDuration = frameDuration;
+	}
+	if(frameDuration > m_WorstFrameDuration) {
+		m_WorstFrameDuration = frameDuration;
+	}
 
-        m_startTime = timeGetTime();
-    }
+	if(m_CurrentFrameDuration >= m_SampleDuration) {
+		float fps = m_CurrentFrameCount / m_CurrentFrameDuration;
+		m_CurrentFrameCount = 0;
+		m_CurrentFrameDuration = 0.0f;
+		m_BestFrameDuration = std::numeric_limits<float>::max();
+		m_WorstFrameDuration = 0.0f;
+		return fps;
+	}
+	else {
+		return -1;
+	}
 
-	// Check if the fps from the previous frame was the same, if so don't need to update the text string.
-    if(m_previousFps == m_fps) {
-        return -1;
-    }
-
-    m_previousFps = m_fps;
-    return m_fps;
 }
