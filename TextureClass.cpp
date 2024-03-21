@@ -12,13 +12,21 @@ bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceC
 	bool b_GenerateMips = mipLevels == 0 || mipLevels > 1;
 
 	/// Load texture from disk
-	/// NOTE: use rastertek loader if tga file, else, stb_image; because tga function seems to be significantly faster
+	/// NOTE: use rastertek loader if tga file, else, stb_image; because rastertek function seems to be significantly faster
 	std::string fileTypeName{ filePath, filePath.length() - 3, 3 };
 	if(fileTypeName == "tga") {
 		m_IsSTBLoad = false;
 		// loads data to m_UCharTexData, m_Width and m_Height
 		bool result = LoadTarga32Bit(filePath.c_str(), &m_UCharTexData, m_Width, m_Height);
 		if(!result) {
+			return false;
+		}
+	}
+	else if(fileTypeName == "hdr") {
+		m_IsSTBLoad = true;
+		int nrComponents;
+		m_FloatTexData = stbi_loadf(filePath.c_str(), &m_Width, &m_Height, &nrComponents, 4);
+		if(!m_FloatTexData) {
 			return false;
 		}
 	}
@@ -52,21 +60,25 @@ bool TextureClass::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceC
 	// Create the empty texture.
 	HRESULT hResult = device->CreateTexture2D(&textureDesc, NULL, &m_Texture);
 	if(FAILED(hResult)) {
-		stbi_image_free(m_UCharTexData);
 		return false;
 	}
 
-	deviceContext->UpdateSubresource(m_Texture, 0, NULL, m_UCharTexData, m_Width * 4, 0);
-
-	// Texture load clean up
+	// uchar texture load and clean up
 	if(m_UCharTexData) {
+		deviceContext->UpdateSubresource(m_Texture, 0, NULL, m_UCharTexData, m_Width * 4 * sizeof(unsigned char), 0);
 		if(m_IsSTBLoad) {
 			stbi_image_free(m_UCharTexData);
 		}
 		else {
 			delete[] m_UCharTexData;
-			m_UCharTexData = nullptr;
 		}
+		m_UCharTexData = nullptr;
+	}
+	// float texture load
+	else if(m_FloatTexData){
+		deviceContext->UpdateSubresource(m_Texture, 0, NULL, m_FloatTexData, m_Width * 4 * sizeof(float), 0);
+		stbi_image_free(m_FloatTexData);
+		m_FloatTexData = nullptr;
 	}
 
 	/// Setup the shader resource view description.
@@ -177,8 +189,13 @@ void TextureClass::Shutdown() {
 		}
 		else {
 			delete[] m_UCharTexData;
-			m_UCharTexData = nullptr;
 		}
+		m_UCharTexData = nullptr;
+	}
+
+	if(m_FloatTexData) {
+		stbi_image_free(m_FloatTexData);
+		m_FloatTexData = nullptr;
 	}
 }
 

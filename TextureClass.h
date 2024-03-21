@@ -44,6 +44,7 @@ private:
 
     // Temp pointer to load texture binary data (declared as member only for memory cleanup in Shutdown())
     unsigned char* m_UCharTexData {};
+    float* m_FloatTexData {};
 
     // optionally member scoped, 
     // see https://stackoverflow.com/questions/54000030/how-when-to-release-resources-and-resource-views-in-directx

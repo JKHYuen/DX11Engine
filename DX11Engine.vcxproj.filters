@@ -90,9 +90,6 @@
     <ClCompile Include="DepthShaderClass.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="HDRTexture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SystemClass.h">
@@ -158,99 +155,96 @@
     <ClInclude Include="DepthShaderClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HDRTexture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Light.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="Light.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="PointLight.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="PointLight.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="Texture.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="Texture.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="Font.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="Font.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="MultiTexture.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="MultiTexture.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="normalmap.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="normalmap.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="PBR.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="PBR.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="CubeMap.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="CubeMap.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="Depth.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="Depth.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="PostProcess.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="PostProcess.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="HDRCubeMap.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="HDRCubeMap.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="ConvoluteCubeMap.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="ConvoluteCubeMap.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="PreFilterCubeMap.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="PreFilterCubeMap.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="IntegrateBRDF.ps">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
-    <None Include="IntegrateBRDF.vs">
-      <Filter>Source Files\Shaders</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Cube.txt">
       <Filter>Resource Files</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\ConvoluteCubeMap.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\ConvoluteCubeMap.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\CubeMap.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\CubeMap.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\Depth.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\Depth.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\Font.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\Font.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\HDRCubeMap.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\HDRCubeMap.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\IntegrateBRDF.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\IntegrateBRDF.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\Light.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\Light.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\MultiTexture.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\MultiTexture.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\normalmap.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\normalmap.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\PBR.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\PBR.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\PointLight.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\PointLight.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\PostProcess.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\PostProcess.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\PreFilterCubeMap.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\PreFilterCubeMap.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\Texture.ps">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\Texture.vs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

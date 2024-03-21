@@ -1,0 +1,66 @@
+Texture2D albedoTex      : register(t0);
+Texture2D normalTex      : register(t1);
+Texture2D metallicTex    : register(t2);
+Texture2D roughnessTex   : register(t3);
+Texture2D aoTex          : register(t4);
+SamplerState SampleType  : register(s0);
+
+cbuffer LightBuffer {
+    float4 ambientColor;
+    float4 diffuseColor;
+    float3 lightDirection;
+    float specularPower;
+    float4 specularColor;
+};
+
+struct PixelInputType {
+    float4 position      : SV_POSITION;
+    float2 uv            : TEXCOORD0;
+    float3 viewDirection : TEXCOORD1;
+    float3 normal        : NORMAL;
+    float3 tangent       : TANGENT;
+    float3 binormal      : BINORMAL;
+};
+
+// Note: "diffuseColor" is directional light color
+float4 LightPixelShader(PixelInputType input) : SV_TARGET {
+    float4 albedo;
+    float4 bumpMap;
+    float3 bumpNormal;
+    float3 lightDir;
+    float lambertFactor;
+    float4 color;
+    float3 reflection;
+    float4 specular;
+    float3 halfVector;
+
+    albedo = albedoTex.Sample(SampleType, input.uv);
+    
+    // Sample the pixel from the normal map.
+    // Expand the range of the normal value from (0, +1) to (-1, +1).
+    bumpMap = normalTex.Sample(SampleType, input.uv);
+    bumpMap = (bumpMap * 2.0f) - 1.0f;
+
+    // Calculate the normal from the data in the normal map.
+    bumpNormal = normalize((bumpMap.x * input.tangent) + (bumpMap.y * input.binormal) + (bumpMap.z * input.normal));
+    
+    // Invert the light direction for calculations.
+    lightDir = normalize(lightDirection);
+    lightDir = -lightDirection;
+
+    // Calculate the amount of light on this pixel.
+    lambertFactor = saturate(dot(bumpNormal, lightDir));
+    color = albedo * diffuseColor * lambertFactor;
+    
+    if (lambertFactor > 0.0f) {
+        // Determine the amount of specular light based on the reflection vector, viewing direction, and specular power.
+        halfVector = normalize(lightDir + input.viewDirection);
+        specular = specularColor * pow(saturate(dot(halfVector, input.normal)), specularPower);
+        
+        color = saturate(specular + color);
+    }
+
+    return color;
+}
+
+

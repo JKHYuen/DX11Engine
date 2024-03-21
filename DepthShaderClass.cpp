@@ -11,13 +11,13 @@ bool DepthShaderClass::Initialize(ID3D11Device* device, HWND hwnd) {
 	int error;
 
 	// Set the filename of the vertex shader.
-	error = wcscpy_s(vsFilename, 128, L"../DX11Engine/Depth.vs");
+	error = wcscpy_s(vsFilename, 128, L"../DX11Engine/Shaders/Depth.vs");
 	if(error != 0) {
 		return false;
 	}
 
 	// Set the filename of the pixel shader.
-	error = wcscpy_s(psFilename, 128, L"../DX11Engine/Depth.ps");
+	error = wcscpy_s(psFilename, 128, L"../DX11Engine/Shaders/Depth.ps");
 	if(error != 0) {
 		return false;
 	}

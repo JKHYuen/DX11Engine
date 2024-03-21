@@ -12,7 +12,6 @@ class TextureClass;
 class RenderTextureClass;
 class ModelClass;
 class QuadModel;
-class HDRTexture;
 class CameraClass;
 class D3DClass;
 
@@ -89,7 +88,7 @@ private:
     ID3D11Buffer* m_CameraBuffer {};
     ID3D11Buffer* m_PrefilterParamBuffer {};
 
-    HDRTexture* m_HDRCubeMapTex {};
+    TextureClass* m_HDRCubeMapTex {};
     RenderTextureClass* m_CubeMapTex {};
 
     // IBL

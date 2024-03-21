@@ -6,6 +6,7 @@
 #pragma comment(lib, "dxguid.lib")
 
 #include <dinput.h>
+#include <array>
 
 class InputClass {
 public:
@@ -17,12 +18,17 @@ public:
     void Shutdown();
     bool Frame();
 
-    bool IsEscapePressed();
     void GetMouseLocation(int&, int&);
     bool IsMousePressed();
 
-    float GetMouseAxisHorizontal();
-    float GetMouseAxisVertical();
+    // Lazy hardcoded keyboard input
+    bool IsEscapeKeyDown() const { return (m_CurrentKeyboardState[DIK_ESCAPE] & 0x80) && !(m_PrevFrameKeyboardState[DIK_ESCAPE] & 0x80); };
+    bool IsF1KeyUp() const { return !(m_CurrentKeyboardState[DIK_F1] & 0x80) && (m_PrevFrameKeyboardState[DIK_F1] & 0x80); };
+    bool IsLeftShiftKeyUp() const { return !(m_CurrentKeyboardState[DIK_LSHIFT] & 0x80) && (m_PrevFrameKeyboardState[DIK_LSHIFT] & 0x80); };
+    bool IsLeftShiftKeyDown() const { return (m_CurrentKeyboardState[DIK_LSHIFT] & 0x80) && !(m_PrevFrameKeyboardState[DIK_LSHIFT] & 0x80); };
+
+    LONG GetMouseAxisHorizontal() const { return m_MouseState.lX; };
+    LONG GetMouseAxisVertical() const { return m_MouseState.lY; };
 
     float GetMoveAxisHorizontal();
     float GetMoveAxisVertical();
@@ -33,13 +39,14 @@ private:
     void ProcessInput();
 
 private:
-    IDirectInput8* m_directInput {};
-    IDirectInputDevice8* m_keyboard {};
-    IDirectInputDevice8* m_mouse {};
+    IDirectInput8* m_DirectInput {};
+    IDirectInputDevice8* m_Keyboard {};
+    IDirectInputDevice8* m_Mouse {};
 
-    unsigned char m_keyboardState[256] {};
-    DIMOUSESTATE m_mouseState {};
+    std::array<unsigned char, 256> m_CurrentKeyboardState {};
+    std::array<unsigned char, 256> m_PrevFrameKeyboardState {};
+    DIMOUSESTATE m_MouseState {};
 
-    int m_screenWidth {}, m_screenHeight {};
-    int m_mouseX {}, m_mouseY {};
+    int m_ScreenWidth {}, m_ScreenHeight {};
+    int m_MouseX {}, m_MouseY {};
 };

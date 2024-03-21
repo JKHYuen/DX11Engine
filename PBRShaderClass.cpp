@@ -15,13 +15,13 @@ bool PBRShaderClass::Initialize(ID3D11Device* device, HWND hwnd) {
     bool result;
 
     // Set the filename of the vertex shader.
-    error = wcscpy_s(vsFilename, 128, L"../DX11Engine/PBR.vs");
+    error = wcscpy_s(vsFilename, 128, L"../DX11Engine/Shaders/PBR.vs");
     if(error != 0) {
         return false;
     }
 
     // Set the filename of the pixel shader.
-    error = wcscpy_s(psFilename, 128, L"../DX11Engine/PBR.ps");
+    error = wcscpy_s(psFilename, 128, L"../DX11Engine/Shaders/PBR.ps");
     if(error != 0) {
         return false;
     }

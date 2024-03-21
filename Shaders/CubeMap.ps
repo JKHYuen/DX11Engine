@@ -1,0 +1,12 @@
+TextureCube CubeMapTexture : register(t0);
+SamplerState ClampSampler  : register(s0);
+
+struct PixelInputType {
+    float4 position : SV_POSITION;
+    float3 uvw : TEXCOORD0;
+};
+
+float4 Frag(PixelInputType i) : SV_TARGET {
+    float4 color = CubeMapTexture.Sample(ClampSampler, i.uvw);
+    return color;
+}

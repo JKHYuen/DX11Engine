@@ -27,7 +27,6 @@
     <ClCompile Include="FontShaderClass.cpp" />
     <ClCompile Include="FullScreenTest.cpp" />
     <ClCompile Include="GameObject.cpp" />
-    <ClCompile Include="HDRTexture.cpp" />
     <ClCompile Include="RenderTextureClass.cpp" />
     <ClCompile Include="SpriteClass.cpp" />
     <ClCompile Include="CameraClass.cpp" />
@@ -52,7 +51,6 @@
     <ClInclude Include="FontClass.h" />
     <ClInclude Include="FontShaderClass.h" />
     <ClInclude Include="GameObject.h" />
-    <ClInclude Include="HDRTexture.h" />
     <ClInclude Include="RenderTextureClass.h" />
     <ClInclude Include="SpriteClass.h" />
     <ClInclude Include="CameraClass.h" />
@@ -69,37 +67,37 @@
     <ClInclude Include="TimerClass.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="IntegrateBRDF.ps" />
-    <None Include="CubeMap.ps" />
-    <None Include="CubeMap.vs" />
-    <None Include="ConvoluteCubeMap.ps" />
-    <None Include="ConvoluteCubeMap.vs" />
-    <None Include="Depth.ps" />
-    <None Include="Depth.vs" />
-    <None Include="Font.ps" />
-    <None Include="Font.vs" />
-    <None Include="HDRCubeMap.ps" />
-    <None Include="HDRCubeMap.vs" />
-    <None Include="IntegrateBRDF.vs" />
-    <None Include="Light.vs" />
-    <None Include="Light.ps" />
-    <None Include="MultiTexture.ps" />
-    <None Include="MultiTexture.vs" />
-    <None Include="normalmap.ps" />
-    <None Include="normalmap.vs" />
-    <None Include="PBR.ps" />
-    <None Include="PBR.vs" />
-    <None Include="PointLight.ps" />
-    <None Include="PointLight.vs" />
-    <None Include="PostProcess.ps" />
-    <None Include="PostProcess.vs" />
-    <None Include="PreFilterCubeMap.ps" />
-    <None Include="PreFilterCubeMap.vs" />
-    <None Include="Texture.ps" />
-    <None Include="Texture.vs" />
+    <Text Include="Cube.txt" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="Cube.txt" />
+    <None Include="Shaders\ConvoluteCubeMap.ps" />
+    <None Include="Shaders\ConvoluteCubeMap.vs" />
+    <None Include="Shaders\CubeMap.ps" />
+    <None Include="Shaders\CubeMap.vs" />
+    <None Include="Shaders\Depth.ps" />
+    <None Include="Shaders\Depth.vs" />
+    <None Include="Shaders\Font.ps" />
+    <None Include="Shaders\Font.vs" />
+    <None Include="Shaders\HDRCubeMap.ps" />
+    <None Include="Shaders\HDRCubeMap.vs" />
+    <None Include="Shaders\IntegrateBRDF.ps" />
+    <None Include="Shaders\IntegrateBRDF.vs" />
+    <None Include="Shaders\Light.ps" />
+    <None Include="Shaders\Light.vs" />
+    <None Include="Shaders\MultiTexture.ps" />
+    <None Include="Shaders\MultiTexture.vs" />
+    <None Include="Shaders\normalmap.ps" />
+    <None Include="Shaders\normalmap.vs" />
+    <None Include="Shaders\PBR.ps" />
+    <None Include="Shaders\PBR.vs" />
+    <None Include="Shaders\PointLight.ps" />
+    <None Include="Shaders\PointLight.vs" />
+    <None Include="Shaders\PostProcess.ps" />
+    <None Include="Shaders\PostProcess.vs" />
+    <None Include="Shaders\PreFilterCubeMap.ps" />
+    <None Include="Shaders\PreFilterCubeMap.vs" />
+    <None Include="Shaders\Texture.ps" />
+    <None Include="Shaders\Texture.vs" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
@@ -188,6 +186,7 @@
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)\include; $(SolutionDir)\Shaders</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

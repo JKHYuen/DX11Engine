@@ -71,7 +71,7 @@ private:
 	//LightClass* m_lights {};
 	//int m_numLights {};
 
-	// Screen Render Texture
+	// Screen Rendering
 	RenderTextureClass* m_ScreenRenderTexture {};
 	RenderTextureClass* m_ShadowMapRenderTexture {};
 	QuadModel* m_ScreenDisplayPlane {};
@@ -81,6 +81,7 @@ private:
 
 	TextureShaderClass* m_PostProcessShader {};
 	TextureShaderClass* m_DebugDepthShader {};
+
 	//SpriteClass* m_sprite {};
 
 	FontShaderClass* m_FontShader {};
@@ -91,6 +92,9 @@ private:
 	FpsClass* m_Fps {};
 	TextClass* m_FpsString {};
 	TextClass* m_MouseTexts {};
+
+	bool m_bRenderDebugQuad {};
+	bool m_bFastMove {};
 
 	// Custom Timer
 	ChronoTimePoint m_StartTime {};

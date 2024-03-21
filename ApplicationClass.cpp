@@ -139,9 +139,9 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 		{"sphere", "stonewall",  {0.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
 		{"sphere", "metal_grid", {3.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
 		{"sphere", "marble",     {0.0f, 7.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
-		{"cube",   "marble",     {0.0f, 11.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
+		//{"cube",   "marble",     {0.0f, 11.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
 		// Floor			    					 
-		{"plane",  "bog",       {0.0f, 0.0f, 0.0f},  {5.0f, 1.0f, 5.0f}, 0.0f, 9.0f, 0.0f, 0.02f},
+		{"plane",  "bog",  {0.0f, 0.0f, 0.0f},  {5.0f, 1.0f, 5.0f}, 0.0f, 9.0f, 0.0f, 0.025f},
 	};
 
 	m_GameObjects.reserve(sampleSceneObjects.size());
@@ -337,8 +337,19 @@ bool ApplicationClass::Frame(InputClass* input) {
 
 	/// USER INPUT
 // Check if the user pressed escape and wants to exit the application.
-	if(input->IsEscapePressed()) {
+	if(input->IsEscapeKeyDown()) {
 		return false;
+	}
+
+	if(input->IsF1KeyUp()) {
+		m_bRenderDebugQuad = !m_bRenderDebugQuad;
+	}
+
+	if(input->IsLeftShiftKeyUp()) {
+		m_bFastMove = false;
+	}
+	else if(input->IsLeftShiftKeyDown()) {
+		m_bFastMove = true;
 	}
 
 	// Get the location of the mouse from the input object,
@@ -354,7 +365,7 @@ bool ApplicationClass::Frame(InputClass* input) {
 	// Camera Translation
 	XMFLOAT3 currLookAtDir = m_Camera->GetLookAtDir();
 	XMFLOAT3 currRightDir = m_Camera->GetRightDir();
-	XMVECTOR camMoveVector = XMVector3Normalize(XMVectorAdd(XMLoadFloat3(&currLookAtDir) * input->GetMoveAxisVertical(), XMLoadFloat3(&currRightDir) * input->GetMoveAxisHorizontal())) * m_DeltaTime * 5.0f;
+	XMVECTOR camMoveVector = XMVector3Normalize(XMVectorAdd(XMLoadFloat3(&currLookAtDir) * input->GetMoveAxisVertical(), XMLoadFloat3(&currRightDir) * input->GetMoveAxisHorizontal())) * m_DeltaTime * (m_bFastMove ? 15.0f : 5.0f);
 
 	m_Camera->SetPosition(m_Camera->GetPositionX() + XMVectorGetX(camMoveVector), m_Camera->GetPositionY() + XMVectorGetY(camMoveVector), m_Camera->GetPositionZ() + XMVectorGetZ(camMoveVector));
 
@@ -508,7 +519,7 @@ bool ApplicationClass::RenderSceneToScreenTexture() {
 	float animatedDir = std::sin(m_Time * 0.5f);
 	float lightDirX = animatedDir;
 	float lightDirY = -(animatedDir * 0.5f + 0.8f);
-	float lightDirZ = 0.5f;
+	float lightDirZ = -0.5f;
 
 	// Update the directional light and shadow depth map
 	XMVECTOR dirVec = XMVectorSet(lightDirX, lightDirY, lightDirZ, 0.0f);
@@ -580,12 +591,14 @@ bool ApplicationClass::RenderToBackBuffer() {
 	///////////////////////////////
 
 	// Depth Debug Quad
-	m_DepthDebugDisplayPlane->Render(m_Direct3D->GetDeviceContext());
-	float depthQuadPosX = -m_ScreenWidth / 2.0f + m_ScreenHeight / 6.0f;
-	float depthQuadPosY = -m_ScreenHeight / 2.0f + m_ScreenHeight / 6.0f;
-	//if(!m_DebugDepthShader->Render(m_Direct3D->GetDeviceContext(), m_DepthDebugDisplayPlane->GetIndexCount(), XMMatrixTranslation(depthQuadPosX, depthQuadPosY, 0), viewMatrix, orthoMatrix, m_ShadowMapRenderTexture->GetTextureSRV())) {
-	//	return false;
-	//}
+	if(m_bRenderDebugQuad) {
+		m_DepthDebugDisplayPlane->Render(m_Direct3D->GetDeviceContext());
+		float depthQuadPosX = -m_ScreenWidth / 2.0f + m_ScreenHeight / 6.0f;
+		float depthQuadPosY = -m_ScreenHeight / 2.0f + m_ScreenHeight / 6.0f;
+		if(!m_DebugDepthShader->Render(m_Direct3D->GetDeviceContext(), m_DepthDebugDisplayPlane->GetIndexCount(), XMMatrixTranslation(depthQuadPosX, depthQuadPosY, 0), viewMatrix, orthoMatrix, m_ShadowMapRenderTexture->GetTextureSRV())) {
+			return false;
+		}
+	}
 
 	///////////////////////////////
 	// DEBUG Text (UI) //

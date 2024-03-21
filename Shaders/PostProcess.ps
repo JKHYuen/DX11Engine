@@ -1,0 +1,48 @@
+Texture2D screenTexture : register(t0);
+SamplerState SampleType : register(s0);
+
+struct PixelInputType {
+    float4 position : SV_POSITION;
+    float2 uv : TEXCOORD0;
+};
+ 
+// https://64.github.io/tonemapping/#reinhard-jodie
+float3 ReinhardJodieTMO(float3 v) {
+    float l_in = dot(v, float3(0.2126, 0.7152, 0.0722));
+    float3 tv = v / (1.0 + v);
+    return lerp(v / (1.0 + l_in), tv, tv);
+}
+
+// https://64.github.io/tonemapping/#uncharted-2
+// http://filmicworlds.com/blog/filmic-tonemapping-with-piecewise-power-curves/
+float3 uncharted2_tonemap_partial(float3 x) {
+    float A = 0.15f;
+    float B = 0.50f;
+    float C = 0.10f;
+    float D = 0.20f;
+    float E = 0.02f;
+    float F = 0.30f;
+    return ((x * (A * x + C * B) + D * E) / (x * (A * x + B) + D * F)) - E / F;
+}
+
+float3 HableTMO(float3 v) {
+    float exposure_bias = 2.0f;
+    float3 curr = uncharted2_tonemap_partial(v * exposure_bias);
+
+    float3 W = 11.2f;
+    float3 white_scale = 1.0f / uncharted2_tonemap_partial(W);
+    return curr * white_scale;
+}
+
+// Rendered objects on screen texture should be in linear color space
+float4 TexturePixelShader(PixelInputType i) : SV_TARGET {
+    float4 color = screenTexture.Sample(SampleType, i.uv);
+    
+    // Tonemap
+    color.rgb = ReinhardJodieTMO(color.rgb);
+    //color.rgb = HableTMO(color.rgb);
+    
+    //color = pow(color, 1.0 / 2.2);
+    
+    return color;
+}

@@ -1,7 +1,7 @@
 #include "CubeMapObject.h"
 #include "QuadModel.h"
 #include "RenderTextureClass.h"
-#include "HDRTexture.h"
+#include "TextureClass.h"
 #include "D3DClass.h"
 #include <fstream>
 
@@ -128,8 +128,8 @@ bool CubeMapObject::Initialize(D3DClass* d3dInstance, HWND hwnd, const std::stri
 	d3dInstance->SetToFrontCullRasterState();
 
 	// NOTE: HDRTexture defaults to no mipmaps
-	m_HDRCubeMapTex = new HDRTexture();
-	result = m_HDRCubeMapTex->Initialize(device, deviceContext, "../DX11Engine/data/" + fileName + ".hdr");
+	m_HDRCubeMapTex = new TextureClass();
+	result = m_HDRCubeMapTex->Initialize(device, deviceContext, "../DX11Engine/data/" + fileName + ".hdr", DXGI_FORMAT_R32G32B32A32_FLOAT, 1);
 	if(!result) {
 		return false;
 	}
@@ -281,8 +281,8 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstri
 	ID3D10Blob* vertexShaderBuffer {};
 	ID3D10Blob* pixelShaderBuffer {};
 
-	std::wstring vsFileName = L"../DX11Engine/" + shaderName + L".vs";
-	std::wstring psFileName = L"../DX11Engine/" + shaderName + L".ps";
+	std::wstring vsFileName = L"../DX11Engine/Shaders/" + shaderName + L".vs";
+	std::wstring psFileName = L"../DX11Engine/Shaders/" + shaderName + L".ps";
 
 	// Compile the vertex shader code.
 	result = D3DCompileFromFile(vsFileName.c_str(), NULL, NULL, "Vert", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
