@@ -3,6 +3,7 @@ struct PixelInputType {
 	float4 depthPosition : TEXTURE0;
 };
 
+// Simple shader to render depth value 
 float4 DepthPixelShader(PixelInputType input) : SV_TARGET {
     float depthValue = input.depthPosition.z / input.depthPosition.w;
     return float4(depthValue, depthValue, depthValue, 1.0f);

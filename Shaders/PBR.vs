@@ -2,7 +2,7 @@ Texture2D heightMap : register(t0);
 SamplerState Sampler : register(s0);
 
 cbuffer MatrixBuffer {
-    matrix worldMatrix;
+    matrix modelMatrix;
     matrix viewMatrix;
     matrix projectionMatrix;
     matrix lightViewMatrix;
@@ -29,8 +29,7 @@ struct PixelInputType {
     float4 lightViewPosition : TEXCOORD2;
     float4 worldPosition : TEXCOORD3;
     
-    float3 tangentCameraPosition : TEXCOORD4;
-    float3 tangentFragPosition : TEXCOORD5;
+    float3 tangentViewDirection : TEXCOORD4;
     
     float3 normal : NORMAL;
     float3 tangent : TANGENT;
@@ -50,27 +49,26 @@ PixelInputType PBRVertexShader(VertexInputType i) {
     }
     
     // Calculate the position of the vertex against the world, view, and projection matrices.
-    o.position = mul(i.position, worldMatrix);
+    o.position = mul(i.position, modelMatrix);
     o.position = mul(o.position, viewMatrix);
     o.position = mul(o.position, projectionMatrix);
     
     // Store the texture coordinates for the pixel shader.
     o.uv = i.uv;
     
-    o.worldPosition = mul(i.position, worldMatrix);
-    o.cameraPosition = cameraPosition.xyz;
+    o.worldPosition = mul(i.position, modelMatrix);
+    o.cameraPosition = cameraPosition;
     
     // TBN
-    o.tangent = normalize(mul(i.tangent, (float3x3) worldMatrix));
-    o.binormal = normalize(mul(i.binormal, (float3x3) worldMatrix));
-    o.normal = normalize(mul(i.normal, (float3x3) worldMatrix));
+    o.tangent = normalize(mul(i.tangent, (float3x3) modelMatrix));
+    o.binormal = normalize(mul(i.binormal, (float3x3) modelMatrix));
+    o.normal = normalize(mul(i.normal, (float3x3) modelMatrix));
     
-    float3x3 TBN = transpose(float3x3(o.tangent, o.binormal, o.normal));
-    o.tangentCameraPosition = mul(cameraPosition.xyz, TBN);
-    o.tangentFragPosition = mul(o.worldPosition.xyz, TBN);
+    float3x3 TBN = float3x3(o.tangent, o.binormal, o.normal);
+    o.tangentViewDirection = mul(TBN, cameraPosition - o.worldPosition.xyz);
     
     // Shadow Mapping
-    o.lightViewPosition = mul(i.position, worldMatrix);
+    o.lightViewPosition = mul(i.position, modelMatrix);
     o.lightViewPosition = mul(o.lightViewPosition, lightViewMatrix);
     o.lightViewPosition = mul(o.lightViewPosition, lightProjectionMatrix);
 

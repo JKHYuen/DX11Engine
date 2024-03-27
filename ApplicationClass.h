@@ -12,13 +12,14 @@ constexpr float gScreenDepth = 1000.0f;
 constexpr float gScreenNear = 0.1f;
 constexpr int gShadowmapWidth = 2048;
 constexpr int gShadowmapHeight = 2048;
-constexpr float gShadowMapDepth = 50.0f;
+constexpr float gShadowMapDepth = 100.0f;
 constexpr float gShadowMapNear = 1.0f;
 
 using ChronoTimePoint = std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>>;
 
 class D3DClass;
 class InputClass;
+
 class CameraClass;
 class TextureShaderClass;
 class FontShaderClass;
@@ -28,12 +29,14 @@ class QuadModel;
 
 class FontClass;
 class TextClass;
-class LightClass;
+class DirectionalLightClass;
 class SpriteClass;
 class TimerClass;
 class FpsClass;
 
 class GameObject;
+class PBRShaderClass;
+class DepthShaderClass;
 class CubeMapObject;
 
 class ApplicationClass {
@@ -42,9 +45,10 @@ public:
 	ApplicationClass(const ApplicationClass&);
 	~ApplicationClass();
 
-	bool Initialize(int, int, HWND);
+	bool Initialize(bool isFullScreen, int screenWidth, int screenHeight, HWND hwnd);
 	void Shutdown();
-	bool Frame(InputClass*);
+	bool Frame(InputClass* input);
+	void UpdateMainImGuiWindow();
 
 	D3DClass* GetD3DClass() { return m_Direct3D; };
 
@@ -67,7 +71,7 @@ private:
 	std::vector<GameObject> m_GameObjects {};
 
 	// Directional light
-	LightClass* m_Light {};
+	DirectionalLightClass* m_Light {};
 
 	// Point lights
 	//LightClass* m_lights {};
@@ -95,8 +99,12 @@ private:
 	TextClass* m_FpsString {};
 	TextClass* m_MouseTexts {};
 
-	bool m_bRenderDebugQuad {};
-	bool m_bFastMove {};
+	bool mb_RenderDebugQuad {};
+	bool mb_FastMove {};
+	bool mb_ShowMainMenu {};
+
+	PBRShaderClass* m_PBRShaderInstance {};
+	DepthShaderClass* m_DepthShaderInstance {};
 
 	// Custom Timer
 	ChronoTimePoint m_StartTime {};

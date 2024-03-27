@@ -11,15 +11,16 @@
 
 #include "FontClass.h"
 #include "TextClass.h"
-#include "LightClass.h"
+#include "DirectionalLightClass.h"
 #include "SpriteClass.h"
 #include "TimerClass.h"
 #include "FpsClass.h"
 
 #include "GameObject.h"
+#include "PBRShaderClass.h"
+#include "DepthShaderClass.h"
 #include "CubeMapObject.h"
 
-#include "imgui.h"
 #include "imgui_impl_dx11.h"
 
 #include <iostream>
@@ -28,7 +29,10 @@ ApplicationClass::ApplicationClass() {}
 ApplicationClass::ApplicationClass(const ApplicationClass& other) {}
 ApplicationClass::~ApplicationClass() {}
 
-bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) {
+static float startingDirectionalLightDirX = 50.0f;
+static float startingDirectionalLightDirY = 30.0f;
+
+bool ApplicationClass::Initialize(bool isFullScreen, int screenWidth, int screenHeight, HWND hwnd) {
 	bool result;
 	char fpsString[32];
 	//char mouseString1[32], mouseString2[32], mouseString3[32];
@@ -41,7 +45,7 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 
 	// Create and initialize the Direct3D object
 	m_Direct3D = new D3DClass();
-	result = m_Direct3D->Initialize(screenWidth, screenHeight, gVsyncEnabled, hwnd, gFullScreen, gScreenDepth, gScreenNear);
+	result = m_Direct3D->Initialize(screenWidth, screenHeight, gVsyncEnabled, hwnd, isFullScreen, gScreenDepth, gScreenNear);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize Direct3D", L"Error", MB_OK);
 		return false;
@@ -57,9 +61,24 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	m_ScreenDisplayCamera->SetPosition(0.0f, 0.0f, -1.0f);
 	// Initialize stationary camera to view full screen quads
 	m_ScreenDisplayCamera->Render();
+	
+	/// Initialize shared shader instances
+	m_DepthShaderInstance = new DepthShaderClass();
+	result = m_DepthShaderInstance->Initialize(m_Direct3D->GetDevice(), hwnd);
+	if(!result) {
+		MessageBox(hwnd, L"Could not initialize the Depth shader object.", L"Error", MB_OK);
+		return false;
+	}
+
+	m_PBRShaderInstance = new PBRShaderClass();
+	result = m_PBRShaderInstance->Initialize(m_Direct3D->GetDevice(), hwnd);
+	if(!result) {
+		MessageBox(hwnd, L"Could not initialize the PBR shader object.", L"Error", MB_OK);
+		return false;
+	}
 
 	///////////////////////////////
-	// Screen Render Texture //
+	// Screen Render Texture //////
 	///////////////////////////////
 	// Create and initialize the screen render texture
 	m_ScreenRenderTexture = new RenderTextureClass();
@@ -144,13 +163,13 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 		{"sphere", "marble",     {0.0f, 7.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
 		//{"cube",   "marble",     {0.0f, 11.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
 		// Floor			    					 
-		{"plane",  "bog",  {0.0f, 0.0f, 0.0f},  {5.0f, 1.0f, 5.0f}, 0.0f, 9.0f, 0.0f, 0.025f},
+		{"plane",  "dirt",  {0.0f, 0.0f, 0.0f},  {5.0f, 1.0f, 5.0f}, 0.0f, 9.0f, 0.0f, 0.025f},
 	};
 
 	m_GameObjects.reserve(sampleSceneObjects.size());
 	for(size_t i = 0; i < sampleSceneObjects.size(); i++) {
 		m_GameObjects.emplace_back();
-		if(!m_GameObjects[i].Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), hwnd, sampleSceneObjects[i].modelName, sampleSceneObjects[i].materialName)) {
+		if(!m_GameObjects[i].Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), hwnd, sampleSceneObjects[i].modelName, sampleSceneObjects[i].materialName, m_PBRShaderInstance, m_DepthShaderInstance)) {
 			MessageBox(hwnd, L"Could not initialize PBR object.", L"Error", MB_OK);
 			return false;
 		}
@@ -163,9 +182,7 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 		m_GameObjects[i].SetParallaxMapHeightScale(sampleSceneObjects[i].parallaxMapHeightScale);
 	}
 
-	///////////////////////////////
-	// Lighting //
-	///////////////////////////////
+	/// Lighting
 	// Create and initialize the shadow map texture
 	m_ShadowMapRenderTexture = new RenderTextureClass();
 	result = m_ShadowMapRenderTexture->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), gShadowmapWidth, gShadowmapHeight, gShadowMapNear, gShadowMapDepth, DXGI_FORMAT_R32G32B32A32_FLOAT);
@@ -183,14 +200,14 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	}
 
 	// Create and initialize the light object.
-	m_Light = new LightClass();
+	m_Light = new DirectionalLightClass();
 
 	// Directional light
 	// m_Light->SetDirectionalColor(9.0f, 5.0f, 2.0f, 1.0f); // sunlight color
 	m_Light->SetDirectionalColor(9.0f, 8.0f, 7.0f, 1.0f);
-	m_Light->SetDirection(0.0f, -1.0f, 0.0f);
-
 	m_Light->GenerateOrthoMatrix(40.0f, gShadowMapNear, gShadowMapDepth);
+
+	m_Light->SetDirection(XMConvertToRadians(startingDirectionalLightDirX), XMConvertToRadians(startingDirectionalLightDirY), 0.0f);
 
 	//// Set the number of lights we will use.
 	//m_numLights = 4;
@@ -293,7 +310,6 @@ bool ApplicationClass::Initialize(int screenWidth, int screenHeight, HWND hwnd) 
 	return true;
 }
 
-
 bool ApplicationClass::Frame(InputClass* input) {
 	int mouseX, mouseY;
 	bool mouseDown;
@@ -333,6 +349,10 @@ bool ApplicationClass::Frame(InputClass* input) {
 		return false;
 	}
 
+	if(mb_ShowMainMenu) {
+		UpdateMainImGuiWindow();
+	}
+
 	// Render scene texture with post processing to main back buffer
 	if(!RenderToBackBuffer()) {
 		return false;
@@ -344,33 +364,40 @@ bool ApplicationClass::Frame(InputClass* input) {
 		return false;
 	}
 
-	if(input->IsF1KeyUp()) {
-		m_bRenderDebugQuad = !m_bRenderDebugQuad;
+	if(input->IsTabKeyDown()) {
+		mb_ShowMainMenu = !mb_ShowMainMenu;
+		ShowCursor(mb_ShowMainMenu);
 	}
 
-	if(input->IsLeftShiftKeyUp()) {
-		m_bFastMove = false;
-	}
-	else if(input->IsLeftShiftKeyDown()) {
-		m_bFastMove = true;
+	if(input->IsF1KeyDown()) {
+		mb_RenderDebugQuad = !mb_RenderDebugQuad;
 	}
 
-	// Get the location of the mouse from the input object,
-	input->GetMouseLocation(mouseX, mouseY);
+	if(!mb_ShowMainMenu) {
+		if(input->IsLeftShiftKeyUp()) {
+			mb_FastMove = false;
+		}
+		else if(input->IsLeftShiftKeyDown()) {
+			mb_FastMove = true;
+		}
 
-	// Check if the mouse has been pressed.
-	mouseDown = input->IsMousePressed();
+		// Get the location of the mouse from the input object,
+		input->GetMouseLocation(mouseX, mouseY);
 
-	// Camera Rotation
-	float mouseSensitivity = 10.0f * m_DeltaTime;
-	m_Camera->SetRotation(m_Camera->GetRotationX() + input->GetMouseAxisHorizontal() * mouseSensitivity, m_Camera->GetRotationY() + input->GetMouseAxisVertical() * mouseSensitivity, m_Camera->GetRotationZ());
+		// Check if the mouse has been pressed.
+		mouseDown = input->IsMousePressed();
 
-	// Camera Translation
-	XMFLOAT3 currLookAtDir = m_Camera->GetLookAtDir();
-	XMFLOAT3 currRightDir = m_Camera->GetRightDir();
-	XMVECTOR camMoveVector = XMVector3Normalize(XMVectorAdd(XMLoadFloat3(&currLookAtDir) * input->GetMoveAxisVertical(), XMLoadFloat3(&currRightDir) * input->GetMoveAxisHorizontal())) * m_DeltaTime * (m_bFastMove ? 15.0f : 5.0f);
+		// Camera Rotation
+		float mouseSensitivity = 10.0f * m_DeltaTime;
+		m_Camera->SetRotation(m_Camera->GetRotationX() + input->GetMouseAxisHorizontal() * mouseSensitivity, m_Camera->GetRotationY() + input->GetMouseAxisVertical() * mouseSensitivity, m_Camera->GetRotationZ());
 
-	m_Camera->SetPosition(m_Camera->GetPositionX() + XMVectorGetX(camMoveVector), m_Camera->GetPositionY() + XMVectorGetY(camMoveVector), m_Camera->GetPositionZ() + XMVectorGetZ(camMoveVector));
+		// Camera Translation
+		XMFLOAT3 currLookAtDir = m_Camera->GetLookAtDir();
+		XMFLOAT3 currRightDir = m_Camera->GetRightDir();
+		XMVECTOR camMoveVector = XMVector3Normalize(XMVectorAdd(XMLoadFloat3(&currLookAtDir) * input->GetMoveAxisVertical(), XMLoadFloat3(&currRightDir) * input->GetMoveAxisHorizontal())) * m_DeltaTime * (mb_FastMove ? 15.0f : 5.0f);
+
+		m_Camera->SetPosition(m_Camera->GetPositionX() + XMVectorGetX(camMoveVector), m_Camera->GetPositionY() + XMVectorGetY(camMoveVector), m_Camera->GetPositionZ() + XMVectorGetZ(camMoveVector));
+	}
 
 	// Update the mouse strings each frame.
 	//result = UpdateMouseStrings(mouseX, mouseY, mouseDown);
@@ -498,6 +525,41 @@ bool ApplicationClass::RenderSceneDepthTexture() {
 	return true;
 }
 
+void ApplicationClass::UpdateMainImGuiWindow() {
+
+	static ImGuiSliderFlags sliderFlags = ImGuiSliderFlags_AlwaysClamp;
+
+	bool b_isMenuActive;
+	//ImGui::ShowDemoWindow(&my_tool_active);
+
+	ImGui::Begin("Scene Menu", &b_isMenuActive, ImGuiWindowFlags_None);
+
+	//ImGui::Text("fps: %d", m_Fps->GetCurrentFPS());
+
+	// Generate samples and plot them
+	//float samples[100] {};
+	//for(int n = 0; n < 100; n++)
+	//	samples[n] = std::sinf(n * 0.2f + (float)ImGui::GetTime() * 1.5f);
+	//ImGui::PlotLines("Samples", samples, 100);
+
+	static float x = startingDirectionalLightDirX;
+	static float y = startingDirectionalLightDirY;
+	ImGui::Text("Direction Light Angle");
+	ImGui::DragFloat("X", &x, 0.5f, -1000.0f, 1000.0f, "%.3f", sliderFlags);
+	ImGui::DragFloat("Y", &y, 0.5f, -1000.0f, 1000.0f, "%.3f", sliderFlags);
+	x = std::fmod(x, 360.0f);
+	y = std::fmod(y, 360.0f);
+
+	m_Light->SetDirection(XMConvertToRadians(x), XMConvertToRadians(y), 0.0f);
+	
+	ImGui::End();
+
+	if(!b_isMenuActive) {
+		mb_ShowMainMenu = false;
+		ShowCursor(mb_ShowMainMenu);
+	}
+}
+
 bool ApplicationClass::RenderSceneToScreenTexture() {
 	// Set the render target to be the render texture and clear it.
 	m_ScreenRenderTexture->SetRenderTarget();
@@ -516,20 +578,10 @@ bool ApplicationClass::RenderSceneToScreenTexture() {
 	// 3D Rendering //
 	///////////////////////////////
 	// Animate directional light
-	float animatedDir = std::sin(m_Time * 0.5f);
-	float lightDirX = animatedDir;
-	float lightDirY = -(animatedDir * 0.5f + 0.8f);
-	float lightDirZ = 0.5f;
-
-	// Update the directional light and shadow depth map
-	XMVECTOR dirVec = XMVectorSet(lightDirX, lightDirY, lightDirZ, 0.0f);
-	dirVec = XMVector3Normalize(dirVec);
-	m_Light->SetDirection(XMVectorGetX(dirVec), XMVectorGetY(dirVec), XMVectorGetZ(dirVec));
-
-	// Note: a bit hacky
-	float direcLightRenderDist = 15.0f;
-	m_Light->SetPosition(-lightDirX * direcLightRenderDist, -lightDirY * direcLightRenderDist, -lightDirZ * direcLightRenderDist);
-	m_Light->GenerateViewMatrix();
+	//float animatedDir = std::sin(m_Time * 0.5f);
+	//m_LightDirX = animatedDir;
+	//m_LightDirY = -(animatedDir * 0.5f + 0.8f);
+	//m_LightDirZ = 0.5f;
 
 	// Opaque 3D PBR Objects
 	for(GameObject go : m_GameObjects) {
@@ -551,11 +603,6 @@ bool ApplicationClass::RenderSceneToScreenTexture() {
 	//m_ScreenRenderTexture->EnableAlphaBlending();
 
 	//// TODO: Transparent Objects
-	//for(GameObject go : m_GameObjects) {
-	//	if(!go.Render(m_Direct3D->GetDeviceContext(), viewMatrix, projectionMatrix, m_ShadowMapRenderTexture->GetTextureSRV(), m_CubeMapObject->GetIrradianceMapSRV(), m_CubeMapObject->GetPrefilteredMapSRV(), m_CubeMapObject->GetPrecomputedBRDFSRV(), m_Light, m_Camera->GetPosition(), m_Time)) {
-	//		return false;
-	//	}
-	//}
 
 	//m_ScreenRenderTexture->TurnZBufferOn();
 	//m_ScreenRenderTexture->DisableAlphaBlending();
@@ -598,7 +645,7 @@ bool ApplicationClass::RenderToBackBuffer() {
 	///////////////////////////////
 
 	// Depth Debug Quad
-	if(m_bRenderDebugQuad) {
+	if(mb_RenderDebugQuad) {
 		m_DepthDebugDisplayPlane->Render(m_Direct3D->GetDeviceContext());
 		float depthQuadPosX = -m_ScreenWidth / 2.0f + m_ScreenHeight / 6.0f;
 		float depthQuadPosY = -m_ScreenHeight / 2.0f + m_ScreenHeight / 6.0f;
@@ -631,6 +678,7 @@ bool ApplicationClass::RenderToBackBuffer() {
 	m_Direct3D->TurnZBufferOn();
 	m_Direct3D->DisableAlphaBlending();
 
+	/// Render IMGUI
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
@@ -721,6 +769,19 @@ void ApplicationClass::Shutdown() {
 	//	delete m_sprite;
 	//	m_sprite = nullptr;
 	//}
+
+
+	if(m_PBRShaderInstance) {
+		m_PBRShaderInstance->Shutdown();
+		delete m_PBRShaderInstance;
+		m_PBRShaderInstance = nullptr;
+	}
+
+	if(m_DepthShaderInstance) {
+		m_DepthShaderInstance->Shutdown();
+		delete m_DepthShaderInstance;
+		m_DepthShaderInstance = nullptr;
+	}
 
 	// Release the texture shader object.
 	if(m_PostProcessShader) {

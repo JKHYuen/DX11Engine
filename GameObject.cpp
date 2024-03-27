@@ -4,9 +4,9 @@
 #include "PBRShaderClass.h"
 #include "DepthShaderClass.h"
 #include "ModelClass.h"
-#include "LightClass.h"
+#include "DirectionalLightClass.h"
 
-bool GameObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, const std::string& modelName, const std::string& textureName) {
+bool GameObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, const std::string& modelName, const std::string& textureName, PBRShaderClass* pbrShaderInstance, DepthShaderClass* depthShaderInstance) {
 	bool result;
 
 	// TODO: convert to wstring?
@@ -31,24 +31,13 @@ bool GameObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceCon
 	}
 
 	/// Initialize Shaders
-	m_DepthShader = new DepthShaderClass();
-	result = m_DepthShader->Initialize(device, windowHandle);
-	if(!result) {
-		MessageBox(windowHandle, L"Could not initialize the Depth shader object.", L"Error", MB_OK);
-		return false;
-	}
-
-	m_PBRShader = new PBRShaderClass();
-	result = m_PBRShader->Initialize(device, windowHandle);
-	if(!result) {
-		MessageBox(windowHandle, L"Could not initialize the PBR shader object.", L"Error", MB_OK);
-		return false;
-	}
+	m_PBRShader = pbrShaderInstance;
+	m_DepthShader = depthShaderInstance;
 
 	return true;
 }
 
-bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, LightClass* light, float time){
+bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLightClass* light, float time){
 	XMMATRIX srtMatrix = XMMatrixMultiply(XMMatrixMultiply(
 		XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z),
 		XMMatrixRotationY(time * m_RotationYSpeed)),
@@ -65,7 +54,7 @@ bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, LightClass* l
 	return true;
 }
 
-bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, LightClass* light, XMFLOAT3 cameraPos, float time) {
+bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLightClass* light, XMFLOAT3 cameraPos, float time) {
 	XMMATRIX srtMatrix = XMMatrixMultiply(XMMatrixMultiply(
 		XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z),
 		XMMatrixRotationY(time * m_RotationYSpeed)),
@@ -82,11 +71,5 @@ void GameObject::Shutdown() {
 		m_Model->Shutdown();
 		delete m_Model;
 		m_Model = nullptr;
-	}
-
-	if(m_PBRShader) {
-		m_PBRShader->Shutdown();
-		delete m_PBRShader;
-		m_PBRShader = nullptr;
 	}
 }

@@ -75,7 +75,6 @@ CubeMapObject::CubeMapObject() {}
 CubeMapObject::CubeMapObject(const CubeMapObject& other) {}
 CubeMapObject::~CubeMapObject() {}
 
-// TODO: REMOVE HDRTexture
 bool CubeMapObject::Initialize(D3DClass* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
 	bool result;
 
@@ -104,6 +103,7 @@ bool CubeMapObject::Initialize(D3DClass* d3dInstance, HWND hwnd, const std::stri
 	}
 
 	/// Initialize the vertex and pixel shaders
+	/// Note: only needs to be done once, change this if loading more than one cubemap
 	result = InitializeShader(device, hwnd, kHDRCubeMapShaderName, &m_HDREquiVertexShader, &m_HDREquiPixelShader);
 	if(!result) return false; 
 

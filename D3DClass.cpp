@@ -295,6 +295,13 @@ bool D3DClass::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hw
 		return false;
 	}
 
+	rasterDesc.CullMode = D3D11_CULL_BACK;
+	rasterDesc.FillMode = D3D11_FILL_WIREFRAME;
+	result = m_Device->CreateRasterizerState(&rasterDesc, &m_RasterStateWireBackCull);
+	if(FAILED(result)) {
+		return false;
+	}
+
 	// Now set the rasterizer state.
 	m_DeviceContext->RSSetState(m_RasterStateBackCull);
 
@@ -436,6 +443,10 @@ void D3DClass::GetVideoCardInfo(char* cardName, int& memory) {
 void D3DClass::SetToBackBufferRenderTarget() {
 	// Bind the render target view and depth stencil buffer to the output render pipeline.
 	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
+}
+
+void D3DClass::SetToWireBackCullRasterState() {
+	m_DeviceContext->RSSetState(m_RasterStateWireBackCull);
 }
 
 void D3DClass::SetToBackCullRasterState() {

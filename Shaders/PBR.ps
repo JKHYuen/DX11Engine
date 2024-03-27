@@ -26,6 +26,7 @@ cbuffer LightBuffer {
 };
 
 cbuffer MaterialParamBuffer {
+    // Note: can move this into uv : TEXCOORD0
     float uvScale;
     float parallaxHeightScale;
     float2 padding;
@@ -39,8 +40,7 @@ struct PixelInputType {
     float4 worldPosition : TEXCOORD3;
     
     // For parallax occlusion
-    float3 tangentCameraPosition : TEXCOORD4;
-    float3 tangentFragPosition   : TEXCOORD5;
+    float3 tangentViewDirection : TEXCOORD4;
     
     float3 normal : NORMAL;
     float3 tangent : TANGENT;
@@ -94,7 +94,7 @@ float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness) {
 }
 
 // Parallax mapping adapted from: https://learnopengl.com/Advanced-Lighting/Parallax-Mapping
-float2 ParallaxMapping(float2 texCoords, float3 viewDir, out float currentParallaxLayer) {
+float2 ParallaxMapping(float2 texCoords, float3 viewDir) {
     float numLayers = lerp(MAX_PARALLAX_LAYERS, MIN_PARALLAX_LAYERS, abs(dot(float3(0.0, 0.0, 1.0), viewDir)));
     // calculate the size of each layer
     float layerDepth = 1.0 / numLayers;
@@ -108,8 +108,8 @@ float2 ParallaxMapping(float2 texCoords, float3 viewDir, out float currentParall
     float2 currentTexCoords = texCoords;
     float currentDepthMapValue = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
       
-    [loop]
-    while (currentLayerDepth < currentDepthMapValue) {
+    [unroll]
+    for(int i = 0; i < MAX_PARALLAX_LAYERS && currentLayerDepth < currentDepthMapValue; i++) {
         // shift texture coordinates along direction of P
         currentTexCoords -= deltaTexCoords;
         // get depthmap value at current texture coordinates
@@ -129,13 +129,13 @@ float2 ParallaxMapping(float2 texCoords, float3 viewDir, out float currentParall
     float weight = afterDepth / (afterDepth - beforeDepth);
     float2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
     
-    currentParallaxLayer = currentLayerDepth + beforeDepth * weight + afterDepth * (1.0 - weight);
+    // currentParallaxLayer = currentLayerDepth + beforeDepth * weight + afterDepth * (1.0 - weight);
 
     return finalTexCoords;
 }
 
 // Parallax map self shadowing adpated from: https://chanhaeng.blogspot.com/2019/01/normalparllax-mapping-with-self.html
-float ParallaxSoftShadowMultiplier(float3 lightDir, float2 initialTexCoords, float initialHeight) {
+float CalcParallaxSoftShadowMultiplier(float3 lightDir, float2 initialTexCoords, float initialHeight) {
     float shadowMultiplier = 0.0;
     
     float dotDir = max(dot(float3(0, 0, 1), lightDir), 0.0);
@@ -191,11 +191,11 @@ float4 PBRPixelShader(PixelInputType i) : SV_TARGET {
     //////////////////////////
     /// Parallax Occlusion ///
     //////////////////////////
-    float currentParallaxLayer = 0;
     if(parallaxHeightScale != 0) {
         // offset texture coordinates with Parallax Mapping
-        float3 tangentViewDir = normalize(i.tangentCameraPosition - i.tangentFragPosition);
-        i.uv = ParallaxMapping(i.uv, tangentViewDir, currentParallaxLayer);
+        //float3 tangentViewDir = normalize(i.tangentCameraPosition - i.tangentFragPosition);
+        //i.uv = ParallaxMapping(i.uv, tangentViewDir);
+        i.uv = ParallaxMapping(i.uv, normalize(i.tangentViewDirection));
     }
 
     ///////////////////////////////////
@@ -304,7 +304,7 @@ float4 PBRPixelShader(PixelInputType i) : SV_TARGET {
     shadowFactor /= 25.0;
     
     if(lightDepthValue > 1.0)
-        shadowFactor = 0.0;
+        shadowFactor = 1.0;
     
     float3 color = ambient + Lo * shadowFactor;
     
@@ -312,7 +312,7 @@ float4 PBRPixelShader(PixelInputType i) : SV_TARGET {
     if(parallaxHeightScale != 0) {
         float selfShadowFactor;
         float3x3 TBN = transpose(float3x3(i.tangent, i.binormal, i.normal));
-        selfShadowFactor = pow(ParallaxSoftShadowMultiplier(mul(-lightDirection, TBN), i.uv, 1.0 - heightMap.Sample(SamplerWrap, i.uv).r), 10.0);
+        selfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(mul(-lightDirection, TBN), i.uv, 1.0 - heightMap.Sample(SamplerWrap, i.uv).r), 10.0);
         color *= selfShadowFactor;
     }
     

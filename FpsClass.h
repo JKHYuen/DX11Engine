@@ -9,11 +9,11 @@ public:
     void Initialize(float sampleDuration);
     float Frame(float deltaTime);
 
+    int GetCurrentFPS() const { return m_CurrentFPS; }
+
 private:
-    int m_FrameCount {};
-    unsigned long m_LastInterval {};
     float m_SampleDuration {};
-    int m_previousFps {};
+    int m_CurrentFPS {};
 
     float m_CurrentFrameCount {};
     float m_CurrentFrameDuration {};

@@ -1,9 +1,5 @@
 #pragma once
 
-//#pragma comment(lib, "d3d11.lib")
-//#pragma comment(lib, "dxgi.lib")
-//#pragma comment(lib, "d3dcompiler.lib")
-
 #include <d3d11.h>
 #include <directxmath.h>
 using namespace DirectX;
@@ -32,6 +28,7 @@ public:
     void SetToBackBufferRenderTarget();
     void ResetViewport();
 
+    void SetToWireBackCullRasterState();
     void SetToBackCullRasterState();
     void SetToFrontCullRasterState();
 
@@ -55,6 +52,7 @@ private:
     ID3D11DepthStencilState* m_DepthStencilState {};
     ID3D11DepthStencilState* m_DepthDisabledStencilState {};
 
+    ID3D11RasterizerState* m_RasterStateWireBackCull {};
     ID3D11RasterizerState* m_RasterStateBackCull {};
     ID3D11RasterizerState* m_RasterStateFrontCull {};
     DirectX::XMMATRIX m_ProjectionMatrix {};

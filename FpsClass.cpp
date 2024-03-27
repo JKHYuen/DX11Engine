@@ -25,15 +25,14 @@ float FpsClass::Frame(float deltaTime) {
 	}
 
 	if(m_CurrentFrameDuration >= m_SampleDuration) {
-		float fps = m_CurrentFrameCount / m_CurrentFrameDuration;
+		m_CurrentFPS = m_CurrentFrameCount / m_CurrentFrameDuration;
 		m_CurrentFrameCount = 0;
 		m_CurrentFrameDuration = 0.0f;
 		m_BestFrameDuration = std::numeric_limits<float>::max();
 		m_WorstFrameDuration = 0.0f;
-		return fps;
+		return m_CurrentFPS;
 	}
 	else {
 		return -1;
 	}
-
 }

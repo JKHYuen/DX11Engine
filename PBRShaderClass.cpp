@@ -1,5 +1,5 @@
 #include "PBRShaderClass.h"
-#include "LightClass.h"
+#include "DirectionalLightClass.h"
 
 #include <d3dcompiler.h>
 #include <fstream>
@@ -289,7 +289,7 @@ bool PBRShaderClass::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vs
     return true;
 }
 
-bool PBRShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* albedoMap, ID3D11ShaderResourceView* normalMap, ID3D11ShaderResourceView* metallicMap, ID3D11ShaderResourceView* roughnessMap, ID3D11ShaderResourceView* aoMap, ID3D11ShaderResourceView* heightMap, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut,LightClass* light, XMFLOAT3 cameraPosition, float time, float uvScale, float displacementHeightScale, float parallaxHeightScale) {
+bool PBRShaderClass::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* albedoMap, ID3D11ShaderResourceView* normalMap, ID3D11ShaderResourceView* metallicMap, ID3D11ShaderResourceView* roughnessMap, ID3D11ShaderResourceView* aoMap, ID3D11ShaderResourceView* heightMap, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLightClass* light, XMFLOAT3 cameraPosition, float time, float uvScale, float displacementHeightScale, float parallaxHeightScale) {
     HRESULT result;
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     unsigned int bufferNumber;
@@ -549,8 +549,6 @@ void PBRShaderClass::RenderShader(ID3D11DeviceContext* deviceContext, int indexC
 
     // Render
     deviceContext->DrawIndexed(indexCount, 0, 0);
-
-    return;
 }
 
 void PBRShaderClass::Shutdown() {
@@ -621,6 +619,4 @@ void PBRShaderClass::Shutdown() {
         m_vertexShader->Release();
         m_vertexShader = nullptr;
     }
-
-    return;
 }

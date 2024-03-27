@@ -5,7 +5,7 @@
 #include <string>
 #include <iostream>
 
-class LightClass;
+class DirectionalLightClass;
 class ModelClass;
 class PBRShaderClass;
 class DepthShaderClass;
@@ -18,11 +18,11 @@ using namespace DirectX;
 
 class GameObject {
 public:
-	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, const std::string& modelName, const std::string& textureName);
+	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, const std::string& modelName, const std::string& textureName, PBRShaderClass* pbrShaderInstance, DepthShaderClass* depthShaderInstance);
 
-	bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, LightClass* light, XMFLOAT3 cameraPos, float time);
+	bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLightClass* light, XMFLOAT3 cameraPos, float time);
 
-	bool RenderToDepth(ID3D11DeviceContext* deviceContext, LightClass* light, float time);
+	bool RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLightClass* light, float time);
 
 	void Shutdown();
 

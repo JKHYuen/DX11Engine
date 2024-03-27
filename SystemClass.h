@@ -22,11 +22,11 @@ private:
 	void InitializeWindows(int&, int&);
 
 private:
-	LPCWSTR m_applicationName {};
-	HINSTANCE m_hinstance {};
-	HWND m_hwnd {};
+	LPCWSTR m_ApplicationName {};
+	HINSTANCE m_Hinstance {};
+	HWND m_Hwnd {};
 
-	InputClass* m_input {};
+	InputClass* m_Input {};
 	ApplicationClass* m_application {};
 };
 

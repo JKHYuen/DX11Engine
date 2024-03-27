@@ -4,9 +4,11 @@
 #include "InputClass.h"
 #include "ApplicationClass.h"
 
-#include "imgui.h"
-#include "imgui_impl_win32.h"
 #include "imgui_impl_dx11.h"
+#include "imgui_impl_win32.h"
+
+#include <cmath>
+#include <iostream>
 
 SystemClass::SystemClass() {}
 SystemClass::SystemClass(const SystemClass& other) {}
@@ -14,42 +16,41 @@ SystemClass::~SystemClass() {}
 
 bool SystemClass::Initialize() {
 	// Initialize the width and height of the screen to zero before sending the variables into the function.
-	int screenWidth { 0 };
-	int screenHeight { 0 };
+	int screenWidth {};
+	int screenHeight {};
 	bool result;
 
 	// Initialize the windows api.
 	InitializeWindows(screenWidth, screenHeight);
 
 	// Create and initialize the input object.  This object will be used to handle reading the keyboard input from the user.
-	m_input = new InputClass();
-	result = m_input->Initialize(m_hinstance, m_hwnd, screenWidth, screenHeight);
+	m_Input = new InputClass();
+	result = m_Input->Initialize(m_Hinstance, m_Hwnd, screenWidth, screenHeight);
 	if(!result) {
 		return false;
 	}
 
 	// Create and initialize the application class object.  This object will handle rendering all the graphics for this application.
 	m_application = new ApplicationClass();
-	result = m_application->Initialize(screenWidth, screenHeight, m_hwnd);
+	result = m_application->Initialize(gFullScreen, screenWidth, screenHeight, m_Hwnd);
 	if (!result) {
 		return false;
 	}
 
-	// Setup Dear ImGui context
+	/// Initialize DearImGui
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
+	ImGuiIO& io = ImGui::GetIO(); 
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
 
 	// Setup Platform/Renderer backends
-	ImGui_ImplWin32_Init(m_hwnd);
+	ImGui_ImplWin32_Init(m_Hwnd);
 	ImGui_ImplDX11_Init(m_application->GetD3DClass()->GetDevice(), m_application->GetD3DClass()->GetDeviceContext());
 
 	return true;
 }
-
 
 void SystemClass::Run() {
 	MSG msg {};
@@ -83,25 +84,24 @@ void SystemClass::Run() {
 bool SystemClass::Frame() {
 	bool result;
 
+	/// Input
+	result = m_Input->Frame();
+	if(!result) {
+		return false;
+	}
+
+	/// IMGUI
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
-	ImGui::ShowDemoWindow(); // Show demo window! :)
 
-	// Do the input frame processing.
-	result = m_input->Frame();
+	/// App / Render
+	result = m_application->Frame(m_Input);
 	if(!result) {
 		return false;
 	}
 
-
-	// Do the frame processing for the application class object.
-	result = m_application->Frame(m_input);
-	if(!result) {
-		return false;
-	}
-
-	return true;
+	return true;	
 }
 
 LRESULT CALLBACK SystemClass::MessageHandler(HWND hwnd, UINT umsg, WPARAM wparam, LPARAM lparam) {
@@ -117,23 +117,23 @@ void SystemClass::InitializeWindows(int& screenWidth, int& screenHeight) {
 	g_ApplicationHandle = this;
 
 	// Get the instance of this application.
-	m_hinstance = GetModuleHandle(NULL);
+	m_Hinstance = GetModuleHandle(NULL);
 
 	// Give the application a name.
-	m_applicationName = L"DX11EngineTest";
+	m_ApplicationName = L"DX11EngineTest";
 
 	// Setup the windows class with default settings.
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	wc.lpfnWndProc = WndProc;
 	wc.cbClsExtra = 0;
 	wc.cbWndExtra = 0;
-	wc.hInstance = m_hinstance;
+	wc.hInstance = m_Hinstance;
 	wc.hIcon = LoadIcon(NULL, IDI_WINLOGO);
 	wc.hIconSm = wc.hIcon;
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
 	wc.lpszMenuName = NULL;
-	wc.lpszClassName = m_applicationName;
+	wc.lpszClassName = m_ApplicationName;
 	wc.cbSize = sizeof(WNDCLASSEX);
 
 	// Register the window class.
@@ -170,14 +170,14 @@ void SystemClass::InitializeWindows(int& screenWidth, int& screenHeight) {
 	}
 
 	// Create the window with the screen settings and get the handle to it.
-	m_hwnd = CreateWindowEx(WS_EX_APPWINDOW, m_applicationName, m_applicationName,
+	m_Hwnd = CreateWindowEx(WS_EX_APPWINDOW, m_ApplicationName, m_ApplicationName,
 		WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_POPUP, 
-		posX, posY, screenWidth, screenHeight, NULL, NULL, m_hinstance, NULL);
+		posX, posY, screenWidth, screenHeight, NULL, NULL, m_Hinstance, NULL);
 
 	// Bring the window up on the screen and set it as main focus.
-	ShowWindow(m_hwnd, SW_SHOW);
-	SetForegroundWindow(m_hwnd);
-	SetFocus(m_hwnd);
+	ShowWindow(m_Hwnd, SW_SHOW);
+	SetForegroundWindow(m_Hwnd);
+	SetFocus(m_Hwnd);
 
 	// Hide the mouse cursor.
 	ShowCursor(false);
@@ -188,8 +188,8 @@ void SystemClass::InitializeWindows(int& screenWidth, int& screenHeight) {
 	//ClipCursor(&rect);
 }
 
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam) {
-	extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	if(ImGui_ImplWin32_WndProcHandler(hwnd, umessage, wparam, lparam))
 		return true;
 
@@ -219,9 +219,9 @@ void SystemClass::Shutdown() {
 	}
 
 	/// Release the input object.
-	if(m_input) {
-		delete m_input;
-		m_input = nullptr;
+	if(m_Input) {
+		delete m_Input;
+		m_Input = nullptr;
 	}
 
 	/// Shutdown ImGui
@@ -239,12 +239,12 @@ void SystemClass::Shutdown() {
 	}
 
 	// Remove the window.
-	DestroyWindow(m_hwnd);
-	m_hwnd = NULL;
+	DestroyWindow(m_Hwnd);
+	m_Hwnd = NULL;
 
 	// Remove the application instance.
-	UnregisterClass(m_applicationName, m_hinstance);
-	m_hinstance = NULL;
+	UnregisterClass(m_ApplicationName, m_Hinstance);
+	m_Hinstance = NULL;
 
 	// Release the pointer to this class.
 	g_ApplicationHandle = NULL;

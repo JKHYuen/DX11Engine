@@ -1,5 +1,5 @@
 #pragma once
-#include <directxmath.h>
+#include <DirectXMath.h>
 using namespace DirectX;
 
 class CameraClass {
@@ -12,20 +12,21 @@ public:
 	void SetRotation(float, float, float);
 
 	XMFLOAT3 GetPosition();
-	float GetPositionX() { return m_PositionX; };
-	float GetPositionY() { return m_PositionY; };
-	float GetPositionZ() { return m_PositionZ; };
+	float GetPositionX() const { return m_PositionX; };
+	float GetPositionY() const { return m_PositionY; };
+	float GetPositionZ() const { return m_PositionZ; };
 
 	XMFLOAT3 GetRotation();
-	float GetRotationX() { return m_RotationX; };
-	float GetRotationY() { return m_RotationY; };
-	float GetRotationZ() { return m_RotationZ; };
+	float GetRotationX() const { return m_RotationX; };
+	float GetRotationY() const { return m_RotationY; };
+	float GetRotationZ() const { return m_RotationZ; };
 
-	XMFLOAT3 GetLookAtDir() { return m_LookAtDir; };
-	XMFLOAT3 GetRightDir() { return m_RightDir; };
+	XMFLOAT3 GetLookAtDir() const { return m_LookAtDir; };
+	XMFLOAT3 GetRightDir() const { return m_RightDir; };
+
+	void GetViewMatrix(XMMATRIX& viewMatrix) const { viewMatrix = m_ViewMatrix; }
 
 	void Render();
-	void GetViewMatrix(XMMATRIX&);
 
 private:
 	float m_PositionX {}, m_PositionY {}, m_PositionZ {};
