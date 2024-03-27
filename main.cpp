@@ -1,4 +1,4 @@
-#include "SystemClass.h"
+#include "EngineSystem.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -55,7 +55,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline,
     RedirectIOToConsole();
 
 	// Create the system object.
-	SystemClass* system = new SystemClass();
+	EngineSystem* system = new EngineSystem();
 
 	// Initialize and run the system object.
 	if (system->Initialize()) {

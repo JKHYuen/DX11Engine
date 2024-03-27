@@ -8,12 +8,12 @@
 #include <directxmath.h>
 using namespace DirectX;
 
-class TextureClass;
-class RenderTextureClass;
-class ModelClass;
+class Texture;
+class RenderTexture;
+class Model;
 class QuadModel;
-class CameraClass;
-class D3DClass;
+class Camera;
+class D3DInstance;
 
 class CubeMapObject {
 public:
@@ -31,7 +31,7 @@ public:
     CubeMapObject(const CubeMapObject&);
     ~CubeMapObject();
 
-    bool Initialize(D3DClass* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad);
+    bool Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad);
 
     void Shutdown();
     bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, RenderType renderType, float roughness = 0);
@@ -88,11 +88,11 @@ private:
     ID3D11Buffer* m_CameraBuffer {};
     ID3D11Buffer* m_PrefilterParamBuffer {};
 
-    TextureClass* m_HDRCubeMapTex {};
-    RenderTextureClass* m_CubeMapTex {};
+    Texture* m_HDRCubeMapTex {};
+    RenderTexture* m_CubeMapTex {};
 
     // IBL
-    RenderTextureClass* m_IrradianceCubeMapTex {};
-    RenderTextureClass* m_PrefilteredCubeMapTex {};
-    RenderTextureClass* m_PrecomputedBRDFTex {};
+    RenderTexture* m_IrradianceCubeMapTex {};
+    RenderTexture* m_PrefilteredCubeMapTex {};
+    RenderTexture* m_PrecomputedBRDFTex {};
 };

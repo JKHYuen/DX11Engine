@@ -24,74 +24,56 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ApplicationClass.cpp">
+    <ClCompile Include="Application.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="D3DClass.cpp">
+    <ClCompile Include="D3DInstance.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="InputClass.cpp">
+    <ClCompile Include="Input.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="Main.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="SystemClass.cpp">
+    <ClCompile Include="EngineSystem.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="ModelClass.cpp">
+    <ClCompile Include="Model.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="CameraClass.cpp">
+    <ClCompile Include="Camera.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="FpsClass.cpp">
+    <ClCompile Include="FpsCounter.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="PBRShaderClass.cpp">
+    <ClCompile Include="PBRShader.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="DirectionalLightClass.cpp">
+    <ClCompile Include="DirectionalLight.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="TextureClass.cpp">
+    <ClCompile Include="Texture.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="SpriteClass.cpp">
+    <ClCompile Include="Sprite.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="TextureShaderClass.cpp">
+    <ClCompile Include="TextureShader.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="FontClass.cpp">
+    <ClCompile Include="Font.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="FontShaderClass.cpp">
+    <ClCompile Include="FontShader.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="TextClass.cpp">
+    <ClCompile Include="Text.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="TimerClass.cpp">
+    <ClCompile Include="Timer.cpp">
       <Filter>Source Files\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="RenderTextureClass.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="GameObject.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FullScreenTest.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="QuadModel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="CubeMapObject.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DepthShaderClass.cpp">
-      <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Include\imgui\imgui.cpp">
       <Filter>Source Files\imgui</Filter>
@@ -114,60 +96,78 @@
     <ClCompile Include="Include\imgui\imgui_widgets.cpp">
       <Filter>Source Files\imgui</Filter>
     </ClCompile>
+    <ClCompile Include="CubeMapObject.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="DepthShader.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="FullScreenTest.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="GameObject.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
     <ClCompile Include="Material.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="QuadModel.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="RenderTexture.cpp">
+      <Filter>Source Files\Engine</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="SystemClass.h">
+    <ClInclude Include="EngineSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="InputClass.h">
+    <ClInclude Include="Input.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationClass.h">
+    <ClInclude Include="Application.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="D3DClass.h">
+    <ClInclude Include="D3DInstance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ModelClass.h">
+    <ClInclude Include="Model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CameraClass.h">
+    <ClInclude Include="Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FpsClass.h">
+    <ClInclude Include="FpsCounter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PBRShaderClass.h">
+    <ClInclude Include="PBRShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DirectionalLightClass.h">
+    <ClInclude Include="DirectionalLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TextureClass.h">
+    <ClInclude Include="Texture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SpriteClass.h">
+    <ClInclude Include="Sprite.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TextureShaderClass.h">
+    <ClInclude Include="TextureShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TimerClass.h">
+    <ClInclude Include="Timer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FontClass.h">
+    <ClInclude Include="Font.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FontShaderClass.h">
+    <ClInclude Include="FontShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TextClass.h">
+    <ClInclude Include="Text.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="RenderTextureClass.h">
+    <ClInclude Include="RenderTexture.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="QuadModel.h">
@@ -179,7 +179,7 @@
     <ClInclude Include="CubeMapObject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="DepthShaderClass.h">
+    <ClInclude Include="DepthShader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Include\imgui\imconfig.h">

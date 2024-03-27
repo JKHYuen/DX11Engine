@@ -5,11 +5,11 @@
 #include <string>
 #include <iostream>
 
-class DirectionalLightClass;
-class ModelClass;
-class PBRShaderClass;
-class DepthShaderClass;
-class RenderTextureClass;
+class DirectionalLight;
+class Model;
+class PBRShader;
+class DepthShader;
+class RenderTexture;
 struct ID3D11Device;
 struct ID3D11DeviceContext;
 struct ID3D11ShaderResourceView;
@@ -18,11 +18,11 @@ using namespace DirectX;
 
 class GameObject {
 public:
-	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, const std::string& modelName, const std::string& textureName, PBRShaderClass* pbrShaderInstance, DepthShaderClass* depthShaderInstance);
+	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, const std::string& modelName, const std::string& textureName, PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance);
 
-	bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLightClass* light, XMFLOAT3 cameraPos, float time);
+	bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPos, float time);
 
-	bool RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLightClass* light, float time);
+	bool RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLight* light, float time);
 
 	void Shutdown();
 
@@ -59,7 +59,7 @@ private:
 	DirectX::XMFLOAT3 m_Position {};
 	DirectX::XMFLOAT3 m_Scale { 1.0f, 1.0f, 1.0f };
 
-	ModelClass* m_Model {};
-	PBRShaderClass* m_PBRShader {};
-	DepthShaderClass* m_DepthShader {};
+	Model* m_Model {};
+	PBRShader* m_PBRShader {};
+	DepthShader* m_DepthShader {};
 };

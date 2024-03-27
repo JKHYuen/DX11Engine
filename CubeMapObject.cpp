@@ -1,8 +1,8 @@
 #include "CubeMapObject.h"
 #include "QuadModel.h"
-#include "RenderTextureClass.h"
-#include "TextureClass.h"
-#include "D3DClass.h"
+#include "RenderTexture.h"
+#include "Texture.h"
+#include "D3DInstance.h"
 #include <fstream>
 
 static constexpr int kUnitCubeVertexCount = 36;
@@ -75,7 +75,7 @@ CubeMapObject::CubeMapObject() {}
 CubeMapObject::CubeMapObject(const CubeMapObject& other) {}
 CubeMapObject::~CubeMapObject() {}
 
-bool CubeMapObject::Initialize(D3DClass* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
+bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
 	bool result;
 
 	ID3D11Device* device = d3dInstance->GetDevice();
@@ -128,14 +128,14 @@ bool CubeMapObject::Initialize(D3DClass* d3dInstance, HWND hwnd, const std::stri
 	d3dInstance->SetToFrontCullRasterState();
 
 	// NOTE: HDRTexture defaults to no mipmaps
-	m_HDRCubeMapTex = new TextureClass();
+	m_HDRCubeMapTex = new Texture();
 	result = m_HDRCubeMapTex->Initialize(device, deviceContext, "../DX11Engine/data/" + fileName + ".hdr", DXGI_FORMAT_R32G32B32A32_FLOAT, 1);
 	if(!result) {
 		return false;
 	}
 
 	/// Load HDR cubemap texture from disk and render to 6 cubemap textures to build skybox
-	m_CubeMapTex = new RenderTextureClass();
+	m_CubeMapTex = new RenderTexture();
 	m_CubeMapTex->Initialize(device, deviceContext, cubeFaceResolution, cubeFaceResolution, 0.1f, 10.0f,
 		DXGI_FORMAT_R32G32B32A32_FLOAT, XMConvertToRadians(90.0f),
 		cubeMapMipLevels, /* use MipLevels (for prefilter step)*/
@@ -160,7 +160,7 @@ bool CubeMapObject::Initialize(D3DClass* d3dInstance, HWND hwnd, const std::stri
 	deviceContext->GenerateMips(m_CubeMapTex->GetTextureSRV());
 
 	/// Capture 6 textures with convolution shader and build irradiance cubemap (diffuse IBL)
-	m_IrradianceCubeMapTex = new RenderTextureClass();
+	m_IrradianceCubeMapTex = new RenderTexture();
 	m_IrradianceCubeMapTex->Initialize(device, deviceContext, irradianceMapResolution, irradianceMapResolution, 0.1f, 10.0f,
 		DXGI_FORMAT_R32G32B32A32_FLOAT, XMConvertToRadians(90.0f),
 		1 /* MipLevels (Don't use mips for irradiance map)*/,
@@ -178,7 +178,7 @@ bool CubeMapObject::Initialize(D3DClass* d3dInstance, HWND hwnd, const std::stri
 	}
 
 	/// Render 6 textures with prefilter shader (with roughness dependent mipmaps) and build prefiltered environment map (speclular IBL)
-	m_PrefilteredCubeMapTex = new RenderTextureClass();
+	m_PrefilteredCubeMapTex = new RenderTexture();
 	m_PrefilteredCubeMapTex->Initialize(device, deviceContext, fullPrefilterMapResolution, fullPrefilterMapResolution, 0.1f, 10.0f, DXGI_FORMAT_R32G32B32A32_FLOAT, XMConvertToRadians(90.0f), cubeMapMipLevels, 6, true /*isCubeMap*/);
 	if(!result) {
 		return false;
@@ -201,7 +201,7 @@ bool CubeMapObject::Initialize(D3DClass* d3dInstance, HWND hwnd, const std::stri
 	d3dInstance->SetToBackCullRasterState();
 	
 	/// Precompute BRDF (independent of environment maps, can be stored outside of class instance)
-	m_PrecomputedBRDFTex = new RenderTextureClass();
+	m_PrecomputedBRDFTex = new RenderTexture();
 	m_PrecomputedBRDFTex->Initialize(device, deviceContext, precomputedBRDFResolution, precomputedBRDFResolution, 0.1f, 10.0f, DXGI_FORMAT_R16G16_FLOAT);
 	m_PrecomputedBRDFTex->SetRenderTarget();
 	m_PrecomputedBRDFTex->ClearRenderTarget(0.0f, 0.0f, 0.0f, 1.0f);

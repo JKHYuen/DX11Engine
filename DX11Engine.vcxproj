@@ -19,9 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ApplicationClass.cpp" />
+    <ClCompile Include="Application.cpp" />
     <ClCompile Include="CubeMapObject.cpp" />
-    <ClCompile Include="DepthShaderClass.cpp" />
+    <ClCompile Include="DepthShader.cpp" />
     <ClCompile Include="Include\imgui\imgui.cpp" />
     <ClCompile Include="Include\imgui\imgui_demo.cpp" />
     <ClCompile Include="Include\imgui\imgui_draw.cpp" />
@@ -31,30 +31,30 @@
     <ClCompile Include="Include\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Material.cpp" />
     <ClCompile Include="QuadModel.cpp" />
-    <ClCompile Include="FontClass.cpp" />
-    <ClCompile Include="FontShaderClass.cpp" />
+    <ClCompile Include="Font.cpp" />
+    <ClCompile Include="FontShader.cpp" />
     <ClCompile Include="FullScreenTest.cpp" />
     <ClCompile Include="GameObject.cpp" />
-    <ClCompile Include="RenderTextureClass.cpp" />
-    <ClCompile Include="SpriteClass.cpp" />
-    <ClCompile Include="CameraClass.cpp" />
-    <ClCompile Include="D3DClass.cpp" />
-    <ClCompile Include="FpsClass.cpp" />
-    <ClCompile Include="InputClass.cpp" />
-    <ClCompile Include="DirectionalLightClass.cpp" />
-    <ClCompile Include="PBRShaderClass.cpp" />
+    <ClCompile Include="RenderTexture.cpp" />
+    <ClCompile Include="Sprite.cpp" />
+    <ClCompile Include="Camera.cpp" />
+    <ClCompile Include="D3DInstance.cpp" />
+    <ClCompile Include="FpsCounter.cpp" />
+    <ClCompile Include="Input.cpp" />
+    <ClCompile Include="DirectionalLight.cpp" />
+    <ClCompile Include="PBRShader.cpp" />
     <ClCompile Include="Main.cpp" />
-    <ClCompile Include="ModelClass.cpp" />
-    <ClCompile Include="SystemClass.cpp" />
-    <ClCompile Include="TextClass.cpp" />
-    <ClCompile Include="TextureClass.cpp" />
-    <ClCompile Include="TextureShaderClass.cpp" />
-    <ClCompile Include="TimerClass.cpp" />
+    <ClCompile Include="Model.cpp" />
+    <ClCompile Include="EngineSystem.cpp" />
+    <ClCompile Include="Text.cpp" />
+    <ClCompile Include="Texture.cpp" />
+    <ClCompile Include="TextureShader.cpp" />
+    <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ApplicationClass.h" />
+    <ClInclude Include="Application.h" />
     <ClInclude Include="CubeMapObject.h" />
-    <ClInclude Include="DepthShaderClass.h" />
+    <ClInclude Include="DepthShader.h" />
     <ClInclude Include="Include\imgui\imconfig.h" />
     <ClInclude Include="Include\imgui\imgui.h" />
     <ClInclude Include="Include\imgui\imgui_impl_dx11.h" />
@@ -65,23 +65,23 @@
     <ClInclude Include="Include\imgui\imstb_truetype.h" />
     <ClInclude Include="Material.h" />
     <ClInclude Include="QuadModel.h" />
-    <ClInclude Include="FontClass.h" />
-    <ClInclude Include="FontShaderClass.h" />
+    <ClInclude Include="Font.h" />
+    <ClInclude Include="FontShader.h" />
     <ClInclude Include="GameObject.h" />
-    <ClInclude Include="RenderTextureClass.h" />
-    <ClInclude Include="SpriteClass.h" />
-    <ClInclude Include="CameraClass.h" />
-    <ClInclude Include="D3DClass.h" />
-    <ClInclude Include="FpsClass.h" />
-    <ClInclude Include="InputClass.h" />
-    <ClInclude Include="DirectionalLightClass.h" />
-    <ClInclude Include="PBRShaderClass.h" />
-    <ClInclude Include="ModelClass.h" />
-    <ClInclude Include="SystemClass.h" />
-    <ClInclude Include="TextClass.h" />
-    <ClInclude Include="TextureClass.h" />
-    <ClInclude Include="TextureShaderClass.h" />
-    <ClInclude Include="TimerClass.h" />
+    <ClInclude Include="RenderTexture.h" />
+    <ClInclude Include="Sprite.h" />
+    <ClInclude Include="Camera.h" />
+    <ClInclude Include="D3DInstance.h" />
+    <ClInclude Include="FpsCounter.h" />
+    <ClInclude Include="Input.h" />
+    <ClInclude Include="DirectionalLight.h" />
+    <ClInclude Include="PBRShader.h" />
+    <ClInclude Include="Model.h" />
+    <ClInclude Include="EngineSystem.h" />
+    <ClInclude Include="Text.h" />
+    <ClInclude Include="Texture.h" />
+    <ClInclude Include="TextureShader.h" />
+    <ClInclude Include="Timer.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Cube.txt" />
