@@ -6,9 +6,9 @@
 
 class Texture {
 public:
-    Texture();
-    Texture(const Texture&);
-    ~Texture();
+    Texture() {}
+    Texture(const Texture&) {}
+    ~Texture() {}
 
     // Initialize single texture
     bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filename, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM, int mipLevels = 0);
@@ -18,7 +18,7 @@ public:
 
     void Shutdown();
 
-    ID3D11ShaderResourceView* GetTextureSRV();
+    ID3D11ShaderResourceView* GetTextureSRV() const { return m_TextureView; }
 
     int GetWidth();
     int GetHeight();
@@ -43,13 +43,12 @@ private:
     static bool LoadTarga32Bit(const char* filename, unsigned char** pData, int& width, int& height);
 
     // Temp pointer to load texture binary data (declared as member only for memory cleanup in Shutdown())
-    unsigned char* m_UCharTexData {};
-    float* m_FloatTexData {};
+    unsigned char* m_TempUCharTexData {};
+    float* m_TempFloatTexData {};
 
     // optionally member scoped, 
     // see https://stackoverflow.com/questions/54000030/how-when-to-release-resources-and-resource-views-in-directx
     ID3D11Texture2D* m_Texture {};
-    std::array<ID3D11Texture2D*, 6> m_CubeMapSourceTextureArray {};
 
     ID3D11ShaderResourceView* m_TextureView {};
     int m_Width {};

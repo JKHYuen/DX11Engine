@@ -3,9 +3,9 @@
 
 class Timer {
 public:
-    Timer();
-    Timer(const Timer&);
-    ~Timer();
+    Timer() {}
+    Timer(const Timer&) {}
+    ~Timer() {}
 
     bool Initialize();
     void Frame();

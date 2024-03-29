@@ -12,9 +12,9 @@ private:
     };
 
 public:
-    QuadModel();
-    QuadModel(const QuadModel&);
-    ~QuadModel();
+    QuadModel() {}
+    QuadModel(const QuadModel&) {}
+    ~QuadModel() {}
 
     bool Initialize(ID3D11Device*, float, float);
     void Shutdown();

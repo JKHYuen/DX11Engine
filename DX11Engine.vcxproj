@@ -29,13 +29,13 @@
     <ClCompile Include="Include\imgui\imgui_impl_win32.cpp" />
     <ClCompile Include="Include\imgui\imgui_tables.cpp" />
     <ClCompile Include="Include\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="Material.cpp" />
     <ClCompile Include="QuadModel.cpp" />
     <ClCompile Include="Font.cpp" />
     <ClCompile Include="FontShader.cpp" />
     <ClCompile Include="FullScreenTest.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="RenderTexture.cpp" />
+    <ClCompile Include="Scene.cpp" />
     <ClCompile Include="Sprite.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="D3DInstance.cpp" />
@@ -63,12 +63,12 @@
     <ClInclude Include="Include\imgui\imstb_rectpack.h" />
     <ClInclude Include="Include\imgui\imstb_textedit.h" />
     <ClInclude Include="Include\imgui\imstb_truetype.h" />
-    <ClInclude Include="Material.h" />
     <ClInclude Include="QuadModel.h" />
     <ClInclude Include="Font.h" />
     <ClInclude Include="FontShader.h" />
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="RenderTexture.h" />
+    <ClInclude Include="Scene.h" />
     <ClInclude Include="Sprite.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="D3DInstance.h" />
@@ -194,12 +194,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(SolutionDir)/include/; $(SolutionDir)/include/imgui</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);d3d11.lib;dxgi.lib;d3dcompiler.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -226,12 +228,14 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalIncludeDirectories>$(SolutionDir)/include/; $(SolutionDir)/include/imgui</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);d3d11.lib;dxgi.lib;d3dcompiler.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

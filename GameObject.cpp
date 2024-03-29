@@ -1,34 +1,13 @@
-#include <vector>
-
 #include "GameObject.h"
 #include "PBRShader.h"
 #include "DepthShader.h"
+#include "Texture.h"
 #include "Model.h"
 #include "DirectionalLight.h"
 
-bool GameObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, const std::string& modelName, const std::string& textureName, PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance) {
-	bool result;
-
-	// TODO: convert to wstring?
-	std::string filePathPrefix {"../DX11Engine/data/" + textureName + "/" + textureName};
-	const std::vector<std::string> textureFileNames {
-		filePathPrefix + "_albedo.tga",
-		filePathPrefix + "_normal.tga",
-		filePathPrefix + "_metallic.tga",
-		filePathPrefix + "_roughness.tga",
-		filePathPrefix + "_ao.tga",
-		filePathPrefix + "_height.tga"
-	};
-
-	// Create and initialize the model object
-	m_Model = new Model();
-	result = m_Model->Initialize(device, deviceContext, 
-		"../DX11Engine/data/" + modelName + ".txt",
-		textureFileNames
-	);
-	if(!result) {
-		return false;
-	}
+bool GameObject::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textureResources, Model* model) {
+	m_MaterialTextures = textureResources;
+	m_Model = model;
 
 	/// Initialize Shaders
 	m_PBRShader = pbrShaderInstance;
@@ -63,13 +42,13 @@ bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix,
 
 	m_Model->Render(deviceContext);
 	// Render the model using the light shader.
-	return m_PBRShader->Render(deviceContext, m_Model->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_Model->GetTexture(0), m_Model->GetTexture(1), m_Model->GetTexture(2), m_Model->GetTexture(3), m_Model->GetTexture(4), m_Model->GetTexture(5), shadowMap, irradianceMap, prefilteredMap, BRDFLut, light, cameraPos, time, m_UVScale, m_DisplacementHeightScale, m_ParallaxHeightScale);
+	return m_PBRShader->Render(deviceContext, m_Model->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_MaterialTextures, shadowMap, irradianceMap, prefilteredMap, BRDFLut, light, cameraPos, time, m_UVScale, m_DisplacementHeightScale, m_ParallaxHeightScale);
 }
 
 void GameObject::Shutdown() {
-	if(m_Model) {
-		m_Model->Shutdown();
-		delete m_Model;
-		m_Model = nullptr;
-	}
+	//if(m_Model) {
+	//	m_Model->Shutdown();
+	//	delete m_Model;
+	//	m_Model = nullptr;
+	//}
 }

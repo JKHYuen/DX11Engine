@@ -1,17 +1,5 @@
 #include "FontShader.h"
 
-FontShader::FontShader() {
-    m_vertexShader = nullptr;
-    m_pixelShader  = nullptr;
-    m_layout       = nullptr;
-    m_matrixBuffer = nullptr;
-    m_sampleState  = nullptr;
-    m_pixelBuffer  = nullptr;
-}
-
-FontShader::FontShader(const FontShader& other) {}
-FontShader::~FontShader() {}
-
 bool FontShader::Initialize(ID3D11Device* device, HWND hwnd) {
     bool result;
     wchar_t vsFilename[128];

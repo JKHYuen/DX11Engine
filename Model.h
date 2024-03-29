@@ -38,16 +38,15 @@ private:
 	void CalculateTangentBinormal(TempVertexType, TempVertexType, TempVertexType, VectorType&, VectorType&);
 
 public:
-	Model();
-	Model(const Model&);
-	~Model();
+	Model() {}
+	Model(const Model&) {}
+	~Model() {}
 
-	bool Initialize(ID3D11Device*, ID3D11DeviceContext*, const std::string& modelFilename, const std::vector<std::string>& textureFileNames);
+	bool Initialize(ID3D11Device*, ID3D11DeviceContext*, const std::string& modelFilePath);
 	void Shutdown();
 	void Render(ID3D11DeviceContext*);
 
 	int GetIndexCount();
-	ID3D11ShaderResourceView* GetTexture(int);
 
 private:
 	bool InitializeBuffers(ID3D11Device*);
@@ -58,8 +57,6 @@ private:
 	ID3D11Buffer* m_IndexBuffer  {};
 	int m_VertexCount {};
 	int m_IndexCount  {};
-
-	std::vector<Texture> m_Textures {};
 
 	ModelType* m_Model {};
 };

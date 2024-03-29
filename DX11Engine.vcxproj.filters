@@ -108,13 +108,13 @@
     <ClCompile Include="GameObject.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="Material.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
     <ClCompile Include="QuadModel.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="RenderTexture.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="Scene.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
   </ItemGroup>
@@ -206,7 +206,7 @@
     <ClInclude Include="Include\imgui\imstb_truetype.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Material.h">
+    <ClInclude Include="Scene.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

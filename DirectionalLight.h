@@ -5,11 +5,11 @@ using namespace DirectX;
 
 class DirectionalLight {
 public:
-    DirectionalLight();
-    DirectionalLight(const DirectionalLight&);
-    ~DirectionalLight();
+    DirectionalLight() {};
+    DirectionalLight(const DirectionalLight&) {};
+    ~DirectionalLight() {};
 
-    void SetDirectionalColor(float, float, float, float);
+    void SetColor(float, float, float, float);
 
     // Sets direction of light, by rotating default direction (0.0, 0.0, 1.0) by rotation parameters (radians)
     // Updates m_Position and calls GenerateViewMatrix

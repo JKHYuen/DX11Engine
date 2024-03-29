@@ -1,14 +1,5 @@
 #include "Sprite.h"
 
-Sprite::Sprite() {
-    m_vertexBuffer = nullptr;
-    m_indexBuffer  = nullptr;
-    m_Textures     = nullptr;
-}
-
-Sprite::Sprite(const Sprite& other) {}
-Sprite::~Sprite() {}
-
 bool Sprite::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int screenWidth, int screenHeight, char* textureFilename, int renderX, int renderY) {
     bool result;
 

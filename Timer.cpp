@@ -1,9 +1,5 @@
 #include "Timer.h"
 
-Timer::Timer() {}
-Timer::Timer(const Timer& other) {}
-Timer::~Timer() {}
-
 bool Timer::Initialize() {
     INT64 frequency {};
 

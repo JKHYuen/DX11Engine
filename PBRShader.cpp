@@ -1,12 +1,9 @@
 #include "PBRShader.h"
 #include "DirectionalLight.h"
+#include "Texture.h"
 
 #include <d3dcompiler.h>
 #include <fstream>
-
-PBRShader::PBRShader() {}
-PBRShader::PBRShader(const PBRShader& other) {}
-PBRShader::~PBRShader() {}
 
 bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     wchar_t vsFilename[128];
@@ -289,7 +286,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     return true;
 }
 
-bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* albedoMap, ID3D11ShaderResourceView* normalMap, ID3D11ShaderResourceView* metallicMap, ID3D11ShaderResourceView* roughnessMap, ID3D11ShaderResourceView* aoMap, ID3D11ShaderResourceView* heightMap, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPosition, float time, float uvScale, float displacementHeightScale, float parallaxHeightScale) {
+bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, const std::vector<Texture*> materialTextures, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPosition, float time, float uvScale, float displacementHeightScale, float parallaxHeightScale) {
     HRESULT result;
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     unsigned int bufferNumber;
@@ -404,21 +401,27 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     ////////////////////////////////
 
     // Bind pixel shader textures.
-    deviceContext->PSSetShaderResources(0, 1, &albedoMap);
-    deviceContext->PSSetShaderResources(1, 1, &normalMap);
-    deviceContext->PSSetShaderResources(2, 1, &metallicMap);
-    deviceContext->PSSetShaderResources(3, 1, &roughnessMap);
-    deviceContext->PSSetShaderResources(4, 1, &aoMap);
-    deviceContext->PSSetShaderResources(5, 1, &heightMap);
+    ID3D11ShaderResourceView* pTempSRV;
+    for(int i = 0; i < 6; i++) {
+        pTempSRV = materialTextures[i]->GetTextureSRV();
+        deviceContext->PSSetShaderResources(i, 1, &pTempSRV);
+    }
+    //deviceContext->PSSetShaderResources(0, 1, &albedoMap);
+    //deviceContext->PSSetShaderResources(1, 1, &normalMap);
+    //deviceContext->PSSetShaderResources(2, 1, &metallicMap);
+    //deviceContext->PSSetShaderResources(3, 1, &roughnessMap);
+    //deviceContext->PSSetShaderResources(4, 1, &aoMap);
+    //deviceContext->PSSetShaderResources(5, 1, &heightMap);
 
+    // for indirect lighting
     deviceContext->PSSetShaderResources(6, 1, &shadowMap);
     deviceContext->PSSetShaderResources(7, 1, &irradianceMap);
     deviceContext->PSSetShaderResources(8, 1, &prefilteredMap);
     deviceContext->PSSetShaderResources(9, 1, &BRDFLut);
 
     // Bind vertex shader textures.
-    // height map
-    deviceContext->VSSetShaderResources(0, 1, &heightMap);
+    pTempSRV = materialTextures[5]->GetTextureSRV();
+    deviceContext->VSSetShaderResources(0, 1, &pTempSRV);
 
     ////////////////////////////////
     /////// PS LIGHT CBUFFER ///////

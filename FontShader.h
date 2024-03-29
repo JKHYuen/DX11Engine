@@ -19,9 +19,9 @@ private:
     };
 
 public:
-    FontShader();
-    FontShader(const FontShader&);
-    ~FontShader();
+    FontShader() {}
+    FontShader(const FontShader&) {}
+    ~FontShader() {}
 
     bool Initialize(ID3D11Device*, HWND);
     void Shutdown();

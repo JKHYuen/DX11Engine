@@ -15,9 +15,9 @@ private:
 	};
 
 public:
-	TextureShader();
-	TextureShader(const TextureShader&);
-	~TextureShader();
+	TextureShader() {}
+	TextureShader(const TextureShader&) {}
+	~TextureShader() {}
 
 	bool Initialize(ID3D11Device*, HWND, bool isPostProcessShader);
 	void Shutdown();

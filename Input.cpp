@@ -1,15 +1,6 @@
 #include "Input.h"
 #include <iostream>
 
-Input::Input() {
-	m_DirectInput = nullptr;
-	m_Keyboard    = nullptr;
-	m_Mouse       = nullptr;
-}
-
-Input::Input(const Input& other) {}
-Input::~Input() {}
-
 bool Input::Initialize(HINSTANCE hinstance, HWND hwnd, int screenWidth, int screenHeight) {
     HRESULT result;
 

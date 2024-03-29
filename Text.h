@@ -10,23 +10,22 @@ private:
     };
 
 public:
-    Text();
-    Text(const Text&);
-    ~Text();
+    Text() {}
+    Text(const Text&) {}
+    ~Text() {}
 
-    bool Initialize(ID3D11Device*, ID3D11DeviceContext*, int, int, int, Font*, char*, int, int, float, float, float);
+    bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int screenWidth, int screenHeight, int maxLength, Font* Font, char* text, int positionX, int positionY, float red, float green, float blue);
     void Shutdown();
-    void Render(ID3D11DeviceContext*);
+    void Render(ID3D11DeviceContext* deviceContext);
 
     int GetIndexCount();
 
-    bool UpdateText(ID3D11DeviceContext*, Font*, char*, int, int, float, float, float);
+    bool UpdateText(ID3D11DeviceContext* deviceContext, Font* Font, char* text, int positionX, int positionY, float red, float green, float blue);
     XMFLOAT4 GetPixelColor();
 
 private:
-    bool InitializeBuffers(ID3D11Device*, ID3D11DeviceContext*, Font*, char*, int, int, float, float, float);
     void ShutdownBuffers();
-    void RenderBuffers(ID3D11DeviceContext*);
+    void RenderBuffers(ID3D11DeviceContext* deviceContext);
 
 private:
     ID3D11Buffer* m_vertexBuffer {}, * m_indexBuffer {};

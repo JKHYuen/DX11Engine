@@ -1,11 +1,7 @@
 #include "DirectionalLight.h"
 #include <iostream>
 
-DirectionalLight::DirectionalLight() {}
-DirectionalLight::DirectionalLight(const DirectionalLight& other) {}
-DirectionalLight::~DirectionalLight() {}
-
-void DirectionalLight::SetDirectionalColor(float red, float green, float blue, float alpha) {
+void DirectionalLight::SetColor(float red, float green, float blue, float alpha) {
     m_DirectionalColor = XMFLOAT4(red, green, blue, alpha);
 }
 

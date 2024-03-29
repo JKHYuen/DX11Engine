@@ -1,15 +1,16 @@
 #pragma once
-
 #include <windows.h>
 #include <directxmath.h>
 #include <string>
 #include <iostream>
+#include <vector>
 
 class DirectionalLight;
 class Model;
 class PBRShader;
 class DepthShader;
 class RenderTexture;
+class Texture;
 struct ID3D11Device;
 struct ID3D11DeviceContext;
 struct ID3D11ShaderResourceView;
@@ -18,7 +19,7 @@ using namespace DirectX;
 
 class GameObject {
 public:
-	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, const std::string& modelName, const std::string& textureName, PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance);
+	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textures, Model* model);
 
 	bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPos, float time);
 
@@ -38,6 +39,10 @@ public:
 		m_ParallaxHeightScale = newScale;
 	}
 
+	float GetParallaxMapHeightScale() const {
+		return m_ParallaxHeightScale;
+	}
+
 	void SetPosition(DirectX::XMFLOAT3 vec) {
 		m_Position = vec;
 	}
@@ -48,6 +53,10 @@ public:
 
 	void SetYRotationSpeed(float newSpeed) {
 		m_RotationYSpeed = newSpeed;
+	}
+
+	void SetMaterialTextures(const std::vector<Texture*>& textures) {
+		m_MaterialTextures = textures;
 	}
 
 private:
@@ -62,4 +71,6 @@ private:
 	Model* m_Model {};
 	PBRShader* m_PBRShader {};
 	DepthShader* m_DepthShader {};
+
+	std::vector<Texture*> m_MaterialTextures {};
 };

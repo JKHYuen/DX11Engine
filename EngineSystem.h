@@ -7,9 +7,9 @@ class Application;
 
 class EngineSystem {
 public:
-	EngineSystem();
-	EngineSystem(const EngineSystem&);
-	~EngineSystem();
+	EngineSystem() {}
+	EngineSystem(const EngineSystem&) {}
+	~EngineSystem() {}
 
 	bool Initialize();
 	void Shutdown();
@@ -27,7 +27,7 @@ private:
 	HWND m_Hwnd {};
 
 	Input* m_Input {};
-	Application* m_application {};
+	Application* m_Application {};
 };
 
 static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);

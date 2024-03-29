@@ -3,10 +3,6 @@
 
 #include <stdio.h>
 
-Texture::Texture() {}
-Texture::Texture(const Texture& other) {}
-Texture::~Texture() {}
-
 bool Texture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, DXGI_FORMAT format, int mipLevels) {
 	bool b_GenerateMips = mipLevels == 0 || mipLevels > 1;
 
@@ -16,7 +12,7 @@ bool Texture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContex
 	if(fileTypeName == "tga") {
 		m_IsSTBLoad = false;
 		// loads data to m_UCharTexData, m_Width and m_Height
-		bool result = LoadTarga32Bit(filePath.c_str(), &m_UCharTexData, m_Width, m_Height);
+		bool result = LoadTarga32Bit(filePath.c_str(), &m_TempUCharTexData, m_Width, m_Height);
 		if(!result) {
 			return false;
 		}
@@ -24,16 +20,16 @@ bool Texture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContex
 	else if(fileTypeName == "hdr") {
 		m_IsSTBLoad = true;
 		int nrComponents;
-		m_FloatTexData = stbi_loadf(filePath.c_str(), &m_Width, &m_Height, &nrComponents, 4);
-		if(!m_FloatTexData) {
+		m_TempFloatTexData = stbi_loadf(filePath.c_str(), &m_Width, &m_Height, &nrComponents, 4);
+		if(!m_TempFloatTexData) {
 			return false;
 		}
 	}
 	else {
 		m_IsSTBLoad = true;
 		int nrComponents;
-		m_UCharTexData = stbi_load(filePath.c_str(), &m_Width, &m_Height, &nrComponents, 4);
-		if(!m_UCharTexData) {
+		m_TempUCharTexData = stbi_load(filePath.c_str(), &m_Width, &m_Height, &nrComponents, 4);
+		if(!m_TempUCharTexData) {
 			return false;
 		}
 	}
@@ -63,21 +59,21 @@ bool Texture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContex
 	}
 
 	// uchar texture load and clean up
-	if(m_UCharTexData) {
-		deviceContext->UpdateSubresource(m_Texture, 0, NULL, m_UCharTexData, m_Width * 4 * sizeof(unsigned char), 0);
+	if(m_TempUCharTexData) {
+		deviceContext->UpdateSubresource(m_Texture, 0, NULL, m_TempUCharTexData, m_Width * 4 * sizeof(unsigned char), 0);
 		if(m_IsSTBLoad) {
-			stbi_image_free(m_UCharTexData);
+			stbi_image_free(m_TempUCharTexData);
 		}
 		else {
-			delete[] m_UCharTexData;
+			delete[] m_TempUCharTexData;
 		}
-		m_UCharTexData = nullptr;
+		m_TempUCharTexData = nullptr;
 	}
 	// float texture load
-	else if(m_FloatTexData){
-		deviceContext->UpdateSubresource(m_Texture, 0, NULL, m_FloatTexData, m_Width * 4 * sizeof(float), 0);
-		stbi_image_free(m_FloatTexData);
-		m_FloatTexData = nullptr;
+	else if(m_TempFloatTexData){
+		deviceContext->UpdateSubresource(m_Texture, 0, NULL, m_TempFloatTexData, m_Width * 4 * sizeof(float), 0);
+		stbi_image_free(m_TempFloatTexData);
+		m_TempFloatTexData = nullptr;
 	}
 
 	/// Setup the shader resource view description.
@@ -163,40 +159,6 @@ bool Texture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContex
 	return true;
 }
 
-void Texture::Shutdown() {
-	if(m_TextureView) {
-		m_TextureView->Release();
-		m_TextureView = nullptr;
-	}
-
-	if(m_Texture) { 
-		m_Texture->Release();
-		m_Texture = nullptr;
-	}
-
-	for(auto tex : m_CubeMapSourceTextureArray) {
-		if(tex) {
-			tex->Release();
-			tex = nullptr;
-		}
-	}
-
-	// in case of early return
-	if(m_UCharTexData) {
-		if(m_IsSTBLoad) {
-			stbi_image_free(m_UCharTexData);
-		}
-		else {
-			delete[] m_UCharTexData;
-		}
-		m_UCharTexData = nullptr;
-	}
-
-	if(m_FloatTexData) {
-		stbi_image_free(m_FloatTexData);
-		m_FloatTexData = nullptr;
-	}
-}
 
 bool Texture::LoadTarga32Bit(const char* filename, unsigned char** pData, int& width, int& height) {
 	int error {}, bpp {}, imageSize {}, index {}, i {}, j {}, k {};
@@ -278,15 +240,39 @@ bool Texture::LoadTarga32Bit(const char* filename, unsigned char** pData, int& w
 	return true;
 }
 
-ID3D11ShaderResourceView* Texture::GetTextureSRV() {
-	return m_TextureView;
-}
-
 int Texture::GetWidth() {
 	return m_Width;
 }
 
 int Texture::GetHeight() {
 	return m_Height;
+}
+
+void Texture::Shutdown() {
+	if(m_TextureView) {
+		m_TextureView->Release();
+		m_TextureView = nullptr;
+	}
+
+	if(m_Texture) {
+		m_Texture->Release();
+		m_Texture = nullptr;
+	}
+
+	// in case of early return
+	if(m_TempUCharTexData) {
+		if(m_IsSTBLoad) {
+			stbi_image_free(m_TempUCharTexData);
+		}
+		else {
+			delete[] m_TempUCharTexData;
+		}
+		m_TempUCharTexData = nullptr;
+	}
+
+	if(m_TempFloatTexData) {
+		stbi_image_free(m_TempFloatTexData);
+		m_TempFloatTexData = nullptr;
+	}
 }
 

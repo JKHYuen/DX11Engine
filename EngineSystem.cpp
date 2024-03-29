@@ -10,10 +10,6 @@
 #include <cmath>
 #include <iostream>
 
-EngineSystem::EngineSystem() {}
-EngineSystem::EngineSystem(const EngineSystem& other) {}
-EngineSystem::~EngineSystem() {}
-
 bool EngineSystem::Initialize() {
 	// Initialize the width and height of the screen to zero before sending the variables into the function.
 	int screenWidth {};
@@ -31,8 +27,8 @@ bool EngineSystem::Initialize() {
 	}
 
 	// Create and initialize the application class object.  This object will handle rendering all the graphics for this application.
-	m_application = new Application();
-	result = m_application->Initialize(gFullScreen, screenWidth, screenHeight, m_Hwnd);
+	m_Application = new Application();
+	result = m_Application->Initialize(gFullScreen, screenWidth, screenHeight, m_Hwnd);
 	if (!result) {
 		return false;
 	}
@@ -40,14 +36,14 @@ bool EngineSystem::Initialize() {
 	/// Initialize DearImGui
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); 
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	//ImGuiIO& io = ImGui::GetIO(); 
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(m_Hwnd);
-	ImGui_ImplDX11_Init(m_application->GetD3DClass()->GetDevice(), m_application->GetD3DClass()->GetDeviceContext());
+	ImGui_ImplDX11_Init(m_Application->GetD3DClass()->GetDevice(), m_Application->GetD3DClass()->GetDeviceContext());
 
 	return true;
 }
@@ -96,7 +92,7 @@ bool EngineSystem::Frame() {
 	ImGui::NewFrame();
 
 	/// App / Render
-	result = m_application->Frame(m_Input);
+	result = m_Application->Frame(m_Input);
 	if(!result) {
 		return false;
 	}
@@ -212,10 +208,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
 
 void EngineSystem::Shutdown() {
 	/// Release the application class object.
-	if(m_application) {
-		m_application->Shutdown();
-		delete m_application;
-		m_application = nullptr;
+	if(m_Application) {
+		m_Application->Shutdown();
+		delete m_Application;
+		m_Application = nullptr;
 	}
 
 	/// Release the input object.

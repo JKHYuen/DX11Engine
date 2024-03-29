@@ -1,16 +1,6 @@
 #include "Text.h"
 
-Text::Text() {
-    m_vertexBuffer = nullptr;
-    m_indexBuffer  = nullptr;
-}
-
-Text::Text(const Text& other) {}
-Text::~Text() {}
-
 bool Text::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int screenWidth, int screenHeight, int maxLength, Font* Font, char* text, int positionX, int positionY, float red, float green, float blue) {
-    bool result;
-
     // Store the screen width and height.
     m_screenWidth = screenWidth;
     m_screenHeight = screenHeight;
@@ -18,30 +8,6 @@ bool Text::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, 
     // Store the maximum length of the sentence.
     m_maxLength = maxLength;
 
-    // Initalize the sentence.
-    result = InitializeBuffers(device, deviceContext, Font, text, positionX, positionY, red, green, blue);
-    if(!result) {
-        return false;
-    }
-
-    return true;
-}
-
-void Text::Shutdown() {
-    // Release the vertex and index buffers.
-    ShutdownBuffers();
-}
-
-void Text::Render(ID3D11DeviceContext* deviceContext) {
-    // Put the vertex and index buffers on the graphics pipeline to prepare them for drawing.
-    RenderBuffers(deviceContext);
-}
-
-int Text::GetIndexCount() {
-    return m_indexCount;
-}
-
-bool Text::InitializeBuffers(ID3D11Device* device, ID3D11DeviceContext* deviceContext, Font* Font, char* text, int positionX, int positionY, float red, float green, float blue) {
     VertexType* vertices;
     unsigned long* indices;
     D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
@@ -120,6 +86,20 @@ bool Text::InitializeBuffers(ID3D11Device* device, ID3D11DeviceContext* deviceCo
     }
 
     return true;
+}
+
+void Text::Shutdown() {
+    // Release the vertex and index buffers.
+    ShutdownBuffers();
+}
+
+void Text::Render(ID3D11DeviceContext* deviceContext) {
+    // Put the vertex and index buffers on the graphics pipeline to prepare them for drawing.
+    RenderBuffers(deviceContext);
+}
+
+int Text::GetIndexCount() {
+    return m_indexCount;
 }
 
 void Text::ShutdownBuffers() {

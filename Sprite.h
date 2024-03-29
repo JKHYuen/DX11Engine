@@ -14,9 +14,9 @@ private:
     };
 
 public:
-    Sprite();
-    Sprite(const Sprite&);
-    ~Sprite();
+    Sprite() {}
+    Sprite(const Sprite&) {}
+    ~Sprite() {}
 
     bool Initialize(ID3D11Device*, ID3D11DeviceContext*, int, int, char*, int, int);
     void Shutdown();

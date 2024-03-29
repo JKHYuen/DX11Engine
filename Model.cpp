@@ -1,13 +1,9 @@
 #include "Model.h"
 #include <fstream>
 
-Model::Model() {}
-Model::Model(const Model& other) {}
-Model::~Model() {}
-
-bool Model::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& modelFilename, const std::vector<std::string>& textureFileNames) {
+bool Model::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& modelFilePath) {
 	// Load in the model data.
-	bool result = LoadModel(modelFilename);
+	bool result = LoadModel(modelFilePath);
 	if(!result) {
 		return false;
 	}
@@ -18,15 +14,6 @@ bool Model::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext,
 	result = InitializeBuffers(device);
 	if(!result) {
 		return false;
-	}
-
-	m_Textures.reserve(textureFileNames.size());
-	// Load the texture for this model.
-	for(size_t i = 0; i < textureFileNames.size(); i++) {
-		m_Textures.emplace_back();
-		if(!m_Textures[i].Initialize(device, deviceContext, textureFileNames[i].data(), DXGI_FORMAT_R8G8B8A8_UNORM)) {
-			return false;
-		}
 	}
 
 	return true;
@@ -50,10 +37,6 @@ void Model::Render(ID3D11DeviceContext* deviceContext) {
 
 int Model::GetIndexCount() {
 	return m_IndexCount;
-}
-
-ID3D11ShaderResourceView* Model::GetTexture(int i) {
-	return m_Textures[i].GetTextureSRV();
 }
 
 bool Model::InitializeBuffers(ID3D11Device* device) {
@@ -288,9 +271,9 @@ void Model::CalculateTangentBinormal(TempVertexType vertex1, TempVertexType vert
 
 void Model::Shutdown() {
 	// Release the model texture.
-	for(auto tex : m_Textures) {
-		tex.Shutdown();
-	}
+	//for(auto tex : m_Textures) {
+	//	tex.Shutdown();
+	//}
 
 	// Shutdown the vertex and index buffers.
 	// Release the index buffer.

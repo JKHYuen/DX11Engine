@@ -1,9 +1,5 @@
 #include "QuadModel.h"
-#include "D3DClass.h"
-
-QuadModel::QuadModel() {}
-QuadModel::QuadModel(const QuadModel& other) {}
-QuadModel::~QuadModel() {}
+#include "D3DInstance.h"
 
 bool QuadModel::Initialize(ID3D11Device* device, float width, float height) {
     VertexType* vertices;

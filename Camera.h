@@ -4,9 +4,9 @@ using namespace DirectX;
 
 class Camera {
 public:
-	Camera();
-	Camera(const Camera&);
-	~Camera();
+	Camera() {};
+	Camera(const Camera&) {};
+	~Camera() {};
 
 	void SetPosition(float, float, float);
 	void SetRotation(float, float, float);

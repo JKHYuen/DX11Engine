@@ -27,9 +27,9 @@ public:
     };
 
 public:
-    CubeMapObject();
-    CubeMapObject(const CubeMapObject&);
-    ~CubeMapObject();
+    CubeMapObject() {}
+    CubeMapObject(const CubeMapObject&) {}
+    ~CubeMapObject() {}
 
     bool Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad);
 

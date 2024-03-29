@@ -10,9 +10,9 @@
 
 class Input {
 public:
-    Input();
-    Input(const Input&);
-    ~Input();
+    Input() {}
+    Input(const Input&) {}
+    ~Input() {}
 
     bool Initialize(HINSTANCE, HWND, int, int);
     void Shutdown();
@@ -25,6 +25,7 @@ public:
     bool IsEscapeKeyDown() const { return (m_CurrentKeyboardState[DIK_ESCAPE] & 0x80) && !(m_PrevFrameKeyboardState[DIK_ESCAPE] & 0x80); };
     bool IsTabKeyDown() const { return (m_CurrentKeyboardState[DIK_TAB] & 0x80) && !(m_PrevFrameKeyboardState[DIK_TAB] & 0x80); };
     bool IsF1KeyDown() const { return (m_CurrentKeyboardState[DIK_F1] & 0x80) && !(m_PrevFrameKeyboardState[DIK_F1] & 0x80); };
+    bool Is1KeyDown() const { return (m_CurrentKeyboardState[DIK_1] & 0x80) && !(m_PrevFrameKeyboardState[DIK_1] & 0x80); };
     bool IsLeftShiftKeyUp() const { return !(m_CurrentKeyboardState[DIK_LSHIFT] & 0x80) && (m_PrevFrameKeyboardState[DIK_LSHIFT] & 0x80); };
     bool IsLeftShiftKeyDown() const { return (m_CurrentKeyboardState[DIK_LSHIFT] & 0x80) && !(m_PrevFrameKeyboardState[DIK_LSHIFT] & 0x80); };
 

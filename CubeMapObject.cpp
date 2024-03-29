@@ -71,10 +71,6 @@ static const std::wstring kPrefilterCubeMapShaderName = L"PreFilterCubeMap";
 static const std::wstring kIntegrateBRDFShaderName    = L"IntegrateBRDF";
 static const std::wstring kSkyboxRenderShaderName     = L"CubeMap";
 
-CubeMapObject::CubeMapObject() {}
-CubeMapObject::CubeMapObject(const CubeMapObject& other) {}
-CubeMapObject::~CubeMapObject() {}
-
 bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
 	bool result;
 

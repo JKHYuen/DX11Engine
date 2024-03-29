@@ -6,9 +6,9 @@ using namespace DirectX;
 
 class D3DInstance {
 public:
-    D3DInstance();
-    D3DInstance(const D3DInstance&);
-    ~D3DInstance();
+    D3DInstance() {}
+    D3DInstance(const D3DInstance&) {}
+    ~D3DInstance() {}
 
     bool Initialize(int, int, bool, HWND, bool, float, float);
     void Shutdown();

@@ -2,19 +2,6 @@
 #include <cmath>
 #include <algorithm>
 
-Camera::Camera() {
-	m_PositionX = 0.0f;
-	m_PositionY = 0.0f;
-	m_PositionZ = 0.0f;
-
-	m_RotationX = 0.0f;
-	m_RotationY = 0.0f;
-	m_RotationZ = 0.0f;
-}
-
-Camera::Camera(const Camera& other) {}
-Camera::~Camera() {}
-
 void Camera::SetPosition(float x, float y, float z) {
 	m_PositionX = x;
 	m_PositionY = y;

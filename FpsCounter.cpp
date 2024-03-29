@@ -3,10 +3,6 @@
 #include <limits>
 #include <iostream>
 
-FpsCounter::FpsCounter() {}
-FpsCounter::FpsCounter(const FpsCounter& other) {}
-FpsCounter::~FpsCounter() {}
-
 // Sample duration is in seconds
 void FpsCounter::Initialize(float sampleDuration) {
     m_SampleDuration = sampleDuration;
