@@ -1,5 +1,4 @@
 #pragma once
-#include <windows.h>
 #include <directxmath.h>
 #include <string>
 #include <iostream>
@@ -19,7 +18,7 @@ using namespace DirectX;
 
 class GameObject {
 public:
-	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND windowHandle, PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textures, Model* model);
+	bool Initialize(PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textures, Model* model);
 
 	bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPos, float time);
 
@@ -68,9 +67,9 @@ private:
 	DirectX::XMFLOAT3 m_Position {};
 	DirectX::XMFLOAT3 m_Scale { 1.0f, 1.0f, 1.0f };
 
-	Model* m_Model {};
-	PBRShader* m_PBRShader {};
-	DepthShader* m_DepthShader {};
+	Model* m_ModelInstance {};
+	PBRShader* m_PBRShaderInstance {};
+	DepthShader* m_DepthShaderInstance {};
 
 	std::vector<Texture*> m_MaterialTextures {};
 };

@@ -27,7 +27,6 @@
 bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeight, HWND hwnd) {
 	bool result;
 	char fpsString[32];
-	//char mouseString1[32], mouseString2[32], mouseString3[32];
 
 	// Note: currently only used for debug quad position calc
 	m_ScreenWidth = screenWidth;
@@ -43,16 +42,12 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 		return false;
 	}
 
-	// Create the 3D world camera
-	m_Camera = new Camera();
-	m_Camera->SetPosition(0.0f, 4.0f, -10.0f);
-
 	// Create camera to view screen render texture
 	m_ScreenDisplayCamera = new Camera();
 	// Display Camera is orthographic
 	m_ScreenDisplayCamera->SetPosition(0.0f, 0.0f, -1.0f);
 	// Initialize stationary camera to view full screen quads
-	m_ScreenDisplayCamera->Render();
+	m_ScreenDisplayCamera->Update();
 
 	/// Screen Render Texture
 	// Create and initialize the screen render texture
@@ -140,30 +135,6 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 		return false;
 	}
 
-	/// Mouse Button Display 
-	// Set the initial mouse strings.
-	//strcpy_s(mouseString1, "Mouse X: 0");
-	//strcpy_s(mouseString2, "Mouse Y: 0");
-	//strcpy_s(mouseString3, "Mouse Button: No");
-
-	//// Create and initialize the text objects for the mouse strings.
-	//m_MouseTexts = new TextClass[3];
-
-	//result = m_MouseTexts[0].Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), screenWidth, screenHeight, 32, m_Font, mouseString1, 10, 35, 1.0f, 1.0f, 1.0f);
-	//if(!result) {
-	//	return false;
-	//}
-
-	//result = m_MouseTexts[1].Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), screenWidth, screenHeight, 32, m_Font, mouseString1, 10, 60, 1.0f, 1.0f, 1.0f);
-	//if(!result) {
-	//	return false;
-	//}
-
-	//result = m_MouseTexts[2].Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), screenWidth, screenHeight, 32, m_Font, mouseString1, 10, 85, 1.0f, 1.0f, 1.0f);
-	//if(!result) {
-	//	return false;
-	//}
-
 	/// FPS Counter
 	// Create and initialize the fps object.
 	m_FpsCounter = new FpsCounter();
@@ -188,10 +159,6 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 }
 
 bool Application::Frame(Input* input) {
-	int mouseX, mouseY;
-	bool mouseDown;
-	float frameTime {};
-
 	// Calculate delta time
 	ChronoTimePoint currentFrameTimePoint = std::chrono::steady_clock::now();
 	m_DeltaTime = (currentFrameTimePoint - m_LastFrameTimePoint).count();
@@ -205,13 +172,13 @@ bool Application::Frame(Input* input) {
 	m_Timer->Frame();
 
 	// Get the current frame time.
-	frameTime = m_Timer->GetTime();
+	float frameTime = m_Timer->GetTime();
 
 	// Update the sprite object (animation) using the frame time.
 	//m_sprite->Update(frameTime);
 
     // Update the frames per second each frame.
-    if(!UpdateFps()) {
+    if(!UpdateFpsDisplay()) {
         return false;
     }
 
@@ -226,7 +193,7 @@ bool Application::Frame(Input* input) {
 	}
 
 	if(mb_ShowImGuiMenu) {
-		m_DemoScene->UpdateMainImGuiWindow(m_FpsCounter->GetCurrentFPS(), mb_IsWireFrameRender, mb_ShowImGuiMenu);
+		m_DemoScene->UpdateMainImGuiWindow(m_FpsCounter->GetCurrentFPS(), mb_IsWireFrameRender, mb_ShowImGuiMenu, mb_ShowScreenFPS);
 	}
 
 	// Render scene texture with post processing to main back buffer
@@ -251,41 +218,13 @@ bool Application::Frame(Input* input) {
 
 	// Enable camera controls if IMGUI is hidden
 	if(!mb_ShowImGuiMenu) {
-		if(input->IsLeftShiftKeyUp()) {
-			mb_FastMove = false;
-		}
-		else if(input->IsLeftShiftKeyDown()) {
-			mb_FastMove = true;
-		}
-
-		// Get the location of the mouse from the input object,
-		input->GetMouseLocation(mouseX, mouseY);
-
-		// Check if the mouse has been pressed.
-		mouseDown = input->IsMousePressed();
-
-		// Camera Rotation
-		float mouseSensitivity = 10.0f * m_DeltaTime;
-		m_Camera->SetRotation(m_Camera->GetRotationX() + input->GetMouseAxisHorizontal() * mouseSensitivity, m_Camera->GetRotationY() + input->GetMouseAxisVertical() * mouseSensitivity, m_Camera->GetRotationZ());
-
-		// Camera Translation
-		XMFLOAT3 currLookAtDir = m_Camera->GetLookAtDir();
-		XMFLOAT3 currRightDir = m_Camera->GetRightDir();
-		XMVECTOR camMoveVector = XMVector3Normalize(XMVectorAdd(XMLoadFloat3(&currLookAtDir) * input->GetMoveAxisVertical(), XMLoadFloat3(&currRightDir) * input->GetMoveAxisHorizontal())) * m_DeltaTime * (mb_FastMove ? 15.0f : 5.0f);
-
-		m_Camera->SetPosition(m_Camera->GetPositionX() + XMVectorGetX(camMoveVector), m_Camera->GetPositionY() + XMVectorGetY(camMoveVector), m_Camera->GetPositionZ() + XMVectorGetZ(camMoveVector));
+		m_DemoScene->ProcessInput(input, m_DeltaTime);
 	}
-
-	// Update the mouse strings each frame.
-	//result = UpdateMouseStrings(mouseX, mouseY, mouseDown);
-	//if(!result) {
-	//	return false;
-	//}
 
 	return true;
 }
 
-bool Application::UpdateFps() {
+bool Application::UpdateFpsDisplay() {
 	char tempString[16], finalString[16];
 
 	// Update the fps each frame.
@@ -334,69 +273,19 @@ bool Application::UpdateFps() {
 	return true;
 }
 
-bool Application::UpdateMouseStrings(int mouseX, int mouseY, bool mouseDown) {
-	char tempString[16], finalString[32];
-	bool result;
-
-	// Convert the mouse X integer to string format.
-	sprintf_s(tempString, "%d", mouseX);
-
-	// Setup the mouse X string.
-	strcpy_s(finalString, "Mouse X: ");
-	strcat_s(finalString, tempString);
-
-	// Update the sentence vertex buffer with the new string information.
-	result = m_MouseTexts[0].UpdateText(m_Direct3D->GetDeviceContext(), m_Font, finalString, 10, 35, 1.0f, 1.0f, 1.0f);
-	if(!result) {
-		return false;
-	}
-
-	// Convert the mouse Y integer to string format.
-	sprintf_s(tempString, "%d", mouseY);
-
-	// Setup the mouse Y string.
-	strcpy_s(finalString, "Mouse Y: ");
-	strcat_s(finalString, tempString);
-
-	// Update the sentence vertex buffer with the new string information.
-	result = m_MouseTexts[1].UpdateText(m_Direct3D->GetDeviceContext(), m_Font, finalString, 10, 60, 1.0f, 1.0f, 1.0f);
-	if(!result) {
-		return false;
-	}
-
-	// Setup the mouse button string.
-	if(mouseDown) {
-		strcpy_s(finalString, "Mouse Button: Yes");
-	}
-	else {
-		strcpy_s(finalString, "Mouse Button: No");
-	}
-
-	// Update the sentence vertex buffer with the new string information.
-	result = m_MouseTexts[2].UpdateText(m_Direct3D->GetDeviceContext(), m_Font, finalString, 10, 85, 1.0f, 1.0f, 1.0f);
-	if(!result) {
-		return false;
-	}
-
-	return true;
-}
-
 bool Application::RenderSceneToScreenTexture() {
 	// Set the render target to be the render texture and clear it.
 	m_ScreenRenderTexture->SetRenderTarget();
 	m_ScreenRenderTexture->ClearRenderTarget(0.01f, 0.01f, 0.015f, 1.0f);
 
-	m_Camera->Render();
-
-	XMMATRIX viewMatrix {}, projectionMatrix {};
-	m_Camera->GetViewMatrix(viewMatrix);
+	XMMATRIX projectionMatrix {};
 	m_ScreenRenderTexture->GetProjectionMatrix(projectionMatrix);
 
 	if(mb_IsWireFrameRender) {
 		m_Direct3D->SetToWireBackCullRasterState();
 	}
 
-	m_DemoScene->RenderScene(viewMatrix, projectionMatrix, m_Camera->GetPosition(), m_Time);
+	m_DemoScene->RenderScene(projectionMatrix, m_Time);
 
 	return true;
 }
@@ -415,7 +304,6 @@ bool Application::RenderToBackBuffer() {
 	m_ScreenDisplayCamera->GetViewMatrix(viewMatrix);
 	//m_direct3D->GetProjectionMatrix(projectionMatrix);
 	m_Direct3D->GetOrthoMatrix(orthoMatrix);
-
 
 	/// 2D Rendering
 	// Turn off the Z buffer to begin all 2D rendering.
@@ -440,12 +328,12 @@ bool Application::RenderToBackBuffer() {
 	}
 
 	/// DEBUG Text (UI)
-	// Render the fps text string using the font shader.
-	m_FpsString->Render(m_Direct3D->GetDeviceContext());
-
-	if(!m_FontShader->Render(m_Direct3D->GetDeviceContext(), m_FpsString->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix,
-		m_Font->GetTexture(), m_FpsString->GetPixelColor())) {
-		return false;
+	if(mb_ShowScreenFPS) {
+		m_FpsString->Render(m_Direct3D->GetDeviceContext());
+		if(!m_FontShader->Render(m_Direct3D->GetDeviceContext(), m_FpsString->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix,
+			m_Font->GetTexture(), m_FpsString->GetPixelColor())) {
+			return false;
+		}
 	}
 
 	// Render the mouse text strings using the font shader.
@@ -556,11 +444,6 @@ void Application::Shutdown() {
 		m_DebugDepthShader->Shutdown();
 		delete m_DebugDepthShader;
 		m_DebugDepthShader = nullptr;
-	}
-
-	if(m_Camera) {
-		delete m_Camera;
-		m_Camera = nullptr;
 	}
 
 	if(m_ScreenDisplayCamera) {

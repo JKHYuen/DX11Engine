@@ -28,6 +28,7 @@ public:
     bool Is1KeyDown() const { return (m_CurrentKeyboardState[DIK_1] & 0x80) && !(m_PrevFrameKeyboardState[DIK_1] & 0x80); };
     bool IsLeftShiftKeyUp() const { return !(m_CurrentKeyboardState[DIK_LSHIFT] & 0x80) && (m_PrevFrameKeyboardState[DIK_LSHIFT] & 0x80); };
     bool IsLeftShiftKeyDown() const { return (m_CurrentKeyboardState[DIK_LSHIFT] & 0x80) && !(m_PrevFrameKeyboardState[DIK_LSHIFT] & 0x80); };
+    bool IsLeftShiftKey() const { return m_CurrentKeyboardState[DIK_LSHIFT] & 0x80; };
 
     LONG GetMouseAxisHorizontal() const { return m_MouseState.lX; };
     LONG GetMouseAxisVertical() const { return m_MouseState.lY; };

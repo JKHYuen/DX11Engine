@@ -10,18 +10,22 @@
 #include "RenderTexture.h"
 #include "DirectionalLight.h"
 #include "QuadModel.h"
+#include "Camera.h"
+#include "Input.h"
 
 #include "imgui_impl_dx11.h"
 
 #include <iostream>
+#include <cmath>
 
 /// Scene starting values
 static const float startingDirectionalLightDirX = 50.0f;
 static const float startingDirectionalLightDirY = 30.0f;
 // sunlight color: 9.0f, 5.0f, 2.0f 
+//                 29.0f, 18.0f, 11.0f
 static const XMFLOAT3 startingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0f};
 
-bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, DirectX::XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ) {
+bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ) {
 	bool result;
 
 	m_D3DInstance = d3dInstance;
@@ -41,20 +45,23 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, DirectX::XM
 		return false;
 	}
 
+	/// Create the 3D world camera
+	m_Camera = new Camera();
+	m_Camera->SetPosition(0.0f, 4.0f, -10.0f);
+
 	/// Load skybox cubemap
-	DirectX::XMMATRIX screenOrthoMatrix;
+	XMMATRIX screenOrthoMatrix;
 	d3dInstance->GetOrthoMatrix(screenOrthoMatrix);
 
 	m_CubeMapObject = new CubeMapObject();
 	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k | abandoned_tiled_room_4k
-	result = m_CubeMapObject->Initialize(m_D3DInstance, hwnd, "industrial_sunset_puresky_4k", 2048, 9, 32, 512, 512, screenCameraViewMatrix, screenOrthoMatrix, quadModel);
+	result = m_CubeMapObject->Initialize(m_D3DInstance, hwnd, "schachen_forest_4k", 2048, 9, 32, 512, 512, screenCameraViewMatrix, screenOrthoMatrix, quadModel);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize cubemap.", L"Error", MB_OK);
 		return false;
 	}
 
 	/// Load 3D Objects
-
 	// TODO: Check for failure
 	LoadModelResource("sphere");
 	LoadModelResource("plane");
@@ -92,7 +99,7 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, DirectX::XM
 	m_GameObjects.reserve(sceneObjects.size());
 	for(size_t i = 0; i < sceneObjects.size(); i++) {
 		m_GameObjects.emplace_back(new GameObject());
-		if(!m_GameObjects[i]->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), hwnd, m_PBRShaderInstance, m_DepthShaderInstance, m_LoadedTextureResources[sceneObjects[i].materialName], m_LoadedModelResources[sceneObjects[i].modelName])) {
+		if(!m_GameObjects[i]->Initialize(m_PBRShaderInstance, m_DepthShaderInstance, m_LoadedTextureResources[sceneObjects[i].materialName], m_LoadedModelResources[sceneObjects[i].modelName])) {
 			MessageBox(hwnd, L"Could not initialize PBR object.", L"Error", MB_OK);
 			return false;
 		}
@@ -144,9 +151,22 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, DirectX::XM
 	return true;
 }
 
-bool Scene::RenderScene(DirectX::XMMATRIX viewMatrix, DirectX::XMMATRIX projectionMatrix, DirectX::XMFLOAT3 cameraPosition, float time) {
+bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
+	m_Camera->Update();
+
+	XMMATRIX viewMatrix {};
+	m_Camera->GetViewMatrix(viewMatrix);
+
+	if(mb_AnimateDirectionalLight) {
+		float animatedDir = std::sin(time * 0.5f) * 0.5f + 0.5f;
+		static XMVECTOR quat1 = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(170.0f), XMConvertToRadians(30.0f), 0.0f);
+		static XMVECTOR quat2 = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(8.0f), XMConvertToRadians(30.0f), 0.0f);
+		m_DirectionalLight->SetQuaternionDirection(XMQuaternionSlerp(quat1, quat2, animatedDir));
+
+	}
+
 	for(size_t i = 0; i < m_GameObjects.size(); i++) {
-		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), m_CubeMapObject->GetIrradianceMapSRV(), m_CubeMapObject->GetPrefilteredMapSRV(), m_CubeMapObject->GetPrecomputedBRDFSRV(), m_DirectionalLight, cameraPosition, time)) {
+		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), m_CubeMapObject->GetIrradianceMapSRV(), m_CubeMapObject->GetPrefilteredMapSRV(), m_CubeMapObject->GetPrecomputedBRDFSRV(), m_DirectionalLight, m_Camera->GetPosition(), time)) {
 			return false;
 		}
 	}
@@ -167,7 +187,6 @@ bool Scene::RenderScene(DirectX::XMMATRIX viewMatrix, DirectX::XMMATRIX projecti
 
 	//m_ScreenRenderTexture->TurnZBufferOn();
 	//m_ScreenRenderTexture->DisableAlphaBlending();
-
 
 	return true;
 }
@@ -241,25 +260,45 @@ bool Scene::LoadModelResource(const std::string& modelFileName) {
 	return true;
 }
 
-void Scene::UpdateMainImGuiWindow(int currentFPS, bool& isWireFrameRender, bool& showImGuiMenu) {
+void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS) {
 	static ImGuiSliderFlags sliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
 	bool b_isMenuActive = true;
 	ImGui::Begin("Scene Menu", &b_isMenuActive, ImGuiWindowFlags_None);
 
-	ImGui::Text("FPS: %d", currentFPS);
-	// TODO:
-	static bool b {};
-	ImGui::Checkbox("Show on screen", &b);
-	ImGui::Checkbox("Enable Wireframe Render", &isWireFrameRender);
+	/// Misc
+	static char gpuName[128] {};
+	static int gpuMemory {-1};
+	if(gpuMemory == -1) {
+		m_D3DInstance->GetVideoCardInfo(gpuName, gpuMemory);
+	}
+	ImGui::Text("%s %d MB", gpuName, gpuMemory);
+	ImGui::Spacing();
 
+	ImGui::Text("FPS: %d", (int)currentFPS);
+	ImGui::Checkbox("Show on screen", &b_ShowScreenFPS);
+	ImGui::Spacing();
+
+	ImGui::Checkbox("Enable Wireframe Render", &b_IsWireFrameRender);
+	ImGui::Spacing();
+
+	/// Directional Light
 	ImGui::SeparatorText("Directional Light");
+	ImGui::Checkbox("Enable animation", &mb_AnimateDirectionalLight);
+
 	static float userLightDir[2] {startingDirectionalLightDirX, startingDirectionalLightDirY};
+	if(mb_AnimateDirectionalLight) {
+		ImGui::BeginDisabled();
+		m_DirectionalLight->GetEulerAngles(userLightDir[0], userLightDir[1]);
+	}
 	ImGui::Text("Light Angle");
 	if(ImGui::DragFloat2("[x, y]", userLightDir, 0.5f, -1000.0f, 1000.0f, "%.2f", sliderFlags)) {
 		userLightDir[0] = std::fmod(userLightDir[0], 360.0f);
 		userLightDir[1] = std::fmod(userLightDir[1], 360.0f);
 		m_DirectionalLight->SetDirection(XMConvertToRadians(userLightDir[0]), XMConvertToRadians(userLightDir[1]), 0.0f);
+	}
+	if(mb_AnimateDirectionalLight) {
+		ImGui::EndDisabled();
 	}
 
 	static float userDirLightCol[3] = {startingDirectionalLightColor.x, startingDirectionalLightColor.y, startingDirectionalLightColor.z};
@@ -267,7 +306,9 @@ void Scene::UpdateMainImGuiWindow(int currentFPS, bool& isWireFrameRender, bool&
 	if(ImGui::DragFloat3("[r, g, b]", userDirLightCol, 0.1f, 0.0f, 1000.0f, "%.2f", sliderFlags)) {
 		m_DirectionalLight->SetColor(userDirLightCol[0], userDirLightCol[1], userDirLightCol[2], 1.0f);
 	}
+	ImGui::Spacing();
 
+	/// Material Edit
 	ImGui::SeparatorText("Ground Material");
 	static float userParallaxHeight = m_GameObjects[m_GameObjects.size() - 1]->GetParallaxMapHeightScale();
 	if(ImGui::DragFloat("[x, y]", &userParallaxHeight, 0.001f, -1000.0f, 1000.0f, "%.3f", sliderFlags)) {
@@ -282,9 +323,35 @@ void Scene::UpdateMainImGuiWindow(int currentFPS, bool& isWireFrameRender, bool&
 	ImGui::End();
 
 	if(!b_isMenuActive) {
-		showImGuiMenu = false;
-		ShowCursor(showImGuiMenu);
+		b_ShowImGuiMenu = false;
+		ShowCursor(b_ShowImGuiMenu);
 	}
+}
+
+void Scene::ProcessInput(Input* input, float deltaTime) {
+	static bool b_EnableFastMove = false;
+	if(input->IsLeftShiftKeyUp()) {
+		b_EnableFastMove = false;
+	}
+	else if(input->IsLeftShiftKeyDown()) {
+		b_EnableFastMove = true;
+	}
+	
+	// Mouse input
+	static int currentMouseX;
+	static int currentMouseY;
+	input->GetMouseLocation(currentMouseX, currentMouseY);
+
+	// Camera Rotation
+	float mouseSensitivity = 10.0f * deltaTime;
+	m_Camera->SetRotation(m_Camera->GetRotationX() + input->GetMouseAxisHorizontal() * mouseSensitivity, m_Camera->GetRotationY() + input->GetMouseAxisVertical() * mouseSensitivity, m_Camera->GetRotationZ());
+
+	// Camera Translation
+	XMFLOAT3 currLookAtDir = m_Camera->GetLookAtDir();
+	XMFLOAT3 currRightDir = m_Camera->GetRightDir();
+	XMVECTOR camMoveVector = XMVector3Normalize(XMVectorAdd(XMLoadFloat3(&currLookAtDir) * input->GetMoveAxisVertical(), XMLoadFloat3(&currRightDir) * input->GetMoveAxisHorizontal())) * deltaTime * (b_EnableFastMove ? 15.0f : 5.0f);
+
+	m_Camera->SetPosition(m_Camera->GetPositionX() + XMVectorGetX(camMoveVector), m_Camera->GetPositionY() + XMVectorGetY(camMoveVector), m_Camera->GetPositionZ() + XMVectorGetZ(camMoveVector));
 }
 
 void Scene::Shutdown() {
@@ -311,6 +378,10 @@ void Scene::Shutdown() {
 		m_DirectionalLight = nullptr;
 	}
 
+	//if(m_lights) {
+	//	delete[] m_lights;
+	//	m_lights = nullptr;
+	//}
 
 	if(m_CubeMapObject) {
 		m_CubeMapObject->Shutdown();
@@ -338,12 +409,10 @@ void Scene::Shutdown() {
 		m_GameObjects[i] = nullptr;
 	}
 
-	// Release the light objects.
-	//if(m_lights) {
-	//	delete[] m_lights;
-	//	m_lights = nullptr;
-	//}
-
+	if(m_Camera) {
+		delete m_Camera;
+		m_Camera = nullptr;
+	}
 }
 
 

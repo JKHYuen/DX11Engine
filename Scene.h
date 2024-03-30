@@ -5,8 +5,11 @@
 #include <vector>
 #include <DirectXMath.h>
 
+using namespace DirectX;
+
 class Texture;
 class Model;
+class QuadModel;
 class GameObject;
 class D3DInstance;
 class PBRShader;
@@ -14,7 +17,8 @@ class DepthShader;
 class CubeMapObject;
 class RenderTexture;
 class DirectionalLight;
-class QuadModel;
+class Camera;
+class Input;
 
 class Scene {
 public:
@@ -22,12 +26,14 @@ public:
 	Scene(const Texture& other) {}
 	~Scene() {}
 
-	bool InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, DirectX::XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ);
+	bool InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ);
 	
-	bool RenderScene(DirectX::XMMATRIX viewMatrix, DirectX::XMMATRIX projectionMatrix, DirectX::XMFLOAT3 cameraPosition, float time);
+	bool RenderScene(XMMATRIX projectionMatrix, float time);
 	bool RenderDirectionalLightSceneDepth(float time);
 	
-	void UpdateMainImGuiWindow(int currentFPS, bool& isWireFrameRender, bool& showImGuiMenu);
+	void UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS);
+
+	void ProcessInput(Input* input, float deltaTime);
 
 	RenderTexture* GetDirectionalShadowMapRenderTexture() const { return m_DirectionalShadowMapRenderTexture; }
 	
@@ -39,14 +45,17 @@ private:
 	PBRShader* m_PBRShaderInstance {};
 	DepthShader* m_DepthShaderInstance {};
 
-	CubeMapObject* m_CubeMapObject {};
+	Camera* m_Camera {};
 
+	CubeMapObject* m_CubeMapObject {};
 	DirectionalLight* m_DirectionalLight {};
 	RenderTexture* m_DirectionalShadowMapRenderTexture {};
 
 	// Point lights
 	//LightClass* m_lights {};
 	//int m_numLights {};
+
+	bool mb_AnimateDirectionalLight {};
 
 	std::vector<GameObject*> m_GameObjects {};
 

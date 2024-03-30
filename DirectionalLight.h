@@ -14,6 +14,7 @@ public:
     // Sets direction of light, by rotating default direction (0.0, 0.0, 1.0) by rotation parameters (radians)
     // Updates m_Position and calls GenerateViewMatrix
     void SetDirection(float rotX, float rotY, float rotZ);
+    void SetQuaternionDirection(XMVECTOR rotationQuaternion);
 
     void SetLightDistance(float newDistance) { m_LightDistance = newDistance; }
 
@@ -23,6 +24,8 @@ public:
     XMFLOAT4 GetDirectionalColor() const { return m_DirectionalColor; }
     XMFLOAT3 GetDirection() const { return m_Direction; }
     XMFLOAT3 GetPosition() const { return m_Position; }
+
+    void GetEulerAngles(float& rotX, float& rotY) const;
 
     void GetOrthoMatrix(XMMATRIX& orthoMatrix) const { orthoMatrix = m_OrthoMatrix; }
     void GetViewMatrix(XMMATRIX& viewMatrix) const { viewMatrix = m_ViewMatrix; }

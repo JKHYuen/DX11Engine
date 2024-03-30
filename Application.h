@@ -57,14 +57,12 @@ private:
 	bool RenderToBackBuffer();
 	bool RenderSceneToScreenTexture();
 
-	bool UpdateMouseStrings(int, int, bool);
-	bool UpdateFps();
+	bool UpdateFpsDisplay();
 
 	int m_ScreenWidth {};
 	int m_ScreenHeight {};
 
 	D3DInstance* m_Direct3D {};
-	Camera* m_Camera {};
 	Camera* m_ScreenDisplayCamera {};
 	
 	// Scene
@@ -86,12 +84,11 @@ private:
 	Text* m_TextString1 {};
 	Text* m_TextString2 {};
 
-	bool mb_FastMove {};
-
 	// Debug
 	bool mb_RenderDebugQuad {};
 	bool mb_ShowImGuiMenu {};
 	bool mb_IsWireFrameRender {};
+	bool mb_ShowScreenFPS {};
 
 	FpsCounter* m_FpsCounter {};
 	Text* m_FpsString {};
