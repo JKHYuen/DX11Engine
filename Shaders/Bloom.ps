@@ -1,0 +1,59 @@
+Texture2D screenTexture  : register(t0);
+Texture2D sourceTexture  : register(t0);
+SamplerState wrapSampler : register(s0);
+
+cbuffer MaterialParamBuffer {
+    float4 _Filter;
+    float _BoxSampleDelta;
+    float _Intensity;
+    float _UsePrefilter;
+    float padding;
+};
+
+struct PixelInputType {
+    float4 position : SV_POSITION;
+    float2 uv : TEXCOORD0;
+};
+
+half3 Prefilter(half3 c) {
+    half brightness = max(c.r, max(c.g, c.b)); // brightness is max of color channels
+    half soft = brightness - _Filter.y;
+    soft = clamp(soft, 0, _Filter.z);
+    soft = soft * soft * _Filter.w;
+    half contribution = max(soft, brightness - _Filter.x);
+    contribution /= max(brightness, 0.00001);
+    return c * contribution;
+}
+
+half3 SampleBox(float2 uv, float delta) {
+    float width, height, numOfLevels;
+    screenTexture.GetDimensions(0, width, height, numOfLevels);
+    
+    float4 o = float2(width, height).xyxy * float2(-delta, delta).xxyy;
+    half3 s = screenTexture.Sample(wrapSampler, uv + o.xy) + screenTexture.Sample(wrapSampler, uv + o.zy) +
+			  screenTexture.Sample(wrapSampler, uv + o.xw) + screenTexture.Sample(wrapSampler, uv + o.zw);
+    return s * 0.25f;
+}
+
+// NOTE: implementation of different shader passes for bloom using conditional, may not be the most performant
+half4 PixelShader(PixelInputType i) : SV_TARGET {
+    half3 color;
+    
+    // Use final upsample + bloom addition pass if _Intensity != 0
+    if(_Intensity != 0) {
+        color = sourceTexture.Sample(wrapSampler, i.uv).rgb;
+        color.rgb += _Intensity * SampleBox(i.uv, 0.5);
+    }
+    else {
+        // Prefilter + first downsample pass
+        if(_UsePrefilter != 0) {
+            color = Prefilter(SampleBox(i.uv, 1));
+        }
+        // Upsample/downsample pass
+        else {
+            color = SampleBox(i.uv, _BoxSampleDelta);
+        }
+    }
+    
+    return half4(color, 1);
+}

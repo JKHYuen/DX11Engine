@@ -17,13 +17,16 @@
 
 #include <iostream>
 #include <cmath>
+#include <future>
 
-/// Scene starting values
-static const float startingDirectionalLightDirX = 50.0f;
-static const float startingDirectionalLightDirY = 30.0f;
+/// Demo Scene starting values
+static const float kStartingDirectionalLightDirX = 50.0f;
+static const float kStartingDirectionalLightDirY = 30.0f;
 // sunlight color: 9.0f, 5.0f, 2.0f 
 //                 29.0f, 18.0f, 11.0f
-static const XMFLOAT3 startingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0f};
+static const XMFLOAT3 kStartingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0f};
+
+static std::mutex s_DeviceContextMutex {};
 
 bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ) {
 	bool result;
@@ -49,20 +52,11 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	m_Camera = new Camera();
 	m_Camera->SetPosition(0.0f, 4.0f, -10.0f);
 
-	/// Load skybox cubemap
-	XMMATRIX screenOrthoMatrix;
-	d3dInstance->GetOrthoMatrix(screenOrthoMatrix);
-
-	m_CubeMapObject = new CubeMapObject();
-	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k | abandoned_tiled_room_4k
-	result = m_CubeMapObject->Initialize(m_D3DInstance, hwnd, "schachen_forest_4k", 2048, 9, 32, 512, 512, screenCameraViewMatrix, screenOrthoMatrix, quadModel);
-	if(!result) {
-		MessageBox(hwnd, L"Could not initialize cubemap.", L"Error", MB_OK);
-		return false;
-	}
-
 	/// Load 3D Objects
 	// TODO: Check for failure
+	// TODO: Remove for release?
+#define USE_MULTITHREAD 1
+#if USE_MULTITHREAD == 0
 	LoadModelResource("sphere");
 	LoadModelResource("plane");
 
@@ -72,6 +66,41 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	LoadPBRTextureResource("marble");
 	LoadPBRTextureResource("dirt");
 	LoadPBRTextureResource("bog");
+#else
+	auto f7 = std::async(std::launch::async, &Scene::LoadModelResource, this, "sphere");
+	auto f8 = std::async(std::launch::async, &Scene::LoadModelResource, this, "plane");
+
+	auto f1 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "rust");
+	auto f2 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "stonewall");
+	auto f3 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "metal_grid");
+	auto f4 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "marble");
+	auto f5 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "dirt");
+	auto f6 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "bog");
+#endif
+
+	/// Load skybox cubemap
+	XMMATRIX screenOrthoMatrix;
+	d3dInstance->GetOrthoMatrix(screenOrthoMatrix);
+
+	m_CubeMapObject = new CubeMapObject();
+	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k | abandoned_tiled_room_4k
+	result = m_CubeMapObject->Initialize(m_D3DInstance, hwnd, "rural_landscape_4k", 2048, 9, 32, 512, 512, screenCameraViewMatrix, screenOrthoMatrix, quadModel);
+	if(!result) {
+		MessageBox(hwnd, L"Could not initialize cubemap.", L"Error", MB_OK);
+		return false;
+	}
+
+#if USE_MULTITHREAD == 1
+	f1.wait();
+	f2.wait();
+	f3.wait();
+	f4.wait();
+	f5.wait();
+	f6.wait();
+	f7.wait();
+	f8.wait();
+#endif
+
 
 	// Temp scene system
 	struct GameObjectData {
@@ -112,6 +141,9 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 		m_GameObjects[i]->SetParallaxMapHeightScale(sceneObjects[i].parallaxMapHeightScale);
 	}
 
+
+
+
 	/// Lighting
 	// Create and initialize the shadow map texture
 	m_DirectionalShadowMapRenderTexture = new RenderTexture();
@@ -125,9 +157,9 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	m_DirectionalLight = new DirectionalLight();
 
 	// Initialize Directional light
-	m_DirectionalLight->SetColor(startingDirectionalLightColor.x, startingDirectionalLightColor.y, startingDirectionalLightColor.z, 1.0f);
+	m_DirectionalLight->SetColor(kStartingDirectionalLightColor.x, kStartingDirectionalLightColor.y, kStartingDirectionalLightColor.z, 1.0f);
 	m_DirectionalLight->GenerateOrthoMatrix(40.0f, shadowMapNearZ, shadowMapFarZ);
-	m_DirectionalLight->SetDirection(XMConvertToRadians(startingDirectionalLightDirX), XMConvertToRadians(startingDirectionalLightDirY), 0.0f);
+	m_DirectionalLight->SetDirection(XMConvertToRadians(kStartingDirectionalLightDirX), XMConvertToRadians(kStartingDirectionalLightDirY), 0.0f);
 
 	//// Set the number of lights we will use.
 	//m_numLights = 4;
@@ -209,6 +241,8 @@ bool Scene::RenderDirectionalLightSceneDepth(float time) {
 	return true;
 }
 
+
+
 bool Scene::LoadPBRTextureResource(const std::string& textureFileName) {
 	if(m_LoadedTextureResources.find(textureFileName) == m_LoadedTextureResources.end()) {
 		// Load models and materials to be used in scene
@@ -222,9 +256,14 @@ bool Scene::LoadPBRTextureResource(const std::string& textureFileName) {
 			filePathPrefix + "_height.tga"
 		};
 
+		static std::vector<std::future<bool>> s_F(textureFileNames.size());
+
 		std::vector<Texture*> textureResources;
 		textureResources.reserve(textureFileNames.size());
 		for(size_t i = 0; i < textureFileNames.size(); i++) {
+#if USE_MULTITHREAD == 1
+			//std::lock_guard<std::mutex> lock {s_DeviceContextMutex};
+#endif
 			textureResources.emplace_back(new Texture());
 			if(!textureResources[i]->Initialize(
 				m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), textureFileNames[i], DXGI_FORMAT_R8G8B8A8_UNORM)
@@ -246,7 +285,7 @@ bool Scene::LoadModelResource(const std::string& modelFileName) {
 	if(m_LoadedModelResources.find(modelFileName) == m_LoadedModelResources.end()) {
 		Model* pTempModel = new Model();
 		if(!pTempModel->Initialize(
-			m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), "../DX11Engine/data/" + modelFileName + ".txt")
+			m_D3DInstance->GetDevice(), "../DX11Engine/data/" + modelFileName + ".txt")
 			) {
 			return false;
 		}
@@ -276,7 +315,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 	ImGui::Spacing();
 
 	ImGui::Text("FPS: %d", (int)currentFPS);
-	ImGui::Checkbox("Show on screen", &b_ShowScreenFPS);
+	ImGui::Checkbox("Show FPS on screen", &b_ShowScreenFPS);
 	ImGui::Spacing();
 
 	ImGui::Checkbox("Enable Wireframe Render", &b_IsWireFrameRender);
@@ -286,7 +325,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 	ImGui::SeparatorText("Directional Light");
 	ImGui::Checkbox("Enable animation", &mb_AnimateDirectionalLight);
 
-	static float userLightDir[2] {startingDirectionalLightDirX, startingDirectionalLightDirY};
+	static float userLightDir[2] {kStartingDirectionalLightDirX, kStartingDirectionalLightDirY};
 	if(mb_AnimateDirectionalLight) {
 		ImGui::BeginDisabled();
 		m_DirectionalLight->GetEulerAngles(userLightDir[0], userLightDir[1]);
@@ -301,7 +340,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		ImGui::EndDisabled();
 	}
 
-	static float userDirLightCol[3] = {startingDirectionalLightColor.x, startingDirectionalLightColor.y, startingDirectionalLightColor.z};
+	static float userDirLightCol[3] = {kStartingDirectionalLightColor.x, kStartingDirectionalLightColor.y, kStartingDirectionalLightColor.z};
 	ImGui::Text("HDR Light Color");
 	if(ImGui::DragFloat3("[r, g, b]", userDirLightCol, 0.1f, 0.0f, 1000.0f, "%.2f", sliderFlags)) {
 		m_DirectionalLight->SetColor(userDirLightCol[0], userDirLightCol[1], userDirLightCol[2], 1.0f);
@@ -404,7 +443,6 @@ void Scene::Shutdown() {
 	}
 
 	for(size_t i = 0; i < m_GameObjects.size(); i++) {
-		m_GameObjects[i]->Shutdown();
 		delete m_GameObjects[i];
 		m_GameObjects[i] = nullptr;
 	}

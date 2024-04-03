@@ -360,21 +360,19 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstri
 	pixelShaderBuffer->Release();
 	pixelShaderBuffer = nullptr;
 
-	//if(shaderName != kIntegrateBRDFShaderName) {
-		/// Setup the description of dynamic matrix cbuffer in vertex shader
-		D3D11_BUFFER_DESC matrixBufferDesc{};
-		matrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-		matrixBufferDesc.ByteWidth = sizeof(MatrixBufferType);
-		matrixBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		matrixBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		matrixBufferDesc.MiscFlags = 0;
-		matrixBufferDesc.StructureByteStride = 0;
+	/// Setup the description of dynamic matrix cbuffer in vertex shader
+	D3D11_BUFFER_DESC matrixBufferDesc{};
+	matrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	matrixBufferDesc.ByteWidth = sizeof(MatrixBufferType);
+	matrixBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	matrixBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	matrixBufferDesc.MiscFlags = 0;
+	matrixBufferDesc.StructureByteStride = 0;
 
-		result = device->CreateBuffer(&matrixBufferDesc, NULL, &m_MatrixBuffer);
-		if(FAILED(result)) {
-			return false;
-		}
-	//}
+	result = device->CreateBuffer(&matrixBufferDesc, NULL, &m_MatrixBuffer);
+	if(FAILED(result)) {
+		return false;
+	}
 
 	/// Set up description of prefilter cbuffer in frag shader (for roughness param)
 	if(shaderName == kPrefilterCubeMapShaderName) {
@@ -488,18 +486,6 @@ bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatr
 	}
 
 	return true;
-}
-
-ID3D11ShaderResourceView* CubeMapObject::GetIrradianceMapSRV() const { 
-	return m_IrradianceCubeMapTex->GetTextureSRV(); 
-}
-
-ID3D11ShaderResourceView* CubeMapObject::GetPrefilteredMapSRV() const {
-	return m_PrefilteredCubeMapTex->GetTextureSRV();
-}
-
-ID3D11ShaderResourceView* CubeMapObject::GetPrecomputedBRDFSRV() const {
-	return m_PrecomputedBRDFTex->GetTextureSRV();
 }
 
 void CubeMapObject::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR* shaderFilename) {

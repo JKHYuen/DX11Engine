@@ -265,7 +265,6 @@ bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND
 
 	// Bind the render target view and depth stencil buffer to the output render pipeline.
 	SetToBackBufferRenderTarget();
-	//m_deviceContext->OMSetRenderTargets(1, &m_renderTargetView, m_depthStencilView);
 
 	// Setup the raster description which will determine how and what polygons will be drawn.
 	rasterDesc.AntialiasedLineEnable = false;
@@ -372,6 +371,7 @@ bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND
 
 	// Modify the description to create an alpha disabled blend state description.
 	blendStateDescription.RenderTarget[0].BlendEnable = FALSE;
+
 	// Create the blend state using the description.
 	result = m_Device->CreateBlendState(&blendStateDescription, &m_AlphaDisableBlendingState);
 	if(FAILED(result)) {

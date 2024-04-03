@@ -5,6 +5,7 @@
 #include "Model.h"
 #include "DirectionalLight.h"
 
+// Note: all instances passed as parameters are cleaned up in scene class
 bool GameObject::Initialize(PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textureResources, Model* model) {
 	m_MaterialTextures = textureResources;
 	m_ModelInstance = model;
@@ -44,12 +45,4 @@ bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix,
 	m_ModelInstance->Render(deviceContext);
 	// Render the model using the light shader.
 	return m_PBRShaderInstance->Render(deviceContext, m_ModelInstance->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_MaterialTextures, shadowMap, irradianceMap, prefilteredMap, BRDFLut, light, cameraPos, time, m_UVScale, m_DisplacementHeightScale, m_ParallaxHeightScale);
-}
-
-void GameObject::Shutdown() {
-	//if(m_Model) {
-	//	m_Model->Shutdown();
-	//	delete m_Model;
-	//	m_Model = nullptr;
-	//}
 }

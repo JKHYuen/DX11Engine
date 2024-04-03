@@ -42,7 +42,7 @@ public:
 	Model(const Model&) {}
 	~Model() {}
 
-	bool Initialize(ID3D11Device*, ID3D11DeviceContext*, const std::string& modelFilePath);
+	bool Initialize(ID3D11Device*, const std::string& modelFilePath);
 	void Shutdown();
 	void Render(ID3D11DeviceContext*);
 

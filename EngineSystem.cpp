@@ -28,7 +28,7 @@ bool EngineSystem::Initialize() {
 
 	// Create and initialize the application class object.  This object will handle rendering all the graphics for this application.
 	m_Application = new Application();
-	result = m_Application->Initialize(gFullScreen, screenWidth, screenHeight, m_Hwnd);
+	result = m_Application->Initialize(g_FullScreen, screenWidth, screenHeight, m_Hwnd);
 	if (!result) {
 		return false;
 	}
@@ -140,7 +140,7 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 	screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
 	// Setup the screen settings depending on whether it is running in full screen or in windowed mode.
-	if(gFullScreen) {
+	if(g_FullScreen) {
 		// If full screen set the screen to maximum size of the users desktop and 32bit.
 		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
 		dmScreenSettings.dmSize = sizeof(dmScreenSettings);
@@ -157,8 +157,8 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 	}
 	else {
 		// If windowed then set it to 800x600 resolution.
-		screenWidth = gDefaultWindowedWidth;
-		screenHeight = gDefaultWindowedHeight;
+		screenWidth = g_DefaultWindowedWidth;
+		screenHeight = g_DefaultWindowedHeight;
 
 		// Place the window in the middle of the screen.
 		posX = (GetSystemMetrics(SM_CXSCREEN) - screenWidth) / 2;
@@ -230,7 +230,7 @@ void EngineSystem::Shutdown() {
 	ShowCursor(true);
 
 	// Fix the display settings if leaving full screen mode.
-	if(gFullScreen) {
+	if(g_FullScreen) {
 		ChangeDisplaySettings(NULL, 0);
 	}
 

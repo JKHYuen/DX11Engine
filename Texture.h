@@ -3,6 +3,7 @@
 #include <d3d11.h>
 #include <array>
 #include <string>
+#include <future>
 
 class Texture {
 public:
@@ -12,6 +13,8 @@ public:
 
     // Initialize single texture
     bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filename, DXGI_FORMAT format = DXGI_FORMAT_R8G8B8A8_UNORM, int mipLevels = 0);
+
+    bool AsyncInitialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, DXGI_FORMAT format, int mipLevels, std::mutex deviceContextMutex);
 
     // Initialize cubemap texture
     bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::array<ID3D11Texture2D*, 6>& sourceHDRTexArray);

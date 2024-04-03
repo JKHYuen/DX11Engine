@@ -4,6 +4,7 @@ RenderTexture::RenderTexture() {}
 RenderTexture::RenderTexture(const RenderTexture& other) {}
 RenderTexture::~RenderTexture() {}
 
+// TODO: make depth budder optional
 bool RenderTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int textureWidth, int textureHeight, float nearZ, float farZ, DXGI_FORMAT textureFormat, float perspectiveFOV, int mipLevels, int texArraySize, bool b_IsCubeMap) {
     HRESULT result {};
 
@@ -12,13 +13,14 @@ bool RenderTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* device
         texArraySize = 6;
     }
 
-    m_DeviceContext = deviceContext;
-
     bool b_GenerateMips = mipLevels == 0 || mipLevels > 1;
 
-    // Store the width and height of the render texture.
+    // Store vars
+    m_DeviceContext = deviceContext;
     m_TextureWidth = textureWidth;
     m_TextureHeight = textureHeight;
+    m_NearZ = nearZ;
+    m_FarZ = farZ;
 
     // Setup the render target texture description.
     D3D11_TEXTURE2D_DESC textureDesc {};
@@ -189,6 +191,12 @@ bool RenderTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* device
         return false;
     }
 
+    blendStateDescription.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+    result = device->CreateBlendState(&blendStateDescription, &m_AdditiveBlendingState);
+    if(FAILED(result)) {
+        return false;
+    }
+
     // Modify the description to create an alpha disabled blend state description.
     blendStateDescription.RenderTarget[0].BlendEnable = FALSE;
     // Create the blend state using the description.
@@ -254,10 +262,6 @@ bool RenderTexture::SetTextureArrayRenderTarget(ID3D11Device* device, int target
     m_Viewport.Width = (float)targetWidth;
     m_Viewport.Height = (float)targetHeight;
 
-    // TODO:
-    //m_ProjectionMatrix = XMMatrixPerspectiveFovLH(perspectiveFOV, ((float)targetWidth / (float)targetHeight), nearZ, farZ);
-    //m_OrthoMatrix = XMMatrixOrthographicLH((float)targetWidth, (float)targetHeight, nearZ, farZ);
-
     SetRenderTarget();
 
     return true;
@@ -279,18 +283,6 @@ void RenderTexture::ClearRenderTarget(float red, float green, float blue, float 
     m_DeviceContext->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 
-ID3D11ShaderResourceView* RenderTexture::GetTextureSRV() {
-    return m_ShaderResourceView;
-}
-
-void RenderTexture::GetProjectionMatrix(XMMATRIX& projectionMatrix) {
-    projectionMatrix = m_ProjectionMatrix;
-}
-
-void RenderTexture::GetOrthoMatrix(XMMATRIX& orthoMatrix) {
-    orthoMatrix = m_OrthoMatrix;
-}
-
 void RenderTexture::TurnZBufferOn() {
     m_DeviceContext->OMSetDepthStencilState(m_DepthStencilState, 1);
 }
@@ -300,30 +292,20 @@ void RenderTexture::TurnZBufferOff() {
 }
 
 void RenderTexture::EnableAlphaBlending() {
-    float blendFactor[4];
-
-    // Setup the blend factor.
-    blendFactor[0] = 0.0f;
-    blendFactor[1] = 0.0f;
-    blendFactor[2] = 0.0f;
-    blendFactor[3] = 0.0f;
-
-    // Turn on the alpha blending.
+    static float blendFactor[4] {0.0f, 0.0f, 0.0f, 0.0f};
     m_DeviceContext->OMSetBlendState(m_AlphaEnableBlendingState, blendFactor, 0xffffffff);
 }
 
 void RenderTexture::DisableAlphaBlending() {
-    float blendFactor[4];
-
-    // Setup the blend factor.
-    blendFactor[0] = 0.0f;
-    blendFactor[1] = 0.0f;
-    blendFactor[2] = 0.0f;
-    blendFactor[3] = 0.0f;
-
-    // Turn off the alpha blending.
+    static float blendFactor[4] {0.0f, 0.0f, 0.0f, 0.0f};
     m_DeviceContext->OMSetBlendState(m_AlphaDisableBlendingState, blendFactor, 0xffffffff);
 }
+
+void RenderTexture::EnableAdditiveBlending() {
+    static float blendFactor[4] {0.0f, 0.0f, 0.0f, 0.0f};
+    m_DeviceContext->OMSetBlendState(m_AdditiveBlendingState, blendFactor, 0xffffffff);
+}
+
 
 void RenderTexture::Shutdown() {
     if(m_DepthStencilView) {

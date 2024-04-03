@@ -1,5 +1,8 @@
 #include "TextureShader.h"
 
+#include <fstream>
+#include <d3dcompiler.h>
+
 bool TextureShader::Initialize(ID3D11Device* device, HWND hwnd, bool isPostProcessShader) {
 	bool result;
 	wchar_t vsFilename[128];
@@ -31,59 +34,22 @@ bool TextureShader::Initialize(ID3D11Device* device, HWND hwnd, bool isPostProce
 	return true;
 }
 
-// Shutdown the vertex and pixel shaders as well as the related objects.
-void TextureShader::Shutdown() {
-	// Release the sampler state.
-	if(m_SampleState) {
-		m_SampleState->Release();
-		m_SampleState = nullptr;
-	}
-
-	// Release the matrix constant buffer.
-	if(m_MatrixBuffer) {
-		m_MatrixBuffer->Release();
-		m_MatrixBuffer = nullptr;
-	}
-
-	// Release the layout.
-	if(m_Layout) {
-		m_Layout->Release();
-		m_Layout = nullptr;
-	}
-
-	// Release the pixel shader.
-	if(m_PixelShader) {
-		m_PixelShader->Release();
-		m_PixelShader = nullptr;
-	}
-
-	// Release the vertex shader.
-	if(m_VertexShader) {
-		m_VertexShader->Release();
-		m_VertexShader = nullptr;
-	}
-}
-
 bool TextureShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix,
-	XMMATRIX projectionMatrix, ID3D11ShaderResourceView* texture) {
-	HRESULT result {};
-	D3D11_MAPPED_SUBRESOURCE mappedResource {};
-	MatrixBufferType* dataPtr {};
-	unsigned int bufferNumber {};
-
+	XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV) {
 	// Transpose the matrices to prepare them for the shader.
 	worldMatrix = XMMatrixTranspose(worldMatrix);
 	viewMatrix = XMMatrixTranspose(viewMatrix);
 	projectionMatrix = XMMatrixTranspose(projectionMatrix);
 
 	// Lock the constant buffer so it can be written to.
-	result = deviceContext->Map(m_MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	D3D11_MAPPED_SUBRESOURCE mappedResource {};
+	HRESULT result = deviceContext->Map(m_MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
 	if(FAILED(result)) {
 		return false;
 	}
 
 	// Get a pointer to the data in the constant buffer.
-	dataPtr = (MatrixBufferType*)mappedResource.pData;
+	MatrixBufferType* dataPtr = (MatrixBufferType*)mappedResource.pData;
 
 	// Copy the matrices into the constant buffer.
 	dataPtr->world = worldMatrix;
@@ -93,14 +59,11 @@ bool TextureShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, X
 	// Unlock the constant buffer.
 	deviceContext->Unmap(m_MatrixBuffer, 0);
 
-	// Set the position of the constant buffer in the vertex shader.
-	bufferNumber = 0;
-
 	// Finally set the constant buffer in the vertex shader with the updated values.
-	deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_MatrixBuffer);
+	deviceContext->VSSetConstantBuffers(0, 1, &m_MatrixBuffer);
 
 	// Set shader texture resource in the pixel shader.
-	deviceContext->PSSetShaderResources(0, 1, &texture);
+	deviceContext->PSSetShaderResources(0, 1, &textureSRV);
 
 	/// Now render the prepared buffers with the shader.
 	// Set the vertex input layout.
@@ -284,6 +247,36 @@ void TextureShader::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd
 
 	// Pop a message up on the screen to notify the user to check the text file for compile errors.
 	MessageBox(hwnd, L"Error compiling shader.  Check shader-error.txt for message.", shaderFilename, MB_OK);
+}
 
-	return;
+void TextureShader::Shutdown() {
+	// Release the sampler state.
+	if(m_SampleState) {
+		m_SampleState->Release();
+		m_SampleState = nullptr;
+	}
+
+	// Release the matrix constant buffer.
+	if(m_MatrixBuffer) {
+		m_MatrixBuffer->Release();
+		m_MatrixBuffer = nullptr;
+	}
+
+	// Release the layout.
+	if(m_Layout) {
+		m_Layout->Release();
+		m_Layout = nullptr;
+	}
+
+	// Release the pixel shader.
+	if(m_PixelShader) {
+		m_PixelShader->Release();
+		m_PixelShader = nullptr;
+	}
+
+	// Release the vertex shader.
+	if(m_VertexShader) {
+		m_VertexShader->Release();
+		m_VertexShader = nullptr;
+	}
 }

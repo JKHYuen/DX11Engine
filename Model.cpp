@@ -1,7 +1,7 @@
 #include "Model.h"
 #include <fstream>
 
-bool Model::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& modelFilePath) {
+bool Model::Initialize(ID3D11Device* device, const std::string& modelFilePath) {
 	// Load in the model data.
 	bool result = LoadModel(modelFilePath);
 	if(!result) {

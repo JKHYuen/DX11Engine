@@ -36,9 +36,9 @@ public:
     void Shutdown();
     bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, RenderType renderType, float roughness = 0);
 
-    ID3D11ShaderResourceView* GetIrradianceMapSRV() const;
-    ID3D11ShaderResourceView* GetPrefilteredMapSRV() const;
-    ID3D11ShaderResourceView* GetPrecomputedBRDFSRV() const;
+    ID3D11ShaderResourceView* GetIrradianceMapSRV() const { return m_IrradianceCubeMapTex->GetTextureSRV(); }
+    ID3D11ShaderResourceView* GetPrefilteredMapSRV() const { return m_PrefilteredCubeMapTex->GetTextureSRV(); }
+    ID3D11ShaderResourceView* GetPrecomputedBRDFSRV() const { return m_PrecomputedBRDFTex->GetTextureSRV(); }
 
 private:
     struct MatrixBufferType {

@@ -24,8 +24,6 @@ public:
 
 	bool RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLight* light, float time);
 
-	void Shutdown();
-
 	void SetUVScale(float newScale) {
 		m_UVScale = newScale;
 	}

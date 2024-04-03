@@ -7,16 +7,16 @@
 #include <chrono>
 #include "GameObject.h"
 
-constexpr bool gFullScreen = false;
-constexpr int gDefaultWindowedWidth = 1280;
-constexpr int gDefaultWindowedHeight = 720;
+constexpr bool g_FullScreen = false;
+constexpr int g_DefaultWindowedWidth = 1280;
+constexpr int g_DefaultWindowedHeight = 720;
 
-constexpr bool gVsyncEnabled = true;
-constexpr float gScreenDepth = 1000.0f;
-constexpr float gScreenNear = 0.1f;
-constexpr int gShadowMapWidth = 2048;
-constexpr float gShadowMapDepth = 100.0f;
-constexpr float gShadowMapNear = 1.0f;
+constexpr bool g_VsyncEnabled = true;
+constexpr float g_ScreenDepth = 1000.0f;
+constexpr float g_ScreenNear = 0.1f;
+constexpr int g_ShadowMapWidth = 2048;
+constexpr float g_ShadowMapDepth = 100.0f;
+constexpr float g_ShadowMapNear = 1.0f;
 
 using ChronoTimePoint = std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>>;
 
@@ -28,6 +28,7 @@ class TextureShader;
 class FontShader;
 class Sprite;
 class RenderTexture;
+class Bloom;
 class QuadModel;
 class Model;
 class Texture;
@@ -51,7 +52,7 @@ public:
 	void Shutdown();
 	bool Frame(Input* input);
 
-	D3DInstance* GetD3DClass() { return m_Direct3D; };
+	D3DInstance* GetD3DClass() { return m_D3DInstance; };
 
 private:
 	bool RenderToBackBuffer();
@@ -62,7 +63,7 @@ private:
 	int m_ScreenWidth {};
 	int m_ScreenHeight {};
 
-	D3DInstance* m_Direct3D {};
+	D3DInstance* m_D3DInstance {};
 	Camera* m_ScreenDisplayCamera {};
 	
 	// Scene
@@ -70,6 +71,7 @@ private:
 
 	// Screen Rendering
 	RenderTexture* m_ScreenRenderTexture {};
+	Bloom* m_BloomEffect {};
 
 	QuadModel* m_ScreenDisplayQuad {};
 	QuadModel* m_DebugDisplayQuad {};
@@ -81,8 +83,6 @@ private:
 
 	FontShader* m_FontShader {};
 	Font* m_Font {};
-	Text* m_TextString1 {};
-	Text* m_TextString2 {};
 
 	// Debug
 	bool mb_RenderDebugQuad {};
@@ -92,7 +92,6 @@ private:
 
 	FpsCounter* m_FpsCounter {};
 	Text* m_FpsString {};
-	Text* m_MouseTexts {};
 
 	// Timer
 	ChronoTimePoint m_StartTime {};

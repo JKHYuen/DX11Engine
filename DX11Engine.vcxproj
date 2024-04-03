@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="Bloom.cpp" />
     <ClCompile Include="CubeMapObject.cpp" />
     <ClCompile Include="DepthShader.cpp" />
     <ClCompile Include="Include\imgui\imgui.cpp" />
@@ -53,6 +54,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="Bloom.h" />
     <ClInclude Include="CubeMapObject.h" />
     <ClInclude Include="DepthShader.h" />
     <ClInclude Include="Include\imgui\imconfig.h" />
@@ -88,6 +90,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Include\imgui\imgui.natstepfilter" />
+    <None Include="Shaders\Bloom.ps" />
     <None Include="Shaders\ConvoluteCubeMap.ps" />
     <None Include="Shaders\ConvoluteCubeMap.vs" />
     <None Include="Shaders\CubeMap.ps" />

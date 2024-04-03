@@ -40,12 +40,15 @@ public:
 	void Shutdown();
 
 private:
+	bool LoadPBRTextureResource(const std::string& textureFileName);
+	bool LoadModelResource(const std::string& modelFileName);
+
+private:
 	D3DInstance* m_D3DInstance {};
+	Camera* m_Camera {};
 
 	PBRShader* m_PBRShaderInstance {};
 	DepthShader* m_DepthShaderInstance {};
-
-	Camera* m_Camera {};
 
 	CubeMapObject* m_CubeMapObject {};
 	DirectionalLight* m_DirectionalLight {};
@@ -58,11 +61,6 @@ private:
 	bool mb_AnimateDirectionalLight {};
 
 	std::vector<GameObject*> m_GameObjects {};
-
 	std::unordered_map<std::string, std::vector<Texture*>> m_LoadedTextureResources {};
 	std::unordered_map<std::string, Model*> m_LoadedModelResources {};
-
-	bool LoadPBRTextureResource(const std::string& textureFileName);
-	bool LoadModelResource(const std::string& modelFileName);
-
 };

@@ -16,17 +16,18 @@ public:
     bool SetTextureArrayRenderTarget(ID3D11Device* device, int targetArrayIndex, int targetMipSlice, int targetWidth, int targetHeight, int arraySize = -1);
     void ClearRenderTarget(float red, float green, float blue, float alpha);
 
-    ID3D11ShaderResourceView* GetTextureSRV();
-
-    void GetProjectionMatrix(XMMATRIX&);
-    void GetOrthoMatrix(XMMATRIX&);
+    ID3D11ShaderResourceView* GetTextureSRV() const { return m_ShaderResourceView; }
+    void GetProjectionMatrix(XMMATRIX& projectionMatrix) const { projectionMatrix = m_ProjectionMatrix; }
+    void GetOrthoMatrix(XMMATRIX& orthoMatrix) const { orthoMatrix = m_OrthoMatrix; }
 
     int GetTextureWidth() const { return m_TextureWidth; };
     int GetTextureHeight() const { return m_TextureHeight; };
-    ID3D11Texture2D* GetTexture() const { return m_RenderTargetTexture; };
+    float GetNearZ() const { return m_NearZ; };
+    float GetFarZ() const { return m_FarZ; };
 
     void EnableAlphaBlending();
     void DisableAlphaBlending();
+    void EnableAdditiveBlending();
 
     void TurnZBufferOn();
     void TurnZBufferOff();
@@ -34,6 +35,7 @@ public:
 private:
     ID3D11DeviceContext* m_DeviceContext {};
     int m_TextureWidth {}, m_TextureHeight {};
+    float m_NearZ {}, m_FarZ {};
 
     ID3D11Texture2D* m_RenderTargetTexture {};
 
@@ -53,4 +55,5 @@ private:
 
     ID3D11BlendState* m_AlphaEnableBlendingState {};
     ID3D11BlendState* m_AlphaDisableBlendingState {};
+    ID3D11BlendState* m_AdditiveBlendingState {};
 };

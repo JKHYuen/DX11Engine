@@ -7,6 +7,7 @@
 #include "FontShader.h"
 
 #include "RenderTexture.h"
+#include "Bloom.h"
 #include "QuadModel.h"
 #include "Model.h"
 #include "Texture.h"
@@ -35,8 +36,8 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	m_StartTime = std::chrono::steady_clock::now();
 
 	// Create and initialize the Direct3D object
-	m_Direct3D = new D3DInstance();
-	result = m_Direct3D->Initialize(screenWidth, screenHeight, gVsyncEnabled, hwnd, isFullScreen, gScreenDepth, gScreenNear);
+	m_D3DInstance = new D3DInstance();
+	result = m_D3DInstance->Initialize(screenWidth, screenHeight, g_VsyncEnabled, hwnd, isFullScreen, g_ScreenDepth, g_ScreenNear);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize Direct3D", L"Error", MB_OK);
 		return false;
@@ -49,10 +50,10 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	// Initialize stationary camera to view full screen quads
 	m_ScreenDisplayCamera->Update();
 
-	/// Screen Render Texture
+	/// Screen Render
 	// Create and initialize the screen render texture
 	m_ScreenRenderTexture = new RenderTexture();
-	result = m_ScreenRenderTexture->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), screenWidth, screenHeight, gScreenNear, gScreenDepth, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	result = m_ScreenRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), screenWidth, screenHeight, g_ScreenNear, g_ScreenDepth, DXGI_FORMAT_R32G32B32A32_FLOAT);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize screen render texture.", L"Error", MB_OK);
 		return false;
@@ -60,7 +61,7 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 
 	// Create and initialize the screen display quad
 	m_ScreenDisplayQuad = new QuadModel();
-	result = m_ScreenDisplayQuad->Initialize(m_Direct3D->GetDevice(), screenWidth / 2.0f, screenHeight / 2.0f);
+	result = m_ScreenDisplayQuad->Initialize(m_D3DInstance->GetDevice(), screenWidth / 2.0f, screenHeight / 2.0f);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize screen quad.", L"Error", MB_OK);
 		return false;
@@ -68,15 +69,15 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 
 	// Create and initialize the debug display of shadow map
 	m_DebugDisplayQuad = new QuadModel();
-	result = m_DebugDisplayQuad->Initialize(m_Direct3D->GetDevice(), screenHeight / 6.0f, screenHeight / 6.0f);
+	result = m_DebugDisplayQuad->Initialize(m_D3DInstance->GetDevice(), screenHeight / 6.0f, screenHeight / 6.0f);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize debug quad.", L"Error", MB_OK);
 		return false;
 	}
 
-	/// 2D Rendering
+	/// Screen shaders
 	m_PostProcessShader = new TextureShader();
-	result = m_PostProcessShader->Initialize(m_Direct3D->GetDevice(), hwnd, true /*isPostProcessShader*/);
+	result = m_PostProcessShader->Initialize(m_D3DInstance->GetDevice(), hwnd, true /*isPostProcessShader*/);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize the texture shader object.", L"Error", MB_OK);
 		return false;
@@ -84,9 +85,17 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 
 	// Shader for depth debug quad
 	m_DebugDepthShader = new TextureShader();
-	result = m_DebugDepthShader->Initialize(m_Direct3D->GetDevice(), hwnd, false /*isPostProcessShader*/);
+	result = m_DebugDepthShader->Initialize(m_D3DInstance->GetDevice(), hwnd, false /*isPostProcessShader*/);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize the depth shader object.", L"Error", MB_OK);
+		return false;
+	}
+
+	// Bloom post process effect
+	m_BloomEffect = new Bloom();
+	if(m_BloomEffect->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), hwnd,
+		m_ScreenRenderTexture, m_PostProcessShader->GetVertexShader())) {
+		MessageBox(hwnd, L"Could initialize bloom post processing.", L"Error", MB_OK);
 		return false;
 	}
 
@@ -105,23 +114,27 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	XMMATRIX screenCameraViewMatrix{};
 	m_ScreenDisplayCamera->GetViewMatrix(screenCameraViewMatrix);
 	XMMATRIX screenOrthoMatrix {};
-	m_Direct3D->GetOrthoMatrix(screenOrthoMatrix);
+	m_D3DInstance->GetOrthoMatrix(screenOrthoMatrix);
 
 	m_DemoScene = new Scene();
-	m_DemoScene->InitializeDemoScene(m_Direct3D, hwnd, screenCameraViewMatrix, m_ScreenDisplayQuad, gShadowMapWidth, gShadowMapNear, gShadowMapDepth);
+	if(m_DemoScene->InitializeDemoScene(m_D3DInstance, hwnd, screenCameraViewMatrix, m_ScreenDisplayQuad, g_ShadowMapWidth, g_ShadowMapNear, g_ShadowMapDepth)) {
+		MessageBox(hwnd, L"Could not load scene.", L"Error", MB_OK);
+		return false;
+	}
 
 	/// Timer
 	// Create and initialize the timer object.
 	m_Timer = new Timer();
 	result = m_Timer->Initialize();
 	if(!result) {
+		MessageBox(hwnd, L"Could not initialize timer.", L"Error", MB_OK);
 		return false;
 	}
 
 	/// Text
 	// Create and initialize the font shader object.
 	m_FontShader = new FontShader();
-	result = m_FontShader->Initialize(m_Direct3D->GetDevice(), hwnd);
+	result = m_FontShader->Initialize(m_D3DInstance->GetDevice(), hwnd);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize the font shader object.", L"Error", MB_OK);
 		return false;
@@ -129,7 +142,7 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 
 	// Create and initialize the font object.
 	m_Font = new Font();
-	result = m_Font->Initialize(m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(), 0);
+	result = m_Font->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), 0);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize the font object.", L"Error", MB_OK);
 		return false;
@@ -145,9 +158,8 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 
 	// Create and initialize the text object for the fps string.
 	m_FpsString = new Text();
-
 	result = m_FpsString->Initialize(
-		m_Direct3D->GetDevice(), m_Direct3D->GetDeviceContext(),
+		m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(),
 		screenWidth, screenHeight, 32,
 		m_Font, fpsString, 10, 10,
 		0.0f, 1.0f, 0.0f);
@@ -265,7 +277,7 @@ bool Application::UpdateFpsDisplay() {
 	}
 
 	// Update the sentence vertex buffer with the new string information.
-	bool result = m_FpsString->UpdateText(m_Direct3D->GetDeviceContext(), m_Font, finalString, 10, 10, red, green, blue);
+	bool result = m_FpsString->UpdateText(m_D3DInstance->GetDeviceContext(), m_Font, finalString, 10, 10, red, green, blue);
 	if(!result) {
 		return false;
 	}
@@ -282,7 +294,7 @@ bool Application::RenderSceneToScreenTexture() {
 	m_ScreenRenderTexture->GetProjectionMatrix(projectionMatrix);
 
 	if(mb_IsWireFrameRender) {
-		m_Direct3D->SetToWireBackCullRasterState();
+		m_D3DInstance->SetToWireBackCullRasterState();
 	}
 
 	m_DemoScene->RenderScene(projectionMatrix, m_Time);
@@ -292,69 +304,65 @@ bool Application::RenderSceneToScreenTexture() {
 
 bool Application::RenderToBackBuffer() {
 	// Reset to the original back buffer and viewport
-	m_Direct3D->SetToBackBufferRenderTarget();
-	m_Direct3D->ResetViewport();
+	m_D3DInstance->SetToBackBufferRenderTarget();
+	m_D3DInstance->ResetViewport();
 
 	// Clear the buffers to begin the scene.
-	m_Direct3D->BeginScene(0.0f, 0.0f, 0.0f, 1.0f);
+	m_D3DInstance->BeginScene(0.0f, 0.0f, 0.0f, 1.0f);
 
 	// Get the world, view, and projection matrices from the camera and d3d objects.
 	XMMATRIX worldMatrix {}, viewMatrix {}, projectionMatrix {}, orthoMatrix {};
-	m_Direct3D->GetWorldMatrix(worldMatrix);
+	m_D3DInstance->GetWorldMatrix(worldMatrix);
 	m_ScreenDisplayCamera->GetViewMatrix(viewMatrix);
 	//m_direct3D->GetProjectionMatrix(projectionMatrix);
-	m_Direct3D->GetOrthoMatrix(orthoMatrix);
+	m_D3DInstance->GetOrthoMatrix(orthoMatrix);
 
 	/// 2D Rendering
 	// Turn off the Z buffer to begin all 2D rendering.
-	m_Direct3D->TurnZBufferOff();
-	m_Direct3D->EnableAlphaBlending();
+	m_D3DInstance->TurnZBufferOff();
+	m_D3DInstance->EnableAlphaBlending();
 
 	// Render the display plane using the texture shader and the render texture resource.
-	m_ScreenDisplayQuad->Render(m_Direct3D->GetDeviceContext());
-	if(!m_PostProcessShader->Render(m_Direct3D->GetDeviceContext(), m_ScreenDisplayQuad->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_ScreenRenderTexture->GetTextureSRV())) {
+	m_ScreenDisplayQuad->Render(m_D3DInstance->GetDeviceContext());
+	if(!m_PostProcessShader->Render(m_D3DInstance->GetDeviceContext(), m_ScreenDisplayQuad->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_ScreenRenderTexture->GetTextureSRV())) {
 		return false;
 	}
 
 	/// DEBUG textures (UI) //
 	// Depth Debug Quad
 	if(mb_RenderDebugQuad) {
-		m_DebugDisplayQuad->Render(m_Direct3D->GetDeviceContext());
+		m_DebugDisplayQuad->Render(m_D3DInstance->GetDeviceContext());
 		float depthQuadPosX = -m_ScreenWidth / 2.0f + m_ScreenHeight / 6.0f;
 		float depthQuadPosY = -m_ScreenHeight / 2.0f + m_ScreenHeight / 6.0f;
-		if(!m_DebugDepthShader->Render(m_Direct3D->GetDeviceContext(), m_DebugDisplayQuad->GetIndexCount(), XMMatrixTranslation(depthQuadPosX, depthQuadPosY, 0), viewMatrix, orthoMatrix, m_DemoScene->GetDirectionalShadowMapRenderTexture()->GetTextureSRV())) {
+
+		//if(!m_DebugDepthShader->Render(m_D3DInstance->GetDeviceContext(), m_DebugDisplayQuad->GetIndexCount(), XMMatrixTranslation(depthQuadPosX, depthQuadPosY, 0), viewMatrix, orthoMatrix, m_DemoScene->GetDirectionalShadowMapRenderTexture()->GetTextureSRV())) {
+		//	return false;
+		//}
+
+		if(!m_BloomEffect->Render(m_D3DInstance->GetDeviceContext(), m_DebugDisplayQuad->GetIndexCount(), XMMatrixTranslation(depthQuadPosX, depthQuadPosY, 0), viewMatrix, orthoMatrix, m_DemoScene->GetDirectionalShadowMapRenderTexture()->GetTextureSRV())) {
 			return false;
 		}
 	}
 
 	/// DEBUG Text (UI)
 	if(mb_ShowScreenFPS) {
-		m_FpsString->Render(m_Direct3D->GetDeviceContext());
-		if(!m_FontShader->Render(m_Direct3D->GetDeviceContext(), m_FpsString->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix,
+		m_FpsString->Render(m_D3DInstance->GetDeviceContext());
+		if(!m_FontShader->Render(m_D3DInstance->GetDeviceContext(), m_FpsString->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix,
 			m_Font->GetTexture(), m_FpsString->GetPixelColor())) {
 			return false;
 		}
 	}
 
-	// Render the mouse text strings using the font shader.
-	//for(size_t i = 0; i < 3; i++) {
-	//	m_MouseTexts[i].Render(m_Direct3D->GetDeviceContext());
-	//	if(!m_FontShader->Render(m_Direct3D->GetDeviceContext(), m_MouseTexts[i].GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix,
-	//		m_Font->GetTexture(), m_MouseTexts[i].GetPixelColor())) {
-	//		return false;
-	//	}
-	//}
-
 	// Turn the Z buffer back on now that all 2D rendering has completed.
-	m_Direct3D->TurnZBufferOn();
-	m_Direct3D->DisableAlphaBlending();
+	m_D3DInstance->TurnZBufferOn();
+	m_D3DInstance->DisableAlphaBlending();
 
 	/// Render IMGUI
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 	// Present the rendered scene to the screen.
-	m_Direct3D->EndScene();
+	m_D3DInstance->EndScene();
 	return true;
 }
 
@@ -363,15 +371,6 @@ void Application::Shutdown() {
 		m_DemoScene->Shutdown();
 		delete m_DemoScene;
 		m_DemoScene = nullptr;
-	}
-
-	if(m_MouseTexts) {
-		m_MouseTexts[0].Shutdown();
-		m_MouseTexts[1].Shutdown();
-		m_MouseTexts[2].Shutdown();
-
-		delete[] m_MouseTexts;
-		m_MouseTexts = nullptr;
 	}
 
 	if(m_ScreenDisplayQuad) {
@@ -452,10 +451,10 @@ void Application::Shutdown() {
 	}
 
 	// Release the Direct3D object.
-	if(m_Direct3D) {
-		m_Direct3D->Shutdown();
-		delete m_Direct3D;
-		m_Direct3D = nullptr;
+	if(m_D3DInstance) {
+		m_D3DInstance->Shutdown();
+		delete m_D3DInstance;
+		m_D3DInstance = nullptr;
 	}
 }
 

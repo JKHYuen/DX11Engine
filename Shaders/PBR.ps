@@ -193,8 +193,6 @@ float4 PBRPixelShader(PixelInputType i) : SV_TARGET {
     //////////////////////////
     if(parallaxHeightScale != 0) {
         // offset texture coordinates with Parallax Mapping
-        //float3 tangentViewDir = normalize(i.tangentCameraPosition - i.tangentFragPosition);
-        //i.uv = ParallaxMapping(i.uv, tangentViewDir);
         i.uv = ParallaxMapping(i.uv, normalize(i.tangentViewDirection));
     }
 

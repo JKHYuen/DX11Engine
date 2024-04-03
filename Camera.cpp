@@ -28,7 +28,7 @@ void Camera::Update() {
 	XMVECTOR upVector = XMLoadFloat3(&up);
 
 	// Default lookat direction
-	XMFLOAT3 lookAt {0.0f, 0.0f, 1.0f};
+	static XMFLOAT3 lookAt {0.0f, 0.0f, 1.0f};
 	XMVECTOR lookAtVector = XMLoadFloat3(&lookAt);
 
 	// Setup the position of the camera in the world

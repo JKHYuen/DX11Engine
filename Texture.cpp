@@ -96,7 +96,105 @@ bool Texture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContex
 	return true;
 }
 
-// NOTE: currentlly unused, can be used to load 6 textures on disk into a cubemap srv
+bool Texture::AsyncInitialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::string& filePath, DXGI_FORMAT format, int mipLevels, std::mutex deviceContextMutex) {
+	bool b_GenerateMips = mipLevels == 0 || mipLevels > 1;
+
+	/// Load texture from disk
+	/// NOTE: use rastertek loader if tga file, else, stb_image; because rastertek function seems to be significantly faster
+	std::string fileTypeName {filePath, filePath.length() - 3, 3};
+	if(fileTypeName == "tga") {
+		m_IsSTBLoad = false;
+		// loads data to m_UCharTexData, m_Width and m_Height
+		bool result = LoadTarga32Bit(filePath.c_str(), &m_TempUCharTexData, m_Width, m_Height);
+		if(!result) {
+			return false;
+		}
+	}
+	else if(fileTypeName == "hdr") {
+		m_IsSTBLoad = true;
+		int nrComponents;
+		m_TempFloatTexData = stbi_loadf(filePath.c_str(), &m_Width, &m_Height, &nrComponents, 4);
+		if(!m_TempFloatTexData) {
+			return false;
+		}
+	}
+	else {
+		m_IsSTBLoad = true;
+		int nrComponents;
+		m_TempUCharTexData = stbi_load(filePath.c_str(), &m_Width, &m_Height, &nrComponents, 4);
+		if(!m_TempUCharTexData) {
+			return false;
+		}
+	}
+
+	// Setup the description of the texture.
+	D3D11_TEXTURE2D_DESC textureDesc {};
+	textureDesc.Height = m_Height;
+	textureDesc.Width = m_Width;
+	textureDesc.ArraySize = 1;
+	textureDesc.MipLevels = mipLevels;
+	textureDesc.Format = format;
+	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+	textureDesc.MiscFlags = 0;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+	textureDesc.CPUAccessFlags = 0;
+
+	if(b_GenerateMips) {
+		textureDesc.MiscFlags |= D3D11_RESOURCE_MISC_GENERATE_MIPS;
+	}
+
+	// Create the empty texture.
+	HRESULT hResult = device->CreateTexture2D(&textureDesc, NULL, &m_Texture);
+	if(FAILED(hResult)) {
+		return false;
+	}
+
+	{
+		std::lock_guard<std::mutex> lock {deviceContextMutex};
+		// uchar texture load and clean up
+		if(m_TempUCharTexData) {
+			deviceContext->UpdateSubresource(m_Texture, 0, NULL, m_TempUCharTexData, m_Width * 4 * sizeof(unsigned char), 0);
+			if(m_IsSTBLoad) {
+				stbi_image_free(m_TempUCharTexData);
+			}
+			else {
+				delete[] m_TempUCharTexData;
+			}
+			m_TempUCharTexData = nullptr;
+		}
+		// float texture load
+		else if(m_TempFloatTexData) {
+			deviceContext->UpdateSubresource(m_Texture, 0, NULL, m_TempFloatTexData, m_Width * 4 * sizeof(float), 0);
+			stbi_image_free(m_TempFloatTexData);
+			m_TempFloatTexData = nullptr;
+		}
+	}
+
+
+	/// Setup the shader resource view description.
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc {};
+	srvDesc.Format = format;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = -1;
+
+	// Create the shader resource view for the texture.
+	hResult = device->CreateShaderResourceView(m_Texture, &srvDesc, &m_TextureView);
+	if(FAILED(hResult)) {
+		return false;
+	}
+
+	if(b_GenerateMips) {
+		std::lock_guard<std::mutex> lock {deviceContextMutex};
+		deviceContext->GenerateMips(m_TextureView);
+	}
+
+	return true;
+}
+
+// NOTE: currently unused, can be used to load 6 textures on disk into a cubemap srv
 bool Texture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, const std::array<ID3D11Texture2D*, 6>& sourceHDRTexArray) {
 	D3D11_TEXTURE2D_DESC texElementDesc;
 	sourceHDRTexArray[0]->GetDesc(&texElementDesc);
