@@ -92,12 +92,12 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	}
 
 	// Bloom post process effect
-	m_BloomEffect = new Bloom();
-	if(m_BloomEffect->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), hwnd,
-		m_ScreenRenderTexture, m_PostProcessShader->GetVertexShader())) {
-		MessageBox(hwnd, L"Could initialize bloom post processing.", L"Error", MB_OK);
-		return false;
-	}
+	//m_BloomEffect = new Bloom();
+	//if(m_BloomEffect->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), hwnd,
+	//	m_ScreenRenderTexture, m_PostProcessShader->GetVertexShader())) {
+	//	MessageBox(hwnd, L"Could initialize bloom post processing.", L"Error", MB_OK);
+	//	return false;
+	//}
 
 	// Set the sprite info file we will be using.
 	//strcpy_s(spriteFilename, "../DX11Engine/data/sprite_data_01.txt");
@@ -117,7 +117,8 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	m_D3DInstance->GetOrthoMatrix(screenOrthoMatrix);
 
 	m_DemoScene = new Scene();
-	if(m_DemoScene->InitializeDemoScene(m_D3DInstance, hwnd, screenCameraViewMatrix, m_ScreenDisplayQuad, g_ShadowMapWidth, g_ShadowMapNear, g_ShadowMapDepth)) {
+	result = m_DemoScene->InitializeDemoScene(m_D3DInstance, hwnd, screenCameraViewMatrix, m_ScreenDisplayQuad, g_ShadowMapWidth, g_ShadowMapNear, g_ShadowMapDepth);
+	if(!result) {
 		MessageBox(hwnd, L"Could not load scene.", L"Error", MB_OK);
 		return false;
 	}

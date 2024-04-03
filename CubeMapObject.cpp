@@ -488,6 +488,10 @@ bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatr
 	return true;
 }
 
+ID3D11ShaderResourceView* CubeMapObject::GetIrradianceMapSRV() const { return m_IrradianceCubeMapTex->GetTextureSRV(); }
+ID3D11ShaderResourceView* CubeMapObject::GetPrefilteredMapSRV() const { return m_PrefilteredCubeMapTex->GetTextureSRV(); }
+ID3D11ShaderResourceView* CubeMapObject::GetPrecomputedBRDFSRV() const { return m_PrecomputedBRDFTex->GetTextureSRV(); }
+
 void CubeMapObject::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR* shaderFilename) {
 	char* compileErrors;
 	unsigned long long bufferSize, i;
