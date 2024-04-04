@@ -29,15 +29,13 @@ public:
 	Scene(const Texture& other) {}
 	~Scene() {}
 
-	bool InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ, RenderTexture* screenRenderTexture);
+	bool InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ, RenderTexture* screenRenderTexture, TextureShader* passThroughShaderInstance);
 	void Shutdown();
 	
-	// Render to scene quad
+	// Render objects to scene quad
 	bool RenderScene(XMMATRIX projectionMatrix, float time);
-	// Render scene
+	// Render final output with post processing
 	bool RenderPostProcess(int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX orthoMatrix, ID3D11ShaderResourceView* textureSRV);
-	bool RenderPostProcess_Debug(int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX orthoMatrix, ID3D11ShaderResourceView* textureSRV);
-
 	bool RenderDirectionalLightSceneDepth(float time);
 	
 	void UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS);
@@ -45,6 +43,7 @@ public:
 
 	RenderTexture* GetDirectionalShadowMapRenderTexture() const { return m_DirectionalShadowMapRenderTexture; }
 	
+	RenderTexture* GetDebugBloomOutput() const;
 
 private:
 	bool LoadPBRTextureResource(const std::string& textureFileName);

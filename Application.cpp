@@ -7,7 +7,6 @@
 #include "FontShader.h"
 
 #include "RenderTexture.h"
-#include "Bloom.h"
 #include "QuadModel.h"
 #include "Model.h"
 #include "Texture.h"
@@ -60,6 +59,7 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	}
 
 	// Create and initialize the screen display quad
+	// NOTE: not sure why we need to divide dimensions by 2.0f here
 	m_ScreenDisplayQuad = new QuadModel();
 	result = m_ScreenDisplayQuad->Initialize(m_D3DInstance->GetDevice(), screenWidth / 2.0f, screenHeight / 2.0f);
 	if(!result) {
@@ -68,6 +68,7 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	}
 
 	// Create and initialize the debug displays
+	// NOTE: unit quad can be reused with scaling instead of multiple quads
 	m_DebugDisplayQuad1 = new QuadModel();
 	result = m_DebugDisplayQuad1->Initialize(m_D3DInstance->GetDevice(), screenHeight / 6.0f, screenHeight / 6.0f);
 	if(!result) {
@@ -84,8 +85,8 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 
 	/// Screen shaders
 	// Shader for depth debug quad
-	m_DebugDepthShader = new TextureShader();
-	result = m_DebugDepthShader->Initialize(m_D3DInstance->GetDevice(), hwnd, false /*isPostProcessShader*/);
+	m_PassThroughShader = new TextureShader();
+	result = m_PassThroughShader->Initialize(m_D3DInstance->GetDevice(), hwnd, false /*isPostProcessShader*/);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize the depth shader object.", L"Error", MB_OK);
 		return false;
@@ -109,7 +110,7 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	m_D3DInstance->GetOrthoMatrix(screenOrthoMatrix);
 
 	m_DemoScene = new Scene();
-	result = m_DemoScene->InitializeDemoScene(m_D3DInstance, hwnd, screenCameraViewMatrix, m_ScreenDisplayQuad, g_ShadowMapWidth, g_ShadowMapNear, g_ShadowMapDepth, m_ScreenRenderTexture);
+	result = m_DemoScene->InitializeDemoScene(m_D3DInstance, hwnd, screenCameraViewMatrix, m_ScreenDisplayQuad, g_ShadowMapWidth, g_ShadowMapNear, g_ShadowMapDepth, m_ScreenRenderTexture, m_PassThroughShader);
 	if(!result) {
 		MessageBox(hwnd, L"Could not load scene.", L"Error", MB_OK);
 		return false;
@@ -280,7 +281,7 @@ bool Application::UpdateFpsDisplay() {
 
 bool Application::RenderSceneToScreenTexture() {
 	// Set the render target to be the render texture and clear it.
-	m_ScreenRenderTexture->SetRenderTarget();
+	m_ScreenRenderTexture->SetRenderTargetAndViewPort();
 	m_ScreenRenderTexture->ClearRenderTarget(0.01f, 0.01f, 0.015f, 1.0f);
 
 	XMMATRIX projectionMatrix {};
@@ -296,12 +297,9 @@ bool Application::RenderSceneToScreenTexture() {
 }
 
 bool Application::RenderToBackBuffer() {
-	// Reset to the original back buffer and viewport
-	m_D3DInstance->SetToBackBufferRenderTarget();
-	m_D3DInstance->ResetViewport();
-
-	// Clear the buffers to begin the scene.
-	m_D3DInstance->BeginScene(0.0f, 0.0f, 0.0f, 1.0f);
+	// Reset to back buffer render target
+	m_D3DInstance->SetToBackBufferRenderTargetAndViewPort();
+	m_D3DInstance->ClearBackBuffer(0.0f, 0.0f, 0.0f, 1.0f);
 
 	// Get the world, view, and projection matrices from the camera and d3d objects.
 	XMMATRIX worldMatrix {}, viewMatrix {}, projectionMatrix {}, orthoMatrix {};
@@ -315,9 +313,9 @@ bool Application::RenderToBackBuffer() {
 	m_D3DInstance->TurnZBufferOff();
 	m_D3DInstance->EnableAlphaBlending();
 
-	// Render the display plane using the texture shader and the render texture resource.
+	// Render the display plane using the post processing setup in scene
+	// TODO: move "SetToBackBufferRenderTargetAndViewPort()" into this function, i.e. do post processing (bloom) rendering then switch to back buffer
 	m_ScreenDisplayQuad->Render(m_D3DInstance->GetDeviceContext());
-
 	if(!m_DemoScene->RenderPostProcess(m_ScreenDisplayQuad->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_ScreenRenderTexture->GetTextureSRV())) {
 		return false;
 	}
@@ -326,21 +324,23 @@ bool Application::RenderToBackBuffer() {
 	// Depth Debug Quad
 	if(mb_RenderDebugQuad) {
 		m_DebugDisplayQuad1->Render(m_D3DInstance->GetDeviceContext());
+		// Bottom left
 		static XMMATRIX translationMatrix1 = XMMatrixTranslation(
 			-m_ScreenWidth / 2.0f + m_ScreenHeight / 6.0f,
 			-m_ScreenHeight / 2.0f + m_ScreenHeight / 6.0f, 0
 		);
-		if(!m_DebugDepthShader->Render(m_D3DInstance->GetDeviceContext(), m_DebugDisplayQuad1->GetIndexCount(), translationMatrix1, viewMatrix, orthoMatrix, m_DemoScene->GetDirectionalShadowMapRenderTexture()->GetTextureSRV())) {
+		if(!m_PassThroughShader->Render(m_D3DInstance->GetDeviceContext(), m_DebugDisplayQuad1->GetIndexCount(), translationMatrix1, viewMatrix, orthoMatrix, m_DemoScene->GetDirectionalShadowMapRenderTexture()->GetTextureSRV())) {
 			return false;
 		}
 
-
 		m_DebugDisplayQuad2->Render(m_D3DInstance->GetDeviceContext());
+		// Bottom right
 		static XMMATRIX translationMatrix2 = XMMatrixTranslation(
 			m_ScreenWidth / 2.0f - m_ScreenWidth / 6.0f,
 			-m_ScreenHeight / 2.0f + m_ScreenHeight / 6.0f, 0
 		);
-		if(!m_DemoScene->RenderPostProcess_Debug(m_DebugDisplayQuad2->GetIndexCount(), translationMatrix2, viewMatrix, orthoMatrix, m_ScreenRenderTexture->GetTextureSRV())) {
+
+		if(!m_PassThroughShader->Render(m_D3DInstance->GetDeviceContext(), m_DebugDisplayQuad2->GetIndexCount(), translationMatrix2, viewMatrix, orthoMatrix, m_DemoScene->GetDebugBloomOutput()->GetTextureSRV())) {
 			return false;
 		}
 	}
@@ -363,7 +363,7 @@ bool Application::RenderToBackBuffer() {
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 	// Present the rendered scene to the screen.
-	m_D3DInstance->EndScene();
+	m_D3DInstance->SwapPresent();
 	return true;
 }
 
@@ -439,10 +439,10 @@ void Application::Shutdown() {
 	//	m_sprite = nullptr;
 	//}
 
-	if(m_DebugDepthShader) {
-		m_DebugDepthShader->Shutdown();
-		delete m_DebugDepthShader;
-		m_DebugDepthShader = nullptr;
+	if(m_PassThroughShader) {
+		m_PassThroughShader->Shutdown();
+		delete m_PassThroughShader;
+		m_PassThroughShader = nullptr;
 	}
 
 	if(m_ScreenDisplayCamera) {

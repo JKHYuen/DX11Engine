@@ -30,7 +30,7 @@ static const XMFLOAT3 kStartingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0
 
 static std::mutex s_DeviceContextMutex {};
 
-bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ, RenderTexture* screenRenderTexture) {
+bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ, RenderTexture* screenRenderTexture, TextureShader* passThroughShaderInstance) {
 	bool result;
 
 	m_D3DInstance = d3dInstance;
@@ -59,7 +59,7 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 
 	// Bloom post process effect
 	m_BloomEffect = new Bloom();
-	result = m_BloomEffect->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), hwnd, screenRenderTexture, m_PostProcessShader);
+	result = m_BloomEffect->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), hwnd, screenRenderTexture, m_PostProcessShader, passThroughShaderInstance);
 	if(!result) {
 		MessageBox(hwnd, L"Could initialize bloom post processing.", L"Error", MB_OK);
 		return false;
@@ -118,7 +118,6 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	f8.wait();
 #endif
 
-
 	// Temp scene system
 	struct GameObjectData {
 		std::string modelName {};
@@ -157,9 +156,6 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 		m_GameObjects[i]->SetDisplacementMapHeightScale(sceneObjects[i].vertexDisplacementMapScale);
 		m_GameObjects[i]->SetParallaxMapHeightScale(sceneObjects[i].parallaxMapHeightScale);
 	}
-
-
-
 
 	/// Lighting
 	// Create and initialize the shadow map texture
@@ -245,20 +241,19 @@ bool Scene::RenderPostProcess(int indexCount, XMMATRIX worldMatrix, XMMATRIX vie
 		return false;
 	}
 
-	return true;
-}
-
-bool Scene::RenderPostProcess_Debug(int indexCount, XMMATRIX translationMatrix, XMMATRIX viewMatrix, XMMATRIX orthoMatrix, ID3D11ShaderResourceView* textureSRV) {
-
-	if(!m_BloomEffect->Render(m_D3DInstance->GetDeviceContext(), indexCount, translationMatrix, viewMatrix, orthoMatrix, textureSRV)) {
+	// TEMP DEBUG
+	if(!m_BloomEffect->RenderEffect(m_D3DInstance, indexCount, worldMatrix, viewMatrix, orthoMatrix, textureSRV)) {
 		return false;
 	}
+
 	return true;
 }
+
+RenderTexture* Scene::GetDebugBloomOutput() const { return m_BloomEffect->GetDebugBloomOutput(); }
 
 bool Scene::RenderDirectionalLightSceneDepth(float time) {
 	// Set the render target to be the render texture and clear it.
-	m_DirectionalShadowMapRenderTexture->SetRenderTarget();
+	m_DirectionalShadowMapRenderTexture->SetRenderTargetAndViewPort();
 	m_DirectionalShadowMapRenderTexture->ClearRenderTarget(1.0f, 1.0f, 1.0f, 1.0f);
 
 	m_D3DInstance->SetToFrontCullRasterState();
@@ -274,8 +269,6 @@ bool Scene::RenderDirectionalLightSceneDepth(float time) {
 	return true;
 }
 
-
-
 bool Scene::LoadPBRTextureResource(const std::string& textureFileName) {
 	if(m_LoadedTextureResources.find(textureFileName) == m_LoadedTextureResources.end()) {
 		// Load models and materials to be used in scene
@@ -288,8 +281,6 @@ bool Scene::LoadPBRTextureResource(const std::string& textureFileName) {
 			filePathPrefix + "_ao.tga",
 			filePathPrefix + "_height.tga"
 		};
-
-		static std::vector<std::future<bool>> s_F(textureFileNames.size());
 
 		std::vector<Texture*> textureResources;
 		textureResources.reserve(textureFileNames.size());
@@ -392,9 +383,25 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		m_GameObjects[m_GameObjects.size() - 1]->SetMaterialTextures(b1 ? m_LoadedTextureResources["bog"] : m_LoadedTextureResources["dirt"]);
 	}
 
-	/// Bloom
+	/// Bloom Params
 	ImGui::SeparatorText("Bloom");
+	ImGui::Text("Intensity");
+	static float userBloomIntensity = 1.0f;
+	if(ImGui::DragFloat("##Intensity", &userBloomIntensity, 0.01f, 0.0f, 1000.0f, "%.2f", sliderFlags)) {
+		m_BloomEffect->SetIntensity(userBloomIntensity);
+	}
 
+	ImGui::Text("Threshold");
+	static float userBloomThreshold = 1.0f;
+	if(ImGui::DragFloat("##Thresh", &userBloomThreshold, 0.01f, 0.0f, 1000.0f, "%.2f", sliderFlags)) {
+		m_BloomEffect->SetThreshold(userBloomThreshold);
+	}
+
+	ImGui::Text("Soft Threshold");
+	static float userBloomSoftThreshold = 0.5f;
+	if(ImGui::DragFloat("##SoftThresh", &userBloomSoftThreshold, 0.01f, 0.0f, 1000.0f, "%.2f", sliderFlags)) {
+		m_BloomEffect->SetThreshold(userBloomSoftThreshold);
+	}
 
 	ImGui::End();
 

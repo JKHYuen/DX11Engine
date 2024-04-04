@@ -12,8 +12,8 @@ public:
     bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int textureWidth, int textureHeight, float nearZ, float farZ, DXGI_FORMAT textureFormat, float perspectiveFOV = XM_PIDIV4, int mipLevels = 1, int texArraySize = 1, bool b_IsCubeMap = false);
     void Shutdown();
 
-    void SetRenderTarget();
-    bool SetTextureArrayRenderTarget(ID3D11Device* device, int targetArrayIndex, int targetMipSlice, int targetWidth, int targetHeight, int arraySize = -1);
+    void SetRenderTargetAndViewPort();
+    bool SetTextureArrayRenderTargetAndViewport(ID3D11Device* device, int targetArrayIndex, int targetMipSlice, int targetWidth, int targetHeight, int arraySize = -1);
     void ClearRenderTarget(float red, float green, float blue, float alpha);
 
     ID3D11ShaderResourceView* GetTextureSRV() const { return m_ShaderResourceView; }
@@ -24,13 +24,6 @@ public:
     int GetTextureHeight() const { return m_TextureHeight; };
     float GetNearZ() const { return m_NearZ; };
     float GetFarZ() const { return m_FarZ; };
-
-    void EnableAlphaBlending();
-    void DisableAlphaBlending();
-    void EnableAdditiveBlending();
-
-    void TurnZBufferOn();
-    void TurnZBufferOff();
 
 private:
     ID3D11DeviceContext* m_DeviceContext {};
@@ -50,10 +43,4 @@ private:
     XMMATRIX m_ProjectionMatrix {};
     XMMATRIX m_OrthoMatrix {};
 
-    ID3D11DepthStencilState* m_DepthStencilState {};
-    ID3D11DepthStencilState* m_DepthDisabledStencilState {};
-
-    ID3D11BlendState* m_AlphaEnableBlendingState {};
-    ID3D11BlendState* m_AlphaDisableBlendingState {};
-    ID3D11BlendState* m_AdditiveBlendingState {};
 };

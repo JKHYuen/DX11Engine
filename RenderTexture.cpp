@@ -4,7 +4,7 @@ RenderTexture::RenderTexture() {}
 RenderTexture::RenderTexture(const RenderTexture& other) {}
 RenderTexture::~RenderTexture() {}
 
-// TODO: make depth budder optional
+// TODO: make depth buffer optional
 bool RenderTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int textureWidth, int textureHeight, float nearZ, float farZ, DXGI_FORMAT textureFormat, float perspectiveFOV, int mipLevels, int texArraySize, bool b_IsCubeMap) {
     HRESULT result {};
 
@@ -135,76 +135,6 @@ bool RenderTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* device
         return false;
     }
 
-    /// DEPTH STENCILS
-    D3D11_DEPTH_STENCIL_DESC depthStencilDesc{};
-    ZeroMemory(&depthStencilDesc, sizeof(depthStencilDesc));
-
-    // Enabled depth stencil
-    depthStencilDesc.DepthEnable = true;
-    depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
-    depthStencilDesc.StencilEnable = true;
-    depthStencilDesc.StencilReadMask = 0xFF;
-    depthStencilDesc.StencilWriteMask = 0xFF;
-    depthStencilDesc.FrontFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-    depthStencilDesc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR;
-    depthStencilDesc.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-    depthStencilDesc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-    depthStencilDesc.BackFace.StencilFailOp = D3D11_STENCIL_OP_KEEP;
-    depthStencilDesc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_DECR;
-    depthStencilDesc.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
-    depthStencilDesc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
-
-    // Create the depth stencil state.
-    result = device->CreateDepthStencilState(&depthStencilDesc, &m_DepthStencilState);
-    if(FAILED(result)) {
-        return false;
-    }
-
-    // Disabled depth stencil
-    depthStencilDesc.DepthEnable = false;
-    result = device->CreateDepthStencilState(&depthStencilDesc, &m_DepthDisabledStencilState);
-    if(FAILED(result)) {
-        return false;
-    }
-
-    // Set the default depth stencil state.
-    m_DeviceContext->OMSetDepthStencilState(m_DepthStencilState, 1);
-
-    /// BLEND STATE
-    // Create an alpha enabled blend state description.
-    D3D11_BLEND_DESC blendStateDescription{};
-    ZeroMemory(&blendStateDescription, sizeof(D3D11_BLEND_DESC));
-
-    blendStateDescription.RenderTarget[0].BlendEnable = TRUE;
-    blendStateDescription.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
-    blendStateDescription.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-    blendStateDescription.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
-    blendStateDescription.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
-    blendStateDescription.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
-    blendStateDescription.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
-    blendStateDescription.RenderTarget[0].RenderTargetWriteMask = 0x0f;
-
-    // Create the blend state using the description.
-    result = device->CreateBlendState(&blendStateDescription, &m_AlphaEnableBlendingState);
-    if(FAILED(result)) {
-        return false;
-    }
-
-    blendStateDescription.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
-    result = device->CreateBlendState(&blendStateDescription, &m_AdditiveBlendingState);
-    if(FAILED(result)) {
-        return false;
-    }
-
-    // Modify the description to create an alpha disabled blend state description.
-    blendStateDescription.RenderTarget[0].BlendEnable = FALSE;
-    // Create the blend state using the description.
-    result = device->CreateBlendState(&blendStateDescription, &m_AlphaDisableBlendingState);
-    if(FAILED(result)) {
-        return false;
-    }
-
     /// Setup the viewport for rendering.
     m_Viewport.Width = (float)textureWidth;
     m_Viewport.Height = (float)textureHeight;
@@ -222,12 +152,12 @@ bool RenderTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* device
     return true;
 }
 
-void RenderTexture::SetRenderTarget() {
+void RenderTexture::SetRenderTargetAndViewPort() {
     m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
     m_DeviceContext->RSSetViewports(1, &m_Viewport);
 }
 
-bool RenderTexture::SetTextureArrayRenderTarget(ID3D11Device* device, int targetArrayIndex, int targetMipSlice, int targetWidth, int targetHeight, int arraySize) {
+bool RenderTexture::SetTextureArrayRenderTargetAndViewport(ID3D11Device* device, int targetArrayIndex, int targetMipSlice, int targetWidth, int targetHeight, int arraySize) {
 
     D3D11_TEXTURE2D_DESC texElementDesc;
     m_RenderTargetTexture->GetDesc(&texElementDesc);
@@ -262,7 +192,7 @@ bool RenderTexture::SetTextureArrayRenderTarget(ID3D11Device* device, int target
     m_Viewport.Width = (float)targetWidth;
     m_Viewport.Height = (float)targetHeight;
 
-    SetRenderTarget();
+    SetRenderTargetAndViewPort();
 
     return true;
 }
@@ -282,30 +212,6 @@ void RenderTexture::ClearRenderTarget(float red, float green, float blue, float 
     // Clear the depth buffer
     m_DeviceContext->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
-
-void RenderTexture::TurnZBufferOn() {
-    m_DeviceContext->OMSetDepthStencilState(m_DepthStencilState, 1);
-}
-
-void RenderTexture::TurnZBufferOff() {
-    m_DeviceContext->OMSetDepthStencilState(m_DepthDisabledStencilState, 1);
-}
-
-void RenderTexture::EnableAlphaBlending() {
-    static float blendFactor[4] {0.0f, 0.0f, 0.0f, 0.0f};
-    m_DeviceContext->OMSetBlendState(m_AlphaEnableBlendingState, blendFactor, 0xffffffff);
-}
-
-void RenderTexture::DisableAlphaBlending() {
-    static float blendFactor[4] {0.0f, 0.0f, 0.0f, 0.0f};
-    m_DeviceContext->OMSetBlendState(m_AlphaDisableBlendingState, blendFactor, 0xffffffff);
-}
-
-void RenderTexture::EnableAdditiveBlending() {
-    static float blendFactor[4] {0.0f, 0.0f, 0.0f, 0.0f};
-    m_DeviceContext->OMSetBlendState(m_AdditiveBlendingState, blendFactor, 0xffffffff);
-}
-
 
 void RenderTexture::Shutdown() {
     if(m_DepthStencilView) {

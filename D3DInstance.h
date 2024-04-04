@@ -13,8 +13,8 @@ public:
     bool Initialize(int, int, bool, HWND, bool, float, float);
     void Shutdown();
 
-    void BeginScene(float, float, float, float);
-    void EndScene();
+    void ClearBackBuffer(float, float, float, float);
+    void SwapPresent();
 
     ID3D11Device* GetDevice();
     ID3D11DeviceContext* GetDeviceContext();
@@ -25,7 +25,7 @@ public:
 
     void GetVideoCardInfo(char*, int&);
 
-    void SetToBackBufferRenderTarget();
+    void SetToBackBufferRenderTargetAndViewPort();
     void ResetViewport();
 
     void SetToWireBackCullRasterState();
@@ -37,6 +37,7 @@ public:
 
     void EnableAlphaBlending();
     void DisableAlphaBlending();
+    void EnableAdditiveBlending();
 
 private:
     bool m_Vsync_enabled {};
@@ -60,6 +61,7 @@ private:
     DirectX::XMMATRIX m_OrthoMatrix {};
     D3D11_VIEWPORT m_Viewport {};
 
-    ID3D11BlendState* m_AlphaEnableBlendingState {};
-    ID3D11BlendState* m_AlphaDisableBlendingState {};
+    ID3D11BlendState* m_EnableAlphaBlendingState {};
+    ID3D11BlendState* m_DisableAlphaBlendingState {};
+    ID3D11BlendState* m_EnableAdditiveBlendingState {};
 };

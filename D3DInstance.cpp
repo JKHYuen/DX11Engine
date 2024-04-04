@@ -264,7 +264,7 @@ bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND
 	}
 
 	// Bind the render target view and depth stencil buffer to the output render pipeline.
-	SetToBackBufferRenderTarget();
+	SetToBackBufferRenderTargetAndViewPort();
 
 	// Setup the raster description which will determine how and what polygons will be drawn.
 	rasterDesc.AntialiasedLineEnable = false;
@@ -350,10 +350,9 @@ bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND
 		return false;
 	}
 
-	// Clear the blend state description.
+	/// Craete Blend States
+	// Enable Alpha Blend
 	ZeroMemory(&blendStateDescription, sizeof(D3D11_BLEND_DESC));
-
-	// Create an alpha enabled blend state description.
 	blendStateDescription.RenderTarget[0].BlendEnable = TRUE;
 	blendStateDescription.RenderTarget[0].SrcBlend = D3D11_BLEND_ONE;
 	blendStateDescription.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
@@ -363,17 +362,22 @@ bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND
 	blendStateDescription.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
 	blendStateDescription.RenderTarget[0].RenderTargetWriteMask = 0x0f;
 
-	// Create the blend state using the description.
-	result = m_Device->CreateBlendState(&blendStateDescription, &m_AlphaEnableBlendingState);
+	result = m_Device->CreateBlendState(&blendStateDescription, &m_EnableAlphaBlendingState);
 	if(FAILED(result)) {
 		return false;
 	}
 
-	// Modify the description to create an alpha disabled blend state description.
-	blendStateDescription.RenderTarget[0].BlendEnable = FALSE;
+	// Enable Additive Blend
+	blendStateDescription.RenderTarget[0].DestBlend = D3D11_BLEND_ONE;
+	blendStateDescription.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+	result = m_Device->CreateBlendState(&blendStateDescription, &m_EnableAdditiveBlendingState);
+	if(FAILED(result)) {
+		return false;
+	}
 
-	// Create the blend state using the description.
-	result = m_Device->CreateBlendState(&blendStateDescription, &m_AlphaDisableBlendingState);
+	// Disable Blending
+	blendStateDescription.RenderTarget[0].BlendEnable = FALSE;
+	result = m_Device->CreateBlendState(&blendStateDescription, &m_DisableAlphaBlendingState);
 	if(FAILED(result)) {
 		return false;
 	}
@@ -381,7 +385,7 @@ bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND
 	return true;
 }
 
-void D3DInstance::BeginScene(float red, float green, float blue, float alpha) {
+void D3DInstance::ClearBackBuffer(float red, float green, float blue, float alpha) {
 	float color[4];
 
 	// Setup the color to clear the buffer to.
@@ -397,7 +401,7 @@ void D3DInstance::BeginScene(float red, float green, float blue, float alpha) {
 	m_DeviceContext->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 
-void D3DInstance::EndScene() {
+void D3DInstance::SwapPresent() {
 	// Present the back buffer to the screen since rendering is complete.
 	if(m_Vsync_enabled) {
 		// Lock to screen refresh rate.
@@ -436,9 +440,11 @@ void D3DInstance::GetVideoCardInfo(char* cardName, int& memory) {
 	memory = m_VideoCardMemory;
 }
 
-void D3DInstance::SetToBackBufferRenderTarget() {
+void D3DInstance::SetToBackBufferRenderTargetAndViewPort() {
 	// Bind the render target view and depth stencil buffer to the output render pipeline.
 	m_DeviceContext->OMSetRenderTargets(1, &m_RenderTargetView, m_DepthStencilView);
+	m_DeviceContext->RSSetViewports(1, &m_Viewport);
+
 }
 
 void D3DInstance::SetToWireBackCullRasterState() {
@@ -454,7 +460,6 @@ void D3DInstance::SetToFrontCullRasterState() {
 }
 
 void D3DInstance::ResetViewport() {
-	// Set the viewport.
 	m_DeviceContext->RSSetViewports(1, &m_Viewport);
 }
 
@@ -467,29 +472,15 @@ void D3DInstance::TurnZBufferOff() {
 }
 
 void D3DInstance::EnableAlphaBlending() {
-	float blendFactor[4];
-
-	// Setup the blend factor.
-	blendFactor[0] = 0.0f;
-	blendFactor[1] = 0.0f;
-	blendFactor[2] = 0.0f;
-	blendFactor[3] = 0.0f;
-
-	// Turn on the alpha blending.
-	m_DeviceContext->OMSetBlendState(m_AlphaEnableBlendingState, blendFactor, 0xffffffff);
+	m_DeviceContext->OMSetBlendState(m_EnableAlphaBlendingState, NULL, 0xffffffff);
 }
 
 void D3DInstance::DisableAlphaBlending() {
-	float blendFactor[4];
+	m_DeviceContext->OMSetBlendState(m_DisableAlphaBlendingState, NULL, 0xffffffff);
+}
 
-	// Setup the blend factor.
-	blendFactor[0] = 0.0f;
-	blendFactor[1] = 0.0f;
-	blendFactor[2] = 0.0f;
-	blendFactor[3] = 0.0f;
-
-	// Turn off the alpha blending.
-	m_DeviceContext->OMSetBlendState(m_AlphaDisableBlendingState, blendFactor, 0xffffffff);
+void D3DInstance::EnableAdditiveBlending() {
+	m_DeviceContext->OMSetBlendState(m_EnableAdditiveBlendingState, NULL, 0xffffffff);
 }
 
 void D3DInstance::Shutdown() {
@@ -498,14 +489,19 @@ void D3DInstance::Shutdown() {
 		m_SwapChain->SetFullscreenState(false, NULL);
 	}
 
-	if(m_AlphaEnableBlendingState) {
-		m_AlphaEnableBlendingState->Release();
-		m_AlphaEnableBlendingState = nullptr;
+	if(m_EnableAlphaBlendingState) {
+		m_EnableAlphaBlendingState->Release();
+		m_EnableAlphaBlendingState = nullptr;
 	}
 
-	if(m_AlphaDisableBlendingState) {
-		m_AlphaDisableBlendingState->Release();
-		m_AlphaDisableBlendingState = nullptr;
+	if(m_DisableAlphaBlendingState) {
+		m_DisableAlphaBlendingState->Release();
+		m_DisableAlphaBlendingState = nullptr;
+	}
+
+	if(m_EnableAdditiveBlendingState) {
+		m_EnableAdditiveBlendingState->Release();
+		m_EnableAdditiveBlendingState = nullptr;
 	}
 
 	if(m_DepthDisabledStencilState) {

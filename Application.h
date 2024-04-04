@@ -28,7 +28,6 @@ class TextureShader;
 class FontShader;
 class Sprite;
 class RenderTexture;
-class Bloom;
 class QuadModel;
 class Model;
 class Texture;
@@ -72,14 +71,13 @@ private:
 
 	// Screen Rendering
 	RenderTexture* m_ScreenRenderTexture {};
-	//Bloom* m_BloomEffect {};
 
 	QuadModel* m_ScreenDisplayQuad {};
 	QuadModel* m_DebugDisplayQuad1 {};
 	QuadModel* m_DebugDisplayQuad2 {};
 
-	//TextureShader* m_PostProcessShader {};
-	TextureShader* m_DebugDepthShader {};
+	// Shader that only renders texture with no effects
+	TextureShader* m_PassThroughShader {};
 
 	//SpriteClass* m_sprite {};
 

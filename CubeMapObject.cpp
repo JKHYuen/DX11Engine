@@ -144,7 +144,7 @@ bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::s
 	
 	// Render HDR texture to 6 cubemap textures using equirectangular coords
 	for(int i = 0; i < 6; i++) {
-		result = m_CubeMapTex->SetTextureArrayRenderTarget(device, i, 0, cubeFaceResolution, cubeFaceResolution, 1);
+		result = m_CubeMapTex->SetTextureArrayRenderTargetAndViewport(device, i, 0, cubeFaceResolution, cubeFaceResolution, 1);
 		if(!result) return false;
 		m_CubeMapTex->ClearRenderTarget(0.5f, 0.0f, 0.0f, 1.0f);
 
@@ -165,7 +165,7 @@ bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::s
 
 	// Capture 6 textures with convolution shader and build irradiance cubemap (diffuse IBL)
 	for(int i = 0; i < 6; i++) {
-		result = m_IrradianceCubeMapTex->SetTextureArrayRenderTarget(device, i, 0, irradianceMapResolution, irradianceMapResolution, 1);
+		result = m_IrradianceCubeMapTex->SetTextureArrayRenderTargetAndViewport(device, i, 0, irradianceMapResolution, irradianceMapResolution, 1);
 		if(!result) return false;
 		m_IrradianceCubeMapTex->ClearRenderTarget(0.5f, 0.0f, 0.0f, 1.0f);
 
@@ -184,7 +184,7 @@ bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::s
 	for(int mipSlice = 0; mipSlice < cubeMapMipLevels; mipSlice++) {
 		int currMipSize = (int)(fullPrefilterMapResolution * std::pow(0.5, mipSlice));
 		for(int i = 0; i < 6; i++) {
-			result = m_PrefilteredCubeMapTex->SetTextureArrayRenderTarget(device, i, mipSlice, currMipSize, currMipSize);
+			result = m_PrefilteredCubeMapTex->SetTextureArrayRenderTargetAndViewport(device, i, mipSlice, currMipSize, currMipSize);
 			if(!result) return false;
 			m_PrefilteredCubeMapTex->ClearRenderTarget(0.5f, 0.0f, 0.0f, 1.0f);
 
@@ -199,7 +199,7 @@ bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::s
 	/// Precompute BRDF (independent of environment maps, can be stored outside of class instance)
 	m_PrecomputedBRDFTex = new RenderTexture();
 	m_PrecomputedBRDFTex->Initialize(device, deviceContext, precomputedBRDFResolution, precomputedBRDFResolution, 0.1f, 10.0f, DXGI_FORMAT_R16G16_FLOAT);
-	m_PrecomputedBRDFTex->SetRenderTarget();
+	m_PrecomputedBRDFTex->SetRenderTargetAndViewPort();
 	m_PrecomputedBRDFTex->ClearRenderTarget(0.0f, 0.0f, 0.0f, 1.0f);
 	screenDisplayQuad->Render(deviceContext);
 	result = Render(deviceContext, screenDisplayViewMatrix, screenOrthoMatrix, kIntegrateBRDFRender);

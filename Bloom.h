@@ -8,6 +8,7 @@ using namespace DirectX;
 
 class RenderTexture;
 class TextureShader;
+class D3DInstance;
 
 // Implementation based on: https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/
 class Bloom {
@@ -16,10 +17,17 @@ public:
 	Bloom(const Bloom&) {}
 	~Bloom() {}
 
-	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader);
+	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader, TextureShader* simplePassThroughShaderInstance);
 	bool InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shaderName);
+	bool RenderEffect(D3DInstance* d3dInstance, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV);
 	bool Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV);
 	void Shutdown();
+
+	RenderTexture* GetDebugBloomOutput() const { return m_RenderTexures[0]; }
+
+	void SetThreshold(float threshold) { m_Threshold = threshold; }
+	void SetSoftThreshold(float softThreshold) { m_SoftThreshold = softThreshold; }
+	void SetIntensity(float intensity) { m_Intensity = intensity; }
 
 private:
 	struct MatrixBufferType {
@@ -48,14 +56,15 @@ private:
 	float m_Intensity {};
 	bool  m_UsePrefilter {};
 
-	ID3D11VertexShader* m_PostProcVertexShaderInstance {};
 	std::vector<RenderTexture*> m_RenderTexures {};
 
 	int m_CurrentMaxIteration {};
 
+	TextureShader*      m_PassThroughShaderInstance {};
 	ID3D11VertexShader* m_ScreenVertexShaderInstance {};
-	ID3D11PixelShader*  m_PixelShader {};
 	ID3D11InputLayout*  m_screenShaderLayoutInstance {};
+
+	ID3D11PixelShader*  m_PixelShader {};
 	ID3D11Buffer*       m_MatrixBuffer {};
 	ID3D11Buffer*       m_BloomParamBuffer {};
 	ID3D11SamplerState* m_SampleState {};

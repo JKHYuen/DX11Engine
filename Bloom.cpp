@@ -2,6 +2,7 @@
 
 #include "RenderTexture.h"
 #include "TextureShader.h"
+#include "D3DInstance.h"
 
 #include <d3dcompiler.h>
 #include <fstream>
@@ -9,16 +10,17 @@
 // default maximum number of blur iterations for bloom effect, m_CurrentMaxIteration is max of current bloom instance (depends on screen resolution)
 static const int k_DefaultMaxIterations = 16;
 
-// TODO: move post processing (tonemapping shader) from "Application" class to here, rename this class to "PostProcess"
-bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader) {
+// TODO: combine post processing (tonemapping shader) functionality from "Scene" with this class, rename this class to "PostProcess"
+bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader, TextureShader* passThroughShaderInstance) {
 	bool result;
 
 	m_Intensity = 1.0f;
 	m_Threshold = 1.0f;
 	m_SoftThreshold = 0.5f;
-	m_UsePrefilter = 1.0f;
+	m_UsePrefilter = true;
 	m_BoxSampleDelta = 1.0f;
 
+	m_PassThroughShaderInstance = passThroughShaderInstance;
 	m_ScreenVertexShaderInstance = screenRenderShader->GetVertexShader();
 	m_screenShaderLayoutInstance = screenRenderShader->GetShaderInputLayout();
 
@@ -29,7 +31,7 @@ bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext,
 	float farZ = screenTexture->GetFarZ();
 
 	m_CurrentMaxIteration = k_DefaultMaxIterations;
-	for(size_t i = 0; i < k_DefaultMaxIterations; i++) {
+	for(int i = 0; i < k_DefaultMaxIterations; i++) {
 		m_RenderTexures.push_back(new RenderTexture());
 		result = m_RenderTexures[i]->Initialize(device, deviceContext, width, height, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
 		if(!result) return false;
@@ -126,6 +128,29 @@ bool Bloom::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring pixel
 		return false;
 	}
 
+	return true;
+}
+
+bool Bloom::RenderEffect(D3DInstance* d3dInstance , int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV) {
+	// downsample
+	m_BoxSampleDelta = 1.0f;
+	m_UsePrefilter = true;
+	m_RenderTexures[3]->SetRenderTargetAndViewPort();
+	m_RenderTexures[3]->ClearRenderTarget(1.0f, 0.0f, 0.0f, 1.0f);
+	d3dInstance->DisableAlphaBlending();
+	Render(d3dInstance->GetDeviceContext(), indexCount, worldMatrix, viewMatrix, projectionMatrix, textureSRV);
+
+	// upsample
+	m_UsePrefilter = false;
+	m_BoxSampleDelta = 0.5f;
+	m_RenderTexures[0]->SetRenderTargetAndViewPort();
+	m_RenderTexures[0]->ClearRenderTarget(0.0f, 0.0f, 0.0f, 1.0f);
+	d3dInstance->EnableAdditiveBlending();
+	Render(d3dInstance->GetDeviceContext(), indexCount, worldMatrix, viewMatrix, projectionMatrix, m_RenderTexures[3]->GetTextureSRV());
+
+	// TEMP
+	d3dInstance->EnableAlphaBlending();
+	d3dInstance->SetToBackBufferRenderTargetAndViewPort();
 	return true;
 }
 
@@ -227,8 +252,19 @@ void Bloom::Shutdown() {
 		m_MatrixBuffer = nullptr;
 	}
 
+	if(m_BloomParamBuffer) {
+		m_BloomParamBuffer->Release();
+		m_BloomParamBuffer = nullptr;
+	}
+
 	if(m_PixelShader) {
 		m_PixelShader->Release();
 		m_PixelShader = nullptr;
+	}
+
+	for(RenderTexture* rt : m_RenderTexures) {
+		rt->Shutdown();
+		delete rt;
+		rt = nullptr;
 	}
 }
