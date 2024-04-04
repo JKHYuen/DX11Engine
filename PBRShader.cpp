@@ -82,13 +82,13 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     }
 
     // Create the vertex shader from the buffer.
-    result = device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, &m_vertexShader);
+    result = device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, &m_VertexShader);
     if(FAILED(result)) {
         return false;
     }
 
     // Create the pixel shader from the buffer.
-    result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_pixelShader);
+    result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_PixelShader);
     if(FAILED(result)) {
         return false;
     }
@@ -141,7 +141,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     // Create the vertex input layout.
     result =
         device->CreateInputLayout(
-            polygonLayout, numElements, vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_layout
+            polygonLayout, numElements, vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_Layout
         );
 
     if(FAILED(result)) {
@@ -170,7 +170,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     samplerDesc.MinLOD = 0;
     samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-    result = device->CreateSamplerState(&samplerDesc, &m_sampleStateWrap);
+    result = device->CreateSamplerState(&samplerDesc, &m_SampleStateWrap);
     if(FAILED(result)) {
         return false;
     }
@@ -185,7 +185,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     samplerDesc.BorderColor[2] = 1;
     samplerDesc.BorderColor[3] = 1;
     samplerDesc.MaxAnisotropy = 1;
-    result = device->CreateSamplerState(&samplerDesc, &m_sampleStateBorder);
+    result = device->CreateSamplerState(&samplerDesc, &m_SampleStateBorder);
     if(FAILED(result)) {
         return false;
     }
@@ -194,7 +194,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
     samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
     samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-    result = device->CreateSamplerState(&samplerDesc, &m_sampleStateClamp);
+    result = device->CreateSamplerState(&samplerDesc, &m_SampleStateClamp);
     if(FAILED(result)) {
         return false;
     }
@@ -208,7 +208,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     matrixBufferDesc.StructureByteStride = 0;
 
     // Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
-    result = device->CreateBuffer(&matrixBufferDesc, NULL, &m_matrixBuffer);
+    result = device->CreateBuffer(&matrixBufferDesc, NULL, &m_MatrixBuffer);
     if(FAILED(result)) {
         return false;
     }
@@ -250,7 +250,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     cameraBufferDesc.StructureByteStride = 0;
 
     // Create the camera constant buffer pointer so we can access the vertex shader constant buffer from within this class.
-    result = device->CreateBuffer(&cameraBufferDesc, NULL, &m_cameraBuffer);
+    result = device->CreateBuffer(&cameraBufferDesc, NULL, &m_CameraBuffer);
     if(FAILED(result)) {
         return false;
     }
@@ -265,7 +265,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     lightBufferDesc.StructureByteStride = 0;
 
     // Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
-    result = device->CreateBuffer(&lightBufferDesc, NULL, &m_lightBuffer);
+    result = device->CreateBuffer(&lightBufferDesc, NULL, &m_LightBuffer);
     if(FAILED(result)) {
         return false;
     }
@@ -278,7 +278,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     materialParamBuffer.StructureByteStride = 0;
 
     // Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
-    result = device->CreateBuffer(&materialParamBuffer, NULL, &m_materialParamBuffer);
+    result = device->CreateBuffer(&materialParamBuffer, NULL, &m_MaterialParamBuffer);
     if(FAILED(result)) {
         return false;
     }
@@ -318,7 +318,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     lightOrthoMatrix = XMMatrixTranspose(lightOrthoMatrix);
 
     // Lock the constant buffer so it can be written to.
-    result = deviceContext->Map(m_matrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    result = deviceContext->Map(m_MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
         return false;
     }
@@ -334,20 +334,20 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     matrixDataPtr->lightProjection = lightOrthoMatrix;
 
     // Unlock the constant buffer.
-    deviceContext->Unmap(m_matrixBuffer, 0);
+    deviceContext->Unmap(m_MatrixBuffer, 0);
 
     // Set the position of the constant buffer in the vertex shader.
     bufferNumber = 0;
 
     // Now set the constant buffer in the vertex shader with the updated values.
-    deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_matrixBuffer);
+    deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_MatrixBuffer);
 
     /////////////////////////////////
     /////// VS CAMERA CBUFFER ///////
     /////////////////////////////////
 
     // Lock the camera constant buffer so it can be written to.
-    result = deviceContext->Map(m_cameraBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    result = deviceContext->Map(m_CameraBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
         return false;
     }
@@ -360,13 +360,13 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     cameraDataPtr->displacementHeightScale = displacementHeightScale;
 
     // Unlock the camera constant buffer.
-    deviceContext->Unmap(m_cameraBuffer, 0);
+    deviceContext->Unmap(m_CameraBuffer, 0);
 
     // Set the position of the camera constant buffer in the vertex shader.
     bufferNumber = 1;
 
     // Now set the camera constant buffer in the vertex shader with the updated values.
-    deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_cameraBuffer);
+    deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_CameraBuffer);
 
     /////////////////////////////////
     ////// VS POINT LIGHT POS BUFFER //////
@@ -400,18 +400,17 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     ////////// TEXTURES //////////
     ////////////////////////////////
 
+    // Order of SRVs: 
+    // albedoMap, normalMap, metallicMap, roughnessMap, aoMap, heightMap
+
     // Bind pixel shader textures.
+
+    // for PBR shading
     ID3D11ShaderResourceView* pTempSRV;
     for(int i = 0; i < 6; i++) {
         pTempSRV = materialTextures[i]->GetTextureSRV();
         deviceContext->PSSetShaderResources(i, 1, &pTempSRV);
     }
-    //deviceContext->PSSetShaderResources(0, 1, &albedoMap);
-    //deviceContext->PSSetShaderResources(1, 1, &normalMap);
-    //deviceContext->PSSetShaderResources(2, 1, &metallicMap);
-    //deviceContext->PSSetShaderResources(3, 1, &roughnessMap);
-    //deviceContext->PSSetShaderResources(4, 1, &aoMap);
-    //deviceContext->PSSetShaderResources(5, 1, &heightMap);
 
     // for indirect lighting
     deviceContext->PSSetShaderResources(6, 1, &shadowMap);
@@ -420,7 +419,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     deviceContext->PSSetShaderResources(9, 1, &BRDFLut);
 
     // Bind vertex shader textures.
-    pTempSRV = materialTextures[5]->GetTextureSRV();
+    pTempSRV = materialTextures[5]->GetTextureSRV(); // height map
     deviceContext->VSSetShaderResources(0, 1, &pTempSRV);
 
     ////////////////////////////////
@@ -428,7 +427,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     ////////////////////////////////
 
     // Lock the light constant buffer so it can be written to.
-    result = deviceContext->Map(m_lightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    result = deviceContext->Map(m_LightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
         return false;
     }
@@ -442,18 +441,18 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     lightDataPtr->time = time;
 
     // Unlock the constant buffer.
-    deviceContext->Unmap(m_lightBuffer, 0);
+    deviceContext->Unmap(m_LightBuffer, 0);
 
     // Set the position of the light constant buffer in the pixel shader.
     bufferNumber = 0;
 
     // Finally set the light constant buffer in the pixel shader with the updated values.
-    deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightBuffer);
+    deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_LightBuffer);
 
     /////////////////////////////////
     /////// MATERIAL PARAM CBUFFER ///////
     /////////////////////////////////
-    result = deviceContext->Map(m_materialParamBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    result = deviceContext->Map(m_MaterialParamBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
         return false;
     }
@@ -464,10 +463,10 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     materialParamDataPtr->parallaxHeightScale = parallaxHeightScale;
     materialParamDataPtr->padding = {};
 
-    deviceContext->Unmap(m_materialParamBuffer, 0);
+    deviceContext->Unmap(m_MaterialParamBuffer, 0);
 
     bufferNumber = 1;
-    deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_materialParamBuffer);
+    deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_MaterialParamBuffer);
 
     /////////////////////////////////////////////
     /////// PS POINT LIGHT COLOR BUFFER ///////
@@ -537,18 +536,18 @@ void PBRShader::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WC
 
 void PBRShader::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount) {
     // Set the vertex input layout.
-    deviceContext->IASetInputLayout(m_layout);
+    deviceContext->IASetInputLayout(m_Layout);
 
     // Set the vertex and pixel shaders that will be used to render this triangle.
-    deviceContext->VSSetShader(m_vertexShader, NULL, 0);
-    deviceContext->PSSetShader(m_pixelShader, NULL, 0);
+    deviceContext->VSSetShader(m_VertexShader, NULL, 0);
+    deviceContext->PSSetShader(m_PixelShader, NULL, 0);
 
     // Set the sampler states
-    deviceContext->PSSetSamplers(0, 1, &m_sampleStateWrap);
-    deviceContext->PSSetSamplers(1, 1, &m_sampleStateBorder);
-    deviceContext->PSSetSamplers(2, 1, &m_sampleStateClamp);
+    deviceContext->PSSetSamplers(0, 1, &m_SampleStateWrap);
+    deviceContext->PSSetSamplers(1, 1, &m_SampleStateBorder);
+    deviceContext->PSSetSamplers(2, 1, &m_SampleStateClamp);
 
-    deviceContext->VSSetSamplers(0, 1, &m_sampleStateWrap);
+    deviceContext->VSSetSamplers(0, 1, &m_SampleStateWrap);
 
     // Render
     deviceContext->DrawIndexed(indexCount, 0, 0);
@@ -556,20 +555,20 @@ void PBRShader::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount)
 
 void PBRShader::Shutdown() {
     // Release the light constant buffer.
-    if(m_lightBuffer) {
-        m_lightBuffer->Release();
-        m_lightBuffer = nullptr;
+    if(m_LightBuffer) {
+        m_LightBuffer->Release();
+        m_LightBuffer = nullptr;
     }
 
     // Release the camera constant buffer.
-    if(m_cameraBuffer) {
-        m_cameraBuffer->Release();
-        m_cameraBuffer = nullptr;
+    if(m_CameraBuffer) {
+        m_CameraBuffer->Release();
+        m_CameraBuffer = nullptr;
     }
 
-    if(m_materialParamBuffer) {
-        m_materialParamBuffer->Release();
-        m_materialParamBuffer = nullptr;
+    if(m_MaterialParamBuffer) {
+        m_MaterialParamBuffer->Release();
+        m_MaterialParamBuffer = nullptr;
     }
 
     // Release the light constant buffers.
@@ -584,42 +583,42 @@ void PBRShader::Shutdown() {
     //}
 
     // Release the matrix constant buffer.
-    if(m_matrixBuffer) {
-        m_matrixBuffer->Release();
-        m_matrixBuffer = nullptr;
+    if(m_MatrixBuffer) {
+        m_MatrixBuffer->Release();
+        m_MatrixBuffer = nullptr;
     }
 
     // Release the sampler state.
-    if(m_sampleStateWrap) {
-        m_sampleStateWrap->Release();
-        m_sampleStateWrap = nullptr;
+    if(m_SampleStateWrap) {
+        m_SampleStateWrap->Release();
+        m_SampleStateWrap = nullptr;
     }
 
-    if(m_sampleStateBorder) {
-        m_sampleStateBorder->Release();
-        m_sampleStateBorder = nullptr;
+    if(m_SampleStateBorder) {
+        m_SampleStateBorder->Release();
+        m_SampleStateBorder = nullptr;
     }
 
-    if(m_sampleStateClamp) {
-        m_sampleStateClamp->Release();
-        m_sampleStateClamp = nullptr;
+    if(m_SampleStateClamp) {
+        m_SampleStateClamp->Release();
+        m_SampleStateClamp = nullptr;
     }
 
     // Release the layout.
-    if(m_layout) {
-        m_layout->Release();
-        m_layout = nullptr;
+    if(m_Layout) {
+        m_Layout->Release();
+        m_Layout = nullptr;
     }
 
     // Release the pixel shader.
-    if(m_pixelShader) {
-        m_pixelShader->Release();
-        m_pixelShader = nullptr;
+    if(m_PixelShader) {
+        m_PixelShader->Release();
+        m_PixelShader = nullptr;
     }
 
     // Release the vertex shader.
-    if(m_vertexShader) {
-        m_vertexShader->Release();
-        m_vertexShader = nullptr;
+    if(m_VertexShader) {
+        m_VertexShader->Release();
+        m_VertexShader = nullptr;
     }
 }

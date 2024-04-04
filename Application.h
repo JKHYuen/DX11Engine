@@ -60,6 +60,7 @@ private:
 
 	bool UpdateFpsDisplay();
 
+private:
 	int m_ScreenWidth {};
 	int m_ScreenHeight {};
 
@@ -71,12 +72,13 @@ private:
 
 	// Screen Rendering
 	RenderTexture* m_ScreenRenderTexture {};
-	Bloom* m_BloomEffect {};
+	//Bloom* m_BloomEffect {};
 
 	QuadModel* m_ScreenDisplayQuad {};
-	QuadModel* m_DebugDisplayQuad {};
+	QuadModel* m_DebugDisplayQuad1 {};
+	QuadModel* m_DebugDisplayQuad2 {};
 
-	TextureShader* m_PostProcessShader {};
+	//TextureShader* m_PostProcessShader {};
 	TextureShader* m_DebugDepthShader {};
 
 	//SpriteClass* m_sprite {};

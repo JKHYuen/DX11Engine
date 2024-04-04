@@ -19,13 +19,13 @@ SamplerState SamplerBorder : register(s1);
 SamplerState SamplerClamp  : register(s2);
 //SamplerComparisonState SamplerBorder : register(s1);
 
-cbuffer LightBuffer {
+cbuffer LightBuffer : register(b0) {
     float4 directionalLightColor;
     float3 lightDirection;
     float time;
 };
 
-cbuffer MaterialParamBuffer {
+cbuffer MaterialParamBuffer : register(b1) {
     // Note: can move this into uv : TEXCOORD0
     float uvScale;
     float parallaxHeightScale;

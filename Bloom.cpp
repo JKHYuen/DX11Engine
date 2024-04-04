@@ -1,29 +1,49 @@
 #include "Bloom.h"
 
 #include "RenderTexture.h"
+#include "TextureShader.h"
 
 #include <d3dcompiler.h>
 #include <fstream>
 
-// TODO: include tonemapping, rename class to "PostProcess"
-bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, ID3D11VertexShader* screenRenderVertexShader) {
-	m_VertexShader = screenRenderVertexShader;
+// default maximum number of blur iterations for bloom effect, m_CurrentMaxIteration is max of current bloom instance (depends on screen resolution)
+static const int k_DefaultMaxIterations = 16;
 
+// TODO: move post processing (tonemapping shader) from "Application" class to here, rename this class to "PostProcess"
+bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader) {
+	bool result;
+
+	m_Intensity = 1.0f;
+	m_Threshold = 1.0f;
+	m_SoftThreshold = 0.5f;
+	m_UsePrefilter = 1.0f;
+	m_BoxSampleDelta = 1.0f;
+
+	m_ScreenVertexShaderInstance = screenRenderShader->GetVertexShader();
+	m_screenShaderLayoutInstance = screenRenderShader->GetShaderInputLayout();
+
+	/// Generate render textures for down/up sampling
 	int width = screenTexture->GetTextureWidth();
 	int height = screenTexture->GetTextureHeight();
 	float nearZ = screenTexture->GetNearZ();
 	float farZ = screenTexture->GetFarZ();
-	for(size_t i = 0; i < m_RenderTexArray.size(); i++) {
-		m_RenderTexArray[i] = new RenderTexture();
-		if(m_RenderTexArray[i]->Initialize(device, deviceContext, width, height, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT)) {
-			return false;
-		}
+
+	m_CurrentMaxIteration = k_DefaultMaxIterations;
+	for(size_t i = 0; i < k_DefaultMaxIterations; i++) {
+		m_RenderTexures.push_back(new RenderTexture());
+		result = m_RenderTexures[i]->Initialize(device, deviceContext, width, height, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
+		if(!result) return false;
 
 		width /= 2;
 		height /= 2;
+
+		if(height < 2) {
+			m_CurrentMaxIteration = i + 1;
+			break;
+		}
 	}
 
-	bool result = InitializeShader(device, hwnd, L"BoxSample");
+	result = InitializeShader(device, hwnd, L"Bloom");
 	if(!result) return false;
 
 	return true;
@@ -32,20 +52,17 @@ bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext,
 bool Bloom::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring pixelShaderName) {
 	HRESULT result {};
 	ID3D10Blob* errorMessage {};
-	ID3D10Blob* vertexShaderBuffer {};
 	ID3D10Blob* pixelShaderBuffer {};
 
 	std::wstring psFileName = L"../DX11Engine/Shaders/" + pixelShaderName + L".ps";
 
-	// Compile the pixel shader code.
-	result = D3DCompileFromFile(psFileName.c_str(), NULL, NULL, "PixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
+	/// Compile the pixel shader
+	result = D3DCompileFromFile(psFileName.c_str(), NULL, NULL, "BloomPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&pixelShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
-		// If the shader failed to compile it should have writen something to the error message.
 		if(errorMessage) {
 			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)psFileName.c_str());
 		}
-		// If there was nothing in the error message then it simply could not find the file itself.
 		else {
 			MessageBox(hwnd, psFileName.c_str(), L"Missing Shader File", MB_OK);
 		}
@@ -53,50 +70,15 @@ bool Bloom::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring pixel
 		return false;
 	}
 
-	// Create the pixel shader from the buffer.
 	result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_PixelShader);
 	if(FAILED(result)) {
 		return false;
 	}
-
-	D3D11_INPUT_ELEMENT_DESC polygonLayout[2] {};
-	// Create the vertex input layout description.
-	// This setup needs to match the VertexType stucture in the ModelClass and in the shader.
-	polygonLayout[0].SemanticName = "POSITION";
-	polygonLayout[0].SemanticIndex = 0;
-	polygonLayout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	polygonLayout[0].InputSlot = 0;
-	polygonLayout[0].AlignedByteOffset = 0;
-	polygonLayout[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-	polygonLayout[0].InstanceDataStepRate = 0;
-
-	polygonLayout[1].SemanticName = "TEXCOORD";
-	polygonLayout[1].SemanticIndex = 0;
-	polygonLayout[1].Format = DXGI_FORMAT_R32G32_FLOAT;
-	polygonLayout[1].InputSlot = 0;
-	polygonLayout[1].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
-	polygonLayout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-	polygonLayout[1].InstanceDataStepRate = 0;
-
-	// Get a count of the elements in the layout.
-	unsigned int numElements = sizeof(polygonLayout) / sizeof(polygonLayout[0]);
-
-	// Create the vertex input layout.
-	result = device->CreateInputLayout(polygonLayout, numElements, vertexShaderBuffer->GetBufferPointer(),
-		vertexShaderBuffer->GetBufferSize(), &m_Layout);
-	if(FAILED(result)) {
-		return false;
-	}
-
-	// Release the vertex shader buffer and pixel shader buffer since they are no longer needed.
-	vertexShaderBuffer->Release();
-	vertexShaderBuffer = nullptr;
-
 	pixelShaderBuffer->Release();
 	pixelShaderBuffer = nullptr;
 
+	/// Setup matrix buffer
 	D3D11_BUFFER_DESC matrixBufferDesc {};
-	// Setup the description of the dynamic matrix constant buffer that is in the vertex shader.
 	matrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	matrixBufferDesc.ByteWidth = sizeof(MatrixBufferType);
 	matrixBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -104,14 +86,26 @@ bool Bloom::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring pixel
 	matrixBufferDesc.MiscFlags = 0;
 	matrixBufferDesc.StructureByteStride = 0;
 
-	// Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
+	D3D11_BUFFER_DESC shaderParamBufferDesc {};
 	result = device->CreateBuffer(&matrixBufferDesc, NULL, &m_MatrixBuffer);
 	if(FAILED(result)) {
 		return false;
 	}
 
+	shaderParamBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	shaderParamBufferDesc.ByteWidth = sizeof(BloomParamBufferType);
+	shaderParamBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	shaderParamBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	shaderParamBufferDesc.MiscFlags = 0;
+	shaderParamBufferDesc.StructureByteStride = 0;
+
+	result = device->CreateBuffer(&shaderParamBufferDesc, NULL, &m_BloomParamBuffer);
+	if(FAILED(result)) {
+		return false;
+	}
+
+	/// Create a texture sampler state 
 	D3D11_SAMPLER_DESC samplerDesc {};
-	// Create a texture sampler state description.
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
 	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
 	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -148,21 +142,41 @@ bool Bloom::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX 
 		return false;
 	}
 
-	MatrixBufferType* dataPtr = (MatrixBufferType*)mappedResource.pData;
+	MatrixBufferType* matrixDataPtr = (MatrixBufferType*)mappedResource.pData;
 
-	dataPtr->world = worldMatrix;
-	dataPtr->view = viewMatrix;
-	dataPtr->projection = projectionMatrix;
+	matrixDataPtr->world = worldMatrix;
+	matrixDataPtr->view = viewMatrix;
+	matrixDataPtr->projection = projectionMatrix;
 
 	deviceContext->Unmap(m_MatrixBuffer, 0);
 
 	deviceContext->VSSetConstantBuffers(0, 1, &m_MatrixBuffer);
+
+	/// Write to shader parameters buffer
+	/// TODO: only do this when params change
+	result = deviceContext->Map(m_BloomParamBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+	if(FAILED(result)) return false;
+
+	BloomParamBufferType* bloomDataPtr = (BloomParamBufferType*)mappedResource.pData;
+
+	float knee = m_Threshold * m_SoftThreshold;
+	XMFLOAT4 filter {m_Threshold, m_Threshold - knee, 2.0f * knee, 0.25f / (knee + 0.00001f)};
+	bloomDataPtr->filter         = filter;
+	bloomDataPtr->boxSampleDelta = m_BoxSampleDelta;
+	bloomDataPtr->intensity      = m_Intensity;
+	bloomDataPtr->usePrefilter   = m_UsePrefilter ? 1.0f : 0.0f;
+
+	deviceContext->Unmap(m_BloomParamBuffer, 0);
+	deviceContext->PSSetConstantBuffers(0, 1, &m_BloomParamBuffer);
+
+	/// Bind Textures
 	deviceContext->PSSetShaderResources(0, 1, &textureSRV);
 
 	/// Render the prepared buffers with the shader
-	deviceContext->IASetInputLayout(m_Layout);
+	deviceContext->IASetInputLayout(m_screenShaderLayoutInstance);
 
-	deviceContext->VSSetShader(m_VertexShader, NULL, 0);
+	deviceContext->VSSetShader(m_ScreenVertexShaderInstance, NULL, 0);
+
 	deviceContext->PSSetShader(m_PixelShader, NULL, 0);
 	deviceContext->PSSetSamplers(0, 1, &m_SampleState);
 
@@ -201,7 +215,7 @@ void Bloom::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR*
 	MessageBox(hwnd, L"Error compiling shader.  Check shader-error.txt for message.", shaderFilename, MB_OK);
 }
 
-
+// Note: do not cleanup vertex shader or input layout instances, they are passed in by screen shader
 void Bloom::Shutdown() {
 	if(m_SampleState) {
 		m_SampleState->Release();
@@ -213,18 +227,8 @@ void Bloom::Shutdown() {
 		m_MatrixBuffer = nullptr;
 	}
 
-	if(m_Layout) {
-		m_Layout->Release();
-		m_Layout = nullptr;
-	}
-
 	if(m_PixelShader) {
 		m_PixelShader->Release();
 		m_PixelShader = nullptr;
-	}
-
-	if(m_VertexShader) {
-		m_VertexShader->Release();
-		m_VertexShader = nullptr;
 	}
 }

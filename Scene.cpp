@@ -8,9 +8,11 @@
 #include "GameObject.h"
 #include "CubeMapObject.h"
 #include "RenderTexture.h"
+#include "TextureShader.h"
 #include "DirectionalLight.h"
 #include "QuadModel.h"
 #include "Camera.h"
+#include "Bloom.h"
 #include "Input.h"
 
 #include "imgui_impl_dx11.h"
@@ -28,7 +30,7 @@ static const XMFLOAT3 kStartingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0
 
 static std::mutex s_DeviceContextMutex {};
 
-bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ) {
+bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ, RenderTexture* screenRenderTexture) {
 	bool result;
 
 	m_D3DInstance = d3dInstance;
@@ -45,6 +47,21 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	result = m_PBRShaderInstance->Initialize(m_D3DInstance->GetDevice(), hwnd);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize the PBR shader object.", L"Error", MB_OK);
+		return false;
+	}
+
+	m_PostProcessShader = new TextureShader();
+	result = m_PostProcessShader->Initialize(m_D3DInstance->GetDevice(), hwnd, true /*isPostProcessShader*/);
+	if(!result) {
+		MessageBox(hwnd, L"Could not initialize the texture shader object.", L"Error", MB_OK);
+		return false;
+	}
+
+	// Bloom post process effect
+	m_BloomEffect = new Bloom();
+	result = m_BloomEffect->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), hwnd, screenRenderTexture, m_PostProcessShader);
+	if(!result) {
+		MessageBox(hwnd, L"Could initialize bloom post processing.", L"Error", MB_OK);
 		return false;
 	}
 
@@ -127,7 +144,7 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 
 	m_GameObjects.reserve(sceneObjects.size());
 	for(size_t i = 0; i < sceneObjects.size(); i++) {
-		m_GameObjects.emplace_back(new GameObject());
+		m_GameObjects.push_back(new GameObject());
 		if(!m_GameObjects[i]->Initialize(m_PBRShaderInstance, m_DepthShaderInstance, m_LoadedTextureResources[sceneObjects[i].materialName], m_LoadedModelResources[sceneObjects[i].modelName])) {
 			MessageBox(hwnd, L"Could not initialize PBR object.", L"Error", MB_OK);
 			return false;
@@ -186,7 +203,7 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
 	m_Camera->Update();
 
-	XMMATRIX viewMatrix {};
+	XMMATRIX viewMatrix {}, orthoMatrix {};
 	m_Camera->GetViewMatrix(viewMatrix);
 
 	if(mb_AnimateDirectionalLight) {
@@ -220,6 +237,22 @@ bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
 	//m_ScreenRenderTexture->TurnZBufferOn();
 	//m_ScreenRenderTexture->DisableAlphaBlending();
 
+	return true;
+}
+
+bool Scene::RenderPostProcess(int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX orthoMatrix, ID3D11ShaderResourceView* textureSRV) {
+	if(!m_PostProcessShader->Render(m_D3DInstance->GetDeviceContext(), indexCount, worldMatrix, viewMatrix, orthoMatrix, textureSRV)) {
+		return false;
+	}
+
+	return true;
+}
+
+bool Scene::RenderPostProcess_Debug(int indexCount, XMMATRIX translationMatrix, XMMATRIX viewMatrix, XMMATRIX orthoMatrix, ID3D11ShaderResourceView* textureSRV) {
+
+	if(!m_BloomEffect->Render(m_D3DInstance->GetDeviceContext(), indexCount, translationMatrix, viewMatrix, orthoMatrix, textureSRV)) {
+		return false;
+	}
 	return true;
 }
 
@@ -264,7 +297,7 @@ bool Scene::LoadPBRTextureResource(const std::string& textureFileName) {
 #if USE_MULTITHREAD == 1
 			//std::lock_guard<std::mutex> lock {s_DeviceContextMutex};
 #endif
-			textureResources.emplace_back(new Texture());
+			textureResources.push_back(new Texture());
 			if(!textureResources[i]->Initialize(
 				m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), textureFileNames[i], DXGI_FORMAT_R8G8B8A8_UNORM)
 				) {
@@ -359,6 +392,10 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		m_GameObjects[m_GameObjects.size() - 1]->SetMaterialTextures(b1 ? m_LoadedTextureResources["bog"] : m_LoadedTextureResources["dirt"]);
 	}
 
+	/// Bloom
+	ImGui::SeparatorText("Bloom");
+
+
 	ImGui::End();
 
 	if(!b_isMenuActive) {
@@ -404,6 +441,18 @@ void Scene::Shutdown() {
 		m_DepthShaderInstance->Shutdown();
 		delete m_DepthShaderInstance;
 		m_DepthShaderInstance = nullptr;
+	}
+
+	if(m_PostProcessShader) {
+		m_PostProcessShader->Shutdown();
+		delete m_PostProcessShader;
+		m_PostProcessShader = nullptr;
+	}
+
+	if(m_BloomEffect) {
+		m_BloomEffect->Shutdown();
+		delete m_BloomEffect;
+		m_BloomEffect = nullptr;
 	}
 
 	if(m_DirectionalShadowMapRenderTexture) {

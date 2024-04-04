@@ -220,11 +220,6 @@ void EngineSystem::Shutdown() {
 		m_Input = nullptr;
 	}
 
-	/// Shutdown ImGui
-	ImGui_ImplDX11_Shutdown();
-	ImGui_ImplWin32_Shutdown();
-	ImGui::DestroyContext();
-
 	/// Shutdown the window.
 	// Show the mouse cursor.
 	ShowCursor(true);
@@ -245,7 +240,10 @@ void EngineSystem::Shutdown() {
 	// Release the pointer to this class.
 	g_ApplicationHandle = NULL;
 
-	return;
+	/// Shutdown ImGui
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 }
 
 

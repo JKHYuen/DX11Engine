@@ -1,8 +1,8 @@
 Texture2D screenTexture  : register(t0);
-Texture2D sourceTexture  : register(t0);
+Texture2D sourceTexture  : register(t1);
 SamplerState wrapSampler : register(s0);
 
-cbuffer MaterialParamBuffer {
+cbuffer MaterialParamBuffer : register(b0) {
     float4 _Filter;
     float _BoxSampleDelta;
     float _Intensity;
@@ -16,7 +16,8 @@ struct PixelInputType {
 };
 
 half3 Prefilter(half3 c) {
-    half brightness = max(c.r, max(c.g, c.b)); // brightness is max of color channels
+    // brightness is max of color channels
+    half brightness = max(c.r, max(c.g, c.b));
     half soft = brightness - _Filter.y;
     soft = clamp(soft, 0, _Filter.z);
     soft = soft * soft * _Filter.w;
@@ -30,13 +31,13 @@ half3 SampleBox(float2 uv, float delta) {
     screenTexture.GetDimensions(0, width, height, numOfLevels);
     
     float4 o = float2(width, height).xyxy * float2(-delta, delta).xxyy;
-    half3 s = screenTexture.Sample(wrapSampler, uv + o.xy) + screenTexture.Sample(wrapSampler, uv + o.zy) +
-			  screenTexture.Sample(wrapSampler, uv + o.xw) + screenTexture.Sample(wrapSampler, uv + o.zw);
+    half3 s = screenTexture.Sample(wrapSampler, uv + o.xy).rgb + screenTexture.Sample(wrapSampler, uv + o.zy).rgb +
+			  screenTexture.Sample(wrapSampler, uv + o.xw).rgb + screenTexture.Sample(wrapSampler, uv + o.zw).rgb;
     return s * 0.25f;
 }
 
-// NOTE: implementation of different shader passes for bloom using conditional, may not be the most performant
-half4 PixelShader(PixelInputType i) : SV_TARGET {
+// NOTE: implementation of different shader passes for bloom using conditionals, may not be the most performant
+half4 BloomPixelShader(PixelInputType i) : SV_TARGET {
     half3 color;
     
     // Use final upsample + bloom addition pass if _Intensity != 0

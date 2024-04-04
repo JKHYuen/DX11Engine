@@ -62,18 +62,18 @@ private:
     void RenderShader(ID3D11DeviceContext*, int);
 
 private:
-    ID3D11VertexShader* m_vertexShader {};
-    ID3D11PixelShader* m_pixelShader {};
-    ID3D11InputLayout* m_layout {};
-    ID3D11SamplerState* m_sampleStateWrap {};
-    ID3D11SamplerState* m_sampleStateBorder {};
-    ID3D11SamplerState* m_sampleStateClamp {};
-    ID3D11Buffer* m_matrixBuffer {};
+    ID3D11VertexShader* m_VertexShader {};
+    ID3D11PixelShader*  m_PixelShader {};
+    ID3D11InputLayout*  m_Layout {};
+    ID3D11SamplerState* m_SampleStateWrap {};
+    ID3D11SamplerState* m_SampleStateBorder {};
+    ID3D11SamplerState* m_SampleStateClamp {};
 
-    ID3D11Buffer* m_cameraBuffer {};
-    ID3D11Buffer* m_materialParamBuffer {};
-    ID3D11Buffer* m_lightBuffer {};
+    ID3D11Buffer* m_MatrixBuffer {};
+    ID3D11Buffer* m_CameraBuffer {};
+    ID3D11Buffer* m_MaterialParamBuffer {};
+    ID3D11Buffer* m_LightBuffer {};
 
-    ID3D11Buffer* m_lightColorBuffer {};
-    ID3D11Buffer* m_lightPositionBuffer {};
+    ID3D11Buffer* m_LightColorBuffer {};
+    ID3D11Buffer* m_LightPositionBuffer {};
 };

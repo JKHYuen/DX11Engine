@@ -12,9 +12,10 @@ public:
 
 	bool Initialize(ID3D11Device*, HWND, bool isPostProcessShader);
 	void Shutdown();
-	bool Render(ID3D11DeviceContext*, int, XMMATRIX, XMMATRIX, XMMATRIX, ID3D11ShaderResourceView*);
+	bool Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV);
 
 	ID3D11VertexShader* GetVertexShader() const { return m_VertexShader; }
+	ID3D11InputLayout* GetShaderInputLayout() const { return m_Layout; }
 
 private:
 	struct MatrixBufferType {
