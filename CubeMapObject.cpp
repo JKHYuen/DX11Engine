@@ -5,9 +5,9 @@
 #include "D3DInstance.h"
 #include <fstream>
 
-static constexpr int kUnitCubeVertexCount = 36;
-static constexpr int kUnitCubeIndexCount = 36;
-static constexpr int kUnitQuadIndexCount = 6;
+static constexpr int s_UnitCubeVertexCount = 36;
+static constexpr int s_UnitCubeIndexCount = 36;
+static constexpr int s_UnitQuadIndexCount = 6;
 // x, y, z, u, v
 static constexpr float kUnitCubeVertices[] = {
 	-1.0 , 1.0, -1.0, 0.0 , 0.0,
@@ -65,11 +65,11 @@ static const std::array<XMMATRIX, 6> kCubeMapCaptureViewMats = {
 	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
 };
 
-static const std::wstring kHDRCubeMapShaderName       = L"HDRCubeMap";
-static const std::wstring kConvoluteCubeMapShaderName = L"ConvoluteCubeMap";
-static const std::wstring kPrefilterCubeMapShaderName = L"PreFilterCubeMap";
-static const std::wstring kIntegrateBRDFShaderName    = L"IntegrateBRDF";
-static const std::wstring kSkyboxRenderShaderName     = L"CubeMap";
+static const std::wstring s_HDRCubeMapShaderName       = L"HDRCubeMap";
+static const std::wstring s_ConvoluteCubeMapShaderName = L"ConvoluteCubeMap";
+static const std::wstring s_PrefilterCubeMapShaderName = L"PreFilterCubeMap";
+static const std::wstring s_IntegrateBRDFShaderName    = L"IntegrateBRDF";
+static const std::wstring s_SkyboxRenderShaderName     = L"CubeMap";
 
 bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
 	bool result;
@@ -100,19 +100,19 @@ bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::s
 
 	/// Initialize the vertex and pixel shaders
 	/// Note: only needs to be done once, change this if loading more than one cubemap
-	result = InitializeShader(device, hwnd, kHDRCubeMapShaderName, &m_HDREquiVertexShader, &m_HDREquiPixelShader);
+	result = InitializeShader(device, hwnd, s_HDRCubeMapShaderName, &m_HDREquiVertexShader, &m_HDREquiPixelShader);
 	if(!result) return false; 
 
-	result = InitializeShader(device, hwnd, kConvoluteCubeMapShaderName, &m_ConvolutionVertexShader, &m_ConvolutionPixelShader);
+	result = InitializeShader(device, hwnd, s_ConvoluteCubeMapShaderName, &m_ConvolutionVertexShader, &m_ConvolutionPixelShader);
 	if(!result) return false;
 
-	result = InitializeShader(device, hwnd, kPrefilterCubeMapShaderName, &m_PrefilterVertexShader, &m_PrefilterPixelShader);
+	result = InitializeShader(device, hwnd, s_PrefilterCubeMapShaderName, &m_PrefilterVertexShader, &m_PrefilterPixelShader);
 	if(!result) return false;
 
-	result = InitializeShader(device, hwnd, kIntegrateBRDFShaderName, &m_IntegrateBRDFVertexShader, &m_IntegrateBRDFPixelShader);
+	result = InitializeShader(device, hwnd, s_IntegrateBRDFShaderName, &m_IntegrateBRDFVertexShader, &m_IntegrateBRDFPixelShader);
 	if(!result) return false;
 
-	result = InitializeShader(device, hwnd, kSkyboxRenderShaderName, &m_CubeMapVertexShader, &m_CubeMapPixelShader);
+	result = InitializeShader(device, hwnd, s_SkyboxRenderShaderName, &m_CubeMapVertexShader, &m_CubeMapPixelShader);
 	if(!result) return false;
 
 	/// Load unit cube model
@@ -125,7 +125,7 @@ bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::s
 
 	// NOTE: HDRTexture defaults to no mipmaps
 	m_HDRCubeMapTex = new Texture();
-	result = m_HDRCubeMapTex->Initialize(device, deviceContext, "../DX11Engine/data/" + fileName + ".hdr", DXGI_FORMAT_R32G32B32A32_FLOAT, 1);
+	result = m_HDRCubeMapTex->Initialize(device, deviceContext, "../DX11Engine/data/cubemaps/" + fileName + ".hdr", DXGI_FORMAT_R32G32B32A32_FLOAT, 1);
 	if(!result) {
 		return false;
 	}
@@ -209,11 +209,11 @@ bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::s
 }
 
 bool CubeMapObject::InitializeUnitCubeBuffers(ID3D11Device* device) {
-	VertexType* vertices = new VertexType[kUnitCubeVertexCount];
-	unsigned long* indices = new unsigned long[kUnitCubeIndexCount];
+	VertexType* vertices = new VertexType[s_UnitCubeVertexCount];
+	unsigned long* indices = new unsigned long[s_UnitCubeIndexCount];
 
 	// Load the vertex array and index array with hard coded unit cube data
-	for(int i = 0, j = 0; i < kUnitCubeVertexCount; i++, j += 5) {
+	for(int i = 0, j = 0; i < s_UnitCubeVertexCount; i++, j += 5) {
 		vertices[i].position = XMFLOAT3(kUnitCubeVertices[j], kUnitCubeVertices[j + 1], kUnitCubeVertices[j + 2]);
 		vertices[i].uv = XMFLOAT2(kUnitCubeVertices[j + 3], kUnitCubeVertices[j + 4]);
 		indices[i] = i;
@@ -222,7 +222,7 @@ bool CubeMapObject::InitializeUnitCubeBuffers(ID3D11Device* device) {
 	// Set up the description of the static vertex buffer.
 	D3D11_BUFFER_DESC vertexBufferDesc {};
 	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	vertexBufferDesc.ByteWidth = sizeof(VertexType) * kUnitCubeVertexCount;
+	vertexBufferDesc.ByteWidth = sizeof(VertexType) * s_UnitCubeVertexCount;
 	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	vertexBufferDesc.CPUAccessFlags = 0;
 	vertexBufferDesc.MiscFlags = 0;
@@ -243,7 +243,7 @@ bool CubeMapObject::InitializeUnitCubeBuffers(ID3D11Device* device) {
 	// Set up the description of the static index buffer.
 	D3D11_BUFFER_DESC indexBufferDesc {};
 	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-	indexBufferDesc.ByteWidth = sizeof(unsigned long) * kUnitCubeIndexCount;
+	indexBufferDesc.ByteWidth = sizeof(unsigned long) * s_UnitCubeIndexCount;
 	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	indexBufferDesc.CPUAccessFlags = 0;
 	indexBufferDesc.MiscFlags = 0;
@@ -375,7 +375,7 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstri
 	}
 
 	/// Set up description of prefilter cbuffer in frag shader (for roughness param)
-	if(shaderName == kPrefilterCubeMapShaderName) {
+	if(shaderName == s_PrefilterCubeMapShaderName) {
 		D3D11_BUFFER_DESC prefilterBufferDesc{};
 		prefilterBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 		prefilterBufferDesc.ByteWidth = sizeof(PrefilterBufferType);
@@ -478,11 +478,11 @@ bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatr
 	deviceContext->PSSetSamplers(0, 1, &m_ClampSampleState);
 
 	if(renderType == kIntegrateBRDFRender) {
-		deviceContext->DrawIndexed(kUnitQuadIndexCount, 0, 0);
+		deviceContext->DrawIndexed(s_UnitQuadIndexCount, 0, 0);
 	}
 	else {
 		deviceContext->PSSetShaderResources(0, 1, &cubeMapTexture);
-		deviceContext->DrawIndexed(kUnitCubeIndexCount, 0, 0);
+		deviceContext->DrawIndexed(s_UnitCubeIndexCount, 0, 0);
 	}
 
 	return true;

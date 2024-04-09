@@ -18,22 +18,22 @@
 #include "imgui_impl_dx11.h"
 
 #include <iostream>
-#include <stdio.h>
 #include <cmath>
 #include <future>
+#include <string_view>
 
 // EXPERIMENTAL
 #define USE_MULTITHREAD_INITIALIZE 1
 
 /// Demo Scene starting values
-static const float kStartingDirectionalLightDirX = 50.0f;
-static const float kStartingDirectionalLightDirY = 230.0f;
+static constexpr float s_StartingDirectionalLightDirX = 50.0f;
+static constexpr float s_StartingDirectionalLightDirY = 230.0f;
 // sunlight color: 9.0f, 5.0f, 2.0f 
 //                 29.0f, 18.0f, 11.0f
-static const XMFLOAT3 kStartingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0f};
+static constexpr XMFLOAT3 s_StartingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0f};
 
 // PBR Texture names (files included in demo build)
-static const std::vector<std::string> kPBRMaterialNames {"bog", "brick", "dented", "dirt", "marble", "metal_grid", "rust", "stonewall"};
+static const std::vector<std::string> s_PBRMaterialNames {"bog", "brick", "dented", "dirt", "marble", "metal_grid", "rust", "stonewall"};
 
 static std::mutex s_DeviceContextMutex {};
 
@@ -118,26 +118,25 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	d3dInstance->GetOrthoMatrix(screenOrthoMatrix);
 
 	m_CubeMapObject = new CubeMapObject();
-	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k | abandoned_tiled_room_4k
-	result = m_CubeMapObject->Initialize(m_D3DInstance, hwnd, "industrial_sunset_puresky_4k", 2048, 9, 32, 512, 512, screenCameraViewMatrix, screenOrthoMatrix, quadModel);
+	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k | abandoned_tiled_room_4k | mud_road_puresky_4k
+	result = m_CubeMapObject->Initialize(m_D3DInstance, hwnd, "rural_landscape_4k", 2048, 9, 32, 512, 512, screenCameraViewMatrix, screenOrthoMatrix, quadModel);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize cubemap.", L"Error", MB_OK);
 		return false;
 	}
 
-	// Temp scene system
-	struct GameObjectData {
-		std::string modelName {};
-		std::string materialName {};
-		XMFLOAT3 position {};
-		XMFLOAT3 scale {1.0f, 1.0f, 1.0f};
-		float yRotSpeed {};
-		float uvScale = 1.0f;
-		float vertexDisplacementMapScale = 0.1f;
-		float parallaxMapHeightScale = 0.0f;
-	};
+	//struct GameObjectData {
+	//	std::string modelName {};
+	//	std::string materialName {};
+	//	XMFLOAT3 position {};
+	//	XMFLOAT3 scale {1.0f, 1.0f, 1.0f};
+	//	float yRotSpeed {};
+	//	float uvScale = 1.0f;
+	//	float vertexDisplacementMapScale = 0.1f;
+	//	float parallaxMapHeightScale = 0.0f;
+	//};
 
-	const std::vector<GameObjectData> sceneObjects = {
+	const std::vector<GameObject::GameObjectData> sceneObjects = {
 		// Objects
 		{"sphere", "rust",       {-3.0f, 4.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
 		{"sphere", "stonewall",  {0.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
@@ -151,17 +150,10 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	m_GameObjects.reserve(sceneObjects.size());
 	for(size_t i = 0; i < sceneObjects.size(); i++) {
 		m_GameObjects.push_back(new GameObject());
-		if(!m_GameObjects[i]->Initialize(m_PBRShaderInstance, m_DepthShaderInstance, m_LoadedTextureResources[sceneObjects[i].materialName], m_LoadedModelResources[sceneObjects[i].modelName])) {
+		if(!m_GameObjects[i]->Initialize(m_PBRShaderInstance, m_DepthShaderInstance, m_LoadedTextureResources[sceneObjects[i].materialName], m_LoadedModelResources[sceneObjects[i].modelName], sceneObjects[i])) {
 			MessageBox(hwnd, L"Could not initialize PBR object.", L"Error", MB_OK);
 			return false;
 		}
-
-		m_GameObjects[i]->SetPosition(sceneObjects[i].position);
-		m_GameObjects[i]->SetScale(sceneObjects[i].scale);
-		m_GameObjects[i]->SetYRotationSpeed(sceneObjects[i].yRotSpeed);
-		m_GameObjects[i]->SetUVScale(sceneObjects[i].uvScale);
-		m_GameObjects[i]->SetDisplacementMapHeightScale(sceneObjects[i].vertexDisplacementMapScale);
-		m_GameObjects[i]->SetParallaxMapHeightScale(sceneObjects[i].parallaxMapHeightScale);
 	}
 
 	/// Lighting
@@ -177,9 +169,9 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	m_DirectionalLight = new DirectionalLight();
 
 	// Initialize Directional light
-	m_DirectionalLight->SetColor(kStartingDirectionalLightColor.x, kStartingDirectionalLightColor.y, kStartingDirectionalLightColor.z, 1.0f);
+	m_DirectionalLight->SetColor(s_StartingDirectionalLightColor.x, s_StartingDirectionalLightColor.y, s_StartingDirectionalLightColor.z, 1.0f);
 	m_DirectionalLight->GenerateOrthoMatrix(40.0f, shadowMapNearZ, shadowMapFarZ);
-	m_DirectionalLight->SetDirection(XMConvertToRadians(kStartingDirectionalLightDirX), XMConvertToRadians(kStartingDirectionalLightDirY), 0.0f);
+	m_DirectionalLight->SetDirection(XMConvertToRadians(s_StartingDirectionalLightDirX), XMConvertToRadians(s_StartingDirectionalLightDirY), 0.0f);
 
 	//// Set the number of lights we will use.
 	//m_numLights = 4;
@@ -342,8 +334,8 @@ bool Scene::LoadModelResource(const std::string& modelFileName) {
 }
 
 void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitApp) {
-	auto ImGuiHelpMarker = [](const char* desc) {
-		ImGui::SameLine();
+	static auto ImGuiHelpMarker = [](const char* desc, bool b_IsSameLine = true) {
+		if(b_IsSameLine) ImGui::SameLine();
 		ImGui::TextDisabled("(?)");
 		if(ImGui::BeginItemTooltip()) {
 			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
@@ -352,8 +344,18 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 			ImGui::EndTooltip();
 		}
 	};
+	// Note: a little flimsy, assumes matName exists in s_PBRMaterialNames
+	static auto FindPBRMaterialIndex = [](std::string_view matName) {
+		for(int i = 0; i < s_PBRMaterialNames.size(); i++) {
+			if(s_PBRMaterialNames[i] == matName) {
+				return i;
+			}
+		}
+		return -1;
+	};
 
-	static ImGuiSliderFlags sliderFlags = ImGuiSliderFlags_AlwaysClamp;
+	static ImGuiSliderFlags kSliderFlags = ImGuiSliderFlags_AlwaysClamp;
+	static ImGuiTableFlags kTableFlags = ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders;
 
 	bool b_isMenuActive = true;
 	ImGui::Begin("Scene Menu", &b_isMenuActive, ImGuiWindowFlags_None);
@@ -366,106 +368,175 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		b_QuitApp = true;
 	}
 	ImGui::PopStyleColor(3);
-	ImGuiHelpMarker("Press this button or \"Esc\" to quit app.");
-	ImGui::Spacing();
+
+	ImGui::SameLine();
+	ImGui::TextDisabled("Controls");
+	ImGuiHelpMarker("Click and drag to change numeric values.\nDouble click to type in values.\n\n   Esc: Quit App\n   Tab: Toggle this menu\n  WASD: movement\nLShift: move faster\n(Movement is disabled while this menu is open)");
 
 	/// Misc
 	static char gpuName[128] {};
 	static int gpuMemory {-1};
-	if(gpuMemory == -1) {
-		m_D3DInstance->GetVideoCardInfo(gpuName, gpuMemory);
-	}
-	ImGui::Text("%s %d MB", gpuName, gpuMemory);
-	ImGui::Spacing();
-
+	if(gpuMemory == -1) m_D3DInstance->GetVideoCardInfo(gpuName, gpuMemory);
+	ImGui::TextDisabled("%s %d MB", gpuName, gpuMemory);
 	ImGui::Text("FPS: %d", (int)currentFPS);
-	ImGui::Checkbox("Show FPS on screen", &b_ShowScreenFPS);
 	ImGui::Spacing();
 
-	ImGui::Checkbox("Enable Wireframe Render", &b_IsWireFrameRender);
-	ImGui::Spacing();
+	if(ImGui::CollapsingHeader("Display")) {
+		ImGui::Spacing();
+		ImGui::Checkbox("Show FPS on screen", &b_ShowScreenFPS);
+		ImGui::Checkbox("Enable Wireframe Render", &b_IsWireFrameRender);
+		ImGui::Spacing();
+	}
 
 	/// Directional Light
-	ImGui::SeparatorText("Directional Light");
-	ImGui::Checkbox("Enable animation", &mb_AnimateDirectionalLight);
+	if(ImGui::CollapsingHeader("Directional Light")) {
+		ImGui::Spacing();
+		ImGui::Checkbox("Enable animation", &mb_AnimateDirectionalLight);
 
-	static float userLightDir[2] {kStartingDirectionalLightDirX, kStartingDirectionalLightDirY};
-	if(mb_AnimateDirectionalLight) {
-		ImGui::BeginDisabled();
-		m_DirectionalLight->GetEulerAngles(userLightDir[0], userLightDir[1]);
-	}
-	ImGui::Text("Light Angle");
-	if(ImGui::DragFloat2("[x, y]", userLightDir, 0.5f, -1000.0f, 1000.0f, "%.2f", sliderFlags)) {
-		userLightDir[0] = std::fmod(userLightDir[0], 360.0f);
-		userLightDir[1] = std::fmod(userLightDir[1], 360.0f);
-		m_DirectionalLight->SetDirection(XMConvertToRadians(userLightDir[0]), XMConvertToRadians(userLightDir[1]), 0.0f);
-	}
-	if(mb_AnimateDirectionalLight) {
-		ImGui::EndDisabled();
-	}
+		static float userLightDir[2] {s_StartingDirectionalLightDirX, s_StartingDirectionalLightDirY};
+		if(mb_AnimateDirectionalLight) {
+			ImGui::BeginDisabled();
+			m_DirectionalLight->GetEulerAngles(userLightDir[0], userLightDir[1]);
+		}
+		ImGui::Spacing();
 
-	static float userDirLightCol[3] = {kStartingDirectionalLightColor.x, kStartingDirectionalLightColor.y, kStartingDirectionalLightColor.z};
-	ImGui::Text("HDR Light Color");
-	if(ImGui::DragFloat3("[r, g, b]", userDirLightCol, 0.1f, 0.0f, 1000.0f, "%.2f", sliderFlags)) {
-		m_DirectionalLight->SetColor(userDirLightCol[0], userDirLightCol[1], userDirLightCol[2], 1.0f);
+		ImGui::Text("Light Angle");
+		if(ImGui::DragFloat2("[x, y]", userLightDir, 0.5f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			userLightDir[0] = std::fmod(userLightDir[0], 360.0f);
+			userLightDir[1] = std::fmod(userLightDir[1], 360.0f);
+			m_DirectionalLight->SetDirection(XMConvertToRadians(userLightDir[0]), XMConvertToRadians(userLightDir[1]), 0.0f);
+		}
+		if(mb_AnimateDirectionalLight) {
+			ImGui::EndDisabled();
+		}
+
+		static float userDirLightCol[3] = {s_StartingDirectionalLightColor.x, s_StartingDirectionalLightColor.y, s_StartingDirectionalLightColor.z};
+		ImGui::Text("HDR Light Color");
+		if(ImGui::DragFloat3("[r, g, b]", userDirLightCol, 0.1f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			m_DirectionalLight->SetColor(userDirLightCol[0], userDirLightCol[1], userDirLightCol[2], 1.0f);
+		}
+		ImGui::Spacing();
 	}
-	ImGui::Spacing();
 
 	/// Bloom Params
-	ImGui::SeparatorText("Bloom");
-	ImGui::Text("Intensity");
-	static float userBloomIntensity = m_BloomEffect->GetIntensity();
-	if(ImGui::DragFloat("##Intensity", &userBloomIntensity, 0.01f, 0.0f, 1000.0f, "%.2f", sliderFlags)) {
-		m_BloomEffect->SetIntensity(userBloomIntensity);
-	}
-
-	ImGui::Text("Threshold");
-	static float userBloomThreshold = m_BloomEffect->GetThreshold();
-	if(ImGui::DragFloat("##Thresh", &userBloomThreshold, 0.01f, 0.0f, 10000.0f, "%.2f", sliderFlags)) {
-		m_BloomEffect->SetThreshold(userBloomThreshold);
-	}
-
-	ImGui::Text("Soft Threshold");
-	static float userBloomSoftThreshold = m_BloomEffect->GetSoftThreshold();
-	if(ImGui::DragFloat("##SoftThresh", &userBloomSoftThreshold, 0.001f, 0.0f, 1.0f, "%.2f", sliderFlags)) {
-		m_BloomEffect->SetSoftThreshold(userBloomSoftThreshold);
-	}
-	ImGui::Spacing();
-
-	/// Material Edit
-	ImGui::SeparatorText("Ground");
-
-	ImGui::Text("Material Select");
-	static int selected = 3;
-	if(ImGui::BeginTable("##materials", 3, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders)) {
-		for(int i = 0; i < kPBRMaterialNames.size(); i++) {
-			ImGui::TableNextColumn();
-			if(ImGui::Selectable(kPBRMaterialNames[i].c_str(), selected == i)) {
-				LoadPBRTextureResource(kPBRMaterialNames[i % kPBRMaterialNames.size()]);
-				m_GameObjects[m_GameObjects.size() - 1]->SetMaterialTextures(m_LoadedTextureResources[kPBRMaterialNames[i % kPBRMaterialNames.size()]]);
-			}
+	if(ImGui::CollapsingHeader("Bloom")) {
+		ImGui::Spacing();
+		static float userBloomIntensity = m_BloomEffect->GetIntensity();
+		if(ImGui::DragFloat("Intensity", &userBloomIntensity, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+			m_BloomEffect->SetIntensity(userBloomIntensity);
 		}
-		ImGui::EndTable();
+
+		static float userBloomThreshold = m_BloomEffect->GetThreshold();
+		if(ImGui::DragFloat("Threshold", &userBloomThreshold, 0.01f, 0.0f, 10000.0f, "%.2f", kSliderFlags)) {
+			m_BloomEffect->SetThreshold(userBloomThreshold);
+		}
+
+		static float userBloomSoftThreshold = m_BloomEffect->GetSoftThreshold();
+		if(ImGui::DragFloat("Soft Threshold", &userBloomSoftThreshold, 0.001f, 0.0f, 1.0f, "%.2f", kSliderFlags)) {
+			m_BloomEffect->SetSoftThreshold(userBloomSoftThreshold);
+		}
+		ImGui::Spacing();
 	}
 
-	static float userParallaxHeight = m_GameObjects[m_GameObjects.size() - 1]->GetParallaxMapHeightScale();
-	if(ImGui::DragFloat("[x, y]", &userParallaxHeight, 0.001f, -1000.0f, 1000.0f, "%.3f", sliderFlags)) {
-		m_GameObjects[m_GameObjects.size() - 1]->SetParallaxMapHeightScale(userParallaxHeight);
+	/// Object Material Edit
+	/// NOTE: implementation could be simpller with use of GameObject::GameObjectData struct
+	bool b_ShowSceneObjectHeader = ImGui::CollapsingHeader("Scene Objects");
+	ImGuiHelpMarker("Select a scene object to edit its object and material parameters.");
+	if(b_ShowSceneObjectHeader) {
+		static int userSelectedGameObjectIndex = (int)m_GameObjects.size() - 1;
+		// Start true to intialize variables below
+		static bool b_NewSceneObjectSelected = true;
+		static int userSelectedMaterialIndex {};
+		static float userPosition[3] {};
+		static float userScale[3] {};
+		static float userUVScale {};
+		static float userDisplacementHeight {};
+		static float userParallaxHeight {};
+
+		// Ground object is selected by default
+		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+		if(ImGui::TreeNode("Scene Object Select")) {
+			if(ImGui::BeginTable("##GameObjects", 3, kTableFlags)) {
+				for(int i = 0; i < m_GameObjects.size(); i++) {
+					ImGui::TableNextColumn();
+
+					char label[32];
+					if(i == m_GameObjects.size() - 1) {
+						sprintf_s(label, "Ground");
+					}
+					else {
+						sprintf_s(label, "Object %d", i);
+					}
+
+					if(ImGui::Selectable(label, userSelectedGameObjectIndex == i)) {
+						userSelectedGameObjectIndex = i;
+						b_NewSceneObjectSelected = true;
+					}
+				}
+				ImGui::EndTable();
+			}
+			ImGui::TreePop();
+		}
+
+		ImGui::Spacing();
+		ImGui::SeparatorText("Edit Parameters");
+		ImGui::Spacing();
+
+		// Update parameter display if needed
+		if(b_NewSceneObjectSelected) {
+			userSelectedMaterialIndex = FindPBRMaterialIndex(m_GameObjects[userSelectedGameObjectIndex]->GetPBRMaterialName());
+			m_GameObjects[userSelectedGameObjectIndex]->GetPosition(userPosition[0], userPosition[1], userPosition[2]);
+			m_GameObjects[userSelectedGameObjectIndex]->GetScale(userScale[0], userScale[1], userScale[2]);
+			userUVScale = m_GameObjects[userSelectedGameObjectIndex]->GetUVScale();
+			userDisplacementHeight = m_GameObjects[userSelectedGameObjectIndex]->GetDisplacementMapHeightScale();
+			userParallaxHeight = m_GameObjects[userSelectedGameObjectIndex]->GetParallaxMapHeightScale();
+			b_NewSceneObjectSelected = false;
+		}
+
+		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+		if(ImGui::TreeNode("Material Select")) {
+			if(ImGui::BeginTable("##materials", 3, kTableFlags)) {
+				for(int i = 0; i < s_PBRMaterialNames.size(); i++) {
+					ImGui::TableNextColumn();
+					if(ImGui::Selectable(s_PBRMaterialNames[i].c_str(), userSelectedMaterialIndex == i)) {
+						userSelectedMaterialIndex = i;
+						std::string matName = s_PBRMaterialNames[i % s_PBRMaterialNames.size()];
+						LoadPBRTextureResource(matName);
+						m_GameObjects[userSelectedGameObjectIndex]->SetMaterialTextures(matName, m_LoadedTextureResources[matName]);
+					}
+				}
+				ImGui::EndTable();
+			}
+			ImGui::TreePop();
+		}
+		ImGui::Spacing();
+
+		// TODO: enable/disable
+		// TODO: model select
+
+		if(ImGui::DragFloat3("Position", userPosition, 0.001f, -1000.0f, 1000.0f, "%.3f", kSliderFlags)) {
+			m_GameObjects[userSelectedGameObjectIndex]->SetPosition(userPosition[0], userPosition[1], userPosition[2]);
+		}
+
+		if(ImGui::DragFloat3("Scale", userScale, 0.001f, -1000.0f, 1000.0f, "%.3f", kSliderFlags)) {
+			m_GameObjects[userSelectedGameObjectIndex]->SetScale(userScale[0], userScale[1], userScale[2]);
+		}
+
+		if(ImGui::DragFloat("UV Scale", &userUVScale, 0.001f, 1.0f, 1000.0f, "%.3f", kSliderFlags)) {
+			m_GameObjects[userSelectedGameObjectIndex]->SetUVScale(userUVScale);
+		}
+
+		if(ImGui::DragFloat("Displacement Height", &userDisplacementHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
+			m_GameObjects[userSelectedGameObjectIndex]->SetDisplacementMapHeightScale(userDisplacementHeight);
+		}
+
+		// TODO: disable if not "plane" model
+		if(ImGui::DragFloat("Parallax Height", &userParallaxHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
+			m_GameObjects[userSelectedGameObjectIndex]->SetParallaxMapHeightScale(userParallaxHeight);
+		}
+
+		ImGui::Spacing();
 	}
-	ImGui::Spacing();
-
-
-	//static bool b1 {};
-	//if(ImGui::Checkbox("Switch Ground Material", &b1)) {
-	//	if(b1) {
-	//		LoadPBRTextureResource("dented");
-	//		m_GameObjects[m_GameObjects.size() - 1]->SetMaterialTextures(m_LoadedTextureResources["dented"]);
-	//	}
-	//	else {
-	//		LoadPBRTextureResource("dirt");
-	//		m_GameObjects[m_GameObjects.size() - 1]->SetMaterialTextures(m_LoadedTextureResources["dirt"]);
-	//	}
-	//}
 
 	ImGui::End();
 

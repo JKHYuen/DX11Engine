@@ -37,13 +37,14 @@ public:
 	bool RenderScene(XMMATRIX projectionMatrix, float time);
 	// Render final output with post processing
 	bool RenderPostProcess(int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX orthoMatrix, ID3D11ShaderResourceView* textureSRV);
+
 	bool RenderDirectionalLightSceneDepth(float time);
-	
-	void UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitApp);
 	void ProcessInput(Input* input, float deltaTime);
+	
+	// Note: Implemented here for convenience, probably doesn't belong in this class
+	void UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitApp);
 
 	RenderTexture* GetDirectionalShadowMapRenderTexture() const { return m_DirectionalShadowMapRenderTexture; }
-	
 	RenderTexture* GetDebugBloomOutput() const;
 
 private:

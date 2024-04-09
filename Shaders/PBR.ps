@@ -49,6 +49,7 @@ struct PixelInputType {
 };
 
 static const float PI = 3.14159265359;
+// Must change cubemap gen LOD count if this valule is changed
 static const float MAX_REFLECTION_LOD = 9.0;
 static const float MIN_PARALLAX_LAYERS = 64;
 static const float MAX_PARALLAX_LAYERS = 128;
@@ -109,7 +110,6 @@ float2 ParallaxMapping(float2 texCoords, float3 viewDir) {
     float2 currentTexCoords = texCoords;
     float currentDepthMapValue = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
       
-    [unroll]
     for(int i = 0; i < MAX_PARALLAX_LAYERS && currentLayerDepth < currentDepthMapValue; i++) {
         // shift texture coordinates along direction of P
         currentTexCoords -= deltaTexCoords;
@@ -135,6 +135,7 @@ float2 ParallaxMapping(float2 texCoords, float3 viewDir) {
     return finalTexCoords;
 }
 
+// EXPERIMENTAL
 // Parallax map self shadowing adpated from: https://chanhaeng.blogspot.com/2019/01/normalparllax-mapping-with-self.html
 float CalcParallaxSoftShadowMultiplier(float3 lightDir, float2 initialTexCoords, float initialHeight) {
     float shadowMultiplier = 0.0;
@@ -154,21 +155,19 @@ float CalcParallaxSoftShadowMultiplier(float3 lightDir, float2 initialTexCoords,
         float currentLayerHeight = initialHeight - layerHeight;
         float2 currentTexCoords = initialTexCoords + texStep;
         float depthFromTexture = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
-        int stepIndex = 1;
         
         // while point is below depth 0.0
         [loop]
-        while (currentLayerHeight > 0.0) {
+        for(int i = 1; i < MAX_PARALLAX_LAYERS && currentLayerHeight > 0.0; i++) {
             // if point is under the surface
-            if (depthFromTexture < currentLayerHeight) {
+            if(depthFromTexture < currentLayerHeight) {
                 // calculate partial shadowing factor
                 numSamplesUnderSurface += 1;
-                float newShadowMultiplier = (currentLayerHeight - depthFromTexture) * (1.0 - stepIndex / numLayers);
+                float newShadowMultiplier = (currentLayerHeight - depthFromTexture) * (1.0 - i / numLayers);
                 shadowMultiplier = max(shadowMultiplier, newShadowMultiplier);
             }
 
             // offset to the next layer
-            stepIndex += 1;
             currentLayerHeight -= layerHeight;
             currentTexCoords += texStep;
             depthFromTexture = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
@@ -311,11 +310,11 @@ float4 PBRPixelShader(PixelInputType i) : SV_TARGET {
     
     float3 color = ambient + Lo * shadowFactor;
     
+    // EXPERIMENTAL
     // Parallax self shadowing, not very efficient, not applied very correctly. But it looks okay.
     if(parallaxHeightScale != 0) {
-        float selfShadowFactor;
         float3x3 TBN = transpose(float3x3(i.tangent, i.binormal, i.normal));
-        selfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(mul(-lightDirection, TBN), i.uv, 1.0 - heightMap.Sample(SamplerWrap, i.uv).r), 10.0);
+        float selfShadowFactor = pow(CalcParallaxSoftShadowMultiplier(mul(-lightDirection, TBN), i.uv, 1.0 - heightMap.Sample(SamplerWrap, i.uv).r), 10.0);
         color *= selfShadowFactor;
     }
     

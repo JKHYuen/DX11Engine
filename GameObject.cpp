@@ -5,12 +5,21 @@
 #include "Model.h"
 #include "DirectionalLight.h"
 
-// Note: all instances passed as parameters are cleaned up in scene class
-bool GameObject::Initialize(PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textureResources, Model* model) {
+// Note: "instances" passed as parameters are cleaned up in scene class
+// Note: this can be simplified by storing a GameObjectData struct
+bool GameObject::Initialize(PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textureResources, Model* model, const GameObjectData& initialGameObjectData) {
 	m_MaterialTextures = textureResources;
 	m_ModelInstance = model;
 
-	/// Initialize Shaders
+	m_PBRMaterialName = initialGameObjectData.materialName;
+
+	m_Position = initialGameObjectData.position;
+	m_Scale = initialGameObjectData.scale;
+	m_RotationYSpeed = initialGameObjectData.yRotSpeed;
+	m_UVScale = initialGameObjectData.uvScale;
+	m_DisplacementHeightScale = initialGameObjectData.vertexDisplacementMapScale;
+	m_ParallaxHeightScale = initialGameObjectData.parallaxMapHeightScale;
+
 	m_PBRShaderInstance = pbrShaderInstance;
 	m_DepthShaderInstance = depthShaderInstance;
 
@@ -34,7 +43,7 @@ bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLi
 	return true;
 }
 
-// TODO: use CubeMapObject as parameter
+// TODO: use CubeMapObject as parameter?
 bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPos, float time) {
 	XMMATRIX srtMatrix = XMMatrixMultiply(XMMatrixMultiply(
 		XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z),
