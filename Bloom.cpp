@@ -6,19 +6,14 @@
 
 #include <d3dcompiler.h>
 #include <fstream>
+#include <iostream>
 
-// default maximum number of blur iterations for bloom effect, m_CurrentMaxIteration is max of current bloom instance (depends on screen resolution)
+// default maximum number of down/upsample iterations for bloom effect, m_IterationCount is number of iterations to use in current bloom instance (depends on screen resolution)
 static const int k_DefaultMaxIterations = 16;
 
 // TODO: combine post processing (tonemapping shader) functionality from "Scene" with this class, rename this class to "PostProcess"
 bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader, TextureShader* passThroughShaderInstance) {
 	bool result;
-
-	m_Intensity = 1.0f;
-	m_Threshold = 1.0f;
-	m_SoftThreshold = 0.5f;
-	m_UsePrefilter = true;
-	m_BoxSampleDelta = 1.0f;
 
 	m_PassThroughShaderInstance = passThroughShaderInstance;
 	m_ScreenVertexShaderInstance = screenRenderShader->GetVertexShader();
@@ -30,7 +25,11 @@ bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext,
 	float nearZ = screenTexture->GetNearZ();
 	float farZ = screenTexture->GetFarZ();
 
-	m_CurrentMaxIteration = k_DefaultMaxIterations;
+	m_BloomOutputTexture = new RenderTexture();
+	result = m_BloomOutputTexture->Initialize(device, deviceContext, width, height, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	if(!result) return false;
+
+	m_IterationCount = k_DefaultMaxIterations;
 	for(int i = 0; i < k_DefaultMaxIterations; i++) {
 		m_RenderTexures.push_back(new RenderTexture());
 		result = m_RenderTexures[i]->Initialize(device, deviceContext, width, height, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
@@ -39,8 +38,9 @@ bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext,
 		width /= 2;
 		height /= 2;
 
+		// Note: should check min of height and width 
 		if(height < 2) {
-			m_CurrentMaxIteration = i + 1;
+			m_IterationCount = i + 1;
 			break;
 		}
 	}
@@ -94,6 +94,7 @@ bool Bloom::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring pixel
 		return false;
 	}
 
+	/// Setup param buffer
 	shaderParamBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
 	shaderParamBufferDesc.ByteWidth = sizeof(BloomParamBufferType);
 	shaderParamBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -109,9 +110,9 @@ bool Bloom::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring pixel
 	/// Create a texture sampler state 
 	D3D11_SAMPLER_DESC samplerDesc {};
 	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	samplerDesc.MipLODBias = 0.0f;
 	samplerDesc.MaxAnisotropy = 1;
 	samplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
@@ -120,7 +121,7 @@ bool Bloom::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring pixel
 	samplerDesc.BorderColor[2] = 0;
 	samplerDesc.BorderColor[3] = 0;
 	samplerDesc.MinLOD = 0;
-	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	samplerDesc.MaxLOD = 0;
 
 	// Create the texture sampler state.
 	result = device->CreateSamplerState(&samplerDesc, &m_SampleState);
@@ -131,30 +132,58 @@ bool Bloom::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring pixel
 	return true;
 }
 
-bool Bloom::RenderEffect(D3DInstance* d3dInstance , int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV) {
-	// downsample
-	m_BoxSampleDelta = 1.0f;
-	m_UsePrefilter = true;
-	m_RenderTexures[3]->SetRenderTargetAndViewPort();
-	m_RenderTexures[3]->ClearRenderTarget(1.0f, 0.0f, 0.0f, 1.0f);
+// TODO: look into clearing shader resources properly
+bool Bloom::RenderEffect(D3DInstance* d3dInstance , int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* screenTextureSource) {
+	bool result {};
+	
+	static ID3D11ShaderResourceView* nullSRV[1] = {nullptr};
+
+	// First downsample + prefilter
 	d3dInstance->DisableAlphaBlending();
-	Render(d3dInstance->GetDeviceContext(), indexCount, worldMatrix, viewMatrix, projectionMatrix, textureSRV);
+	mb_UsePrefilter = true;
+	m_BoxSampleDelta = 1.0f;
 
-	// upsample
-	m_UsePrefilter = false;
-	m_BoxSampleDelta = 0.5f;
 	m_RenderTexures[0]->SetRenderTargetAndViewPort();
-	m_RenderTexures[0]->ClearRenderTarget(0.0f, 0.0f, 0.0f, 1.0f);
-	d3dInstance->EnableAdditiveBlending();
-	Render(d3dInstance->GetDeviceContext(), indexCount, worldMatrix, viewMatrix, projectionMatrix, m_RenderTexures[3]->GetTextureSRV());
+	m_RenderTexures[0]->ClearRenderTarget(1.0f, 0.0f, 0.0f, 1.0f);
+	result = Render(d3dInstance->GetDeviceContext(), indexCount, worldMatrix, viewMatrix, projectionMatrix, screenTextureSource, false);
 
-	// TEMP
+	if(!result) return false;
+
+	// Progressive Downsampling
+	mb_UsePrefilter = false;
+	int i = 1;
+	for(; i < m_IterationCount; i++) {
+		m_RenderTexures[i]->SetRenderTargetAndViewPort();
+		m_RenderTexures[i]->ClearRenderTarget(1.0f, 0.0f, 0.0f, 1.0f);
+		result = Render(d3dInstance->GetDeviceContext(), indexCount, worldMatrix, viewMatrix, projectionMatrix, m_RenderTexures[i - 1]->GetTextureSRV(), false);
+		d3dInstance->GetDeviceContext()->PSSetShaderResources(0, 1, nullSRV);
+
+		if(!result) return false;
+	}
+
+	// Progressive Upsampling
+	d3dInstance->EnableAdditiveBlending();
+	m_BoxSampleDelta = 0.5f;
+	for(i -= 2; i >= 0; i--) {
+		m_RenderTexures[i]->SetRenderTargetAndViewPort();
+		result = Render(d3dInstance->GetDeviceContext(), indexCount, worldMatrix, viewMatrix, projectionMatrix, m_RenderTexures[i + 1]->GetTextureSRV(), false);
+		d3dInstance->GetDeviceContext()->PSSetShaderResources(0, 1, nullSRV);
+
+		if(!result) return false;
+	}
+
 	d3dInstance->EnableAlphaBlending();
-	d3dInstance->SetToBackBufferRenderTargetAndViewPort();
+	m_BloomOutputTexture->SetRenderTargetAndViewPort();
+	m_BloomOutputTexture->ClearRenderTarget(1.0f, 0.0f, 0.0f, 1.0f);
+	// Bind original screen render image
+	d3dInstance->GetDeviceContext()->PSSetShaderResources(1, 1, &screenTextureSource);
+	result = Render(d3dInstance->GetDeviceContext(), indexCount, worldMatrix, viewMatrix, projectionMatrix, m_RenderTexures[0]->GetTextureSRV(), true);
+	if(!result) return false;
+
 	return true;
 }
 
-bool Bloom::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV) {
+bool Bloom::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV, bool b_IsFinalPass) const {
 	// Transpose the matrices to prepare them for the shader.
 	worldMatrix = XMMatrixTranspose(worldMatrix);
 	viewMatrix = XMMatrixTranspose(viewMatrix);
@@ -189,7 +218,8 @@ bool Bloom::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX 
 	bloomDataPtr->filter         = filter;
 	bloomDataPtr->boxSampleDelta = m_BoxSampleDelta;
 	bloomDataPtr->intensity      = m_Intensity;
-	bloomDataPtr->usePrefilter   = m_UsePrefilter ? 1.0f : 0.0f;
+	bloomDataPtr->b_UsePrefilter   = mb_UsePrefilter ? 1 : 0;
+	bloomDataPtr->b_UseFinalPass   = b_IsFinalPass   ? 1 : 0;
 
 	deviceContext->Unmap(m_BloomParamBuffer, 0);
 	deviceContext->PSSetConstantBuffers(0, 1, &m_BloomParamBuffer);
@@ -240,7 +270,7 @@ void Bloom::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR*
 	MessageBox(hwnd, L"Error compiling shader.  Check shader-error.txt for message.", shaderFilename, MB_OK);
 }
 
-// Note: do not cleanup vertex shader or input layout instances, they are passed in by screen shader
+// Note: do not cleanup vertex shader or input layout instances, they are passed in by screen shader and are managed externally
 void Bloom::Shutdown() {
 	if(m_SampleState) {
 		m_SampleState->Release();
@@ -260,6 +290,12 @@ void Bloom::Shutdown() {
 	if(m_PixelShader) {
 		m_PixelShader->Release();
 		m_PixelShader = nullptr;
+	}
+
+	if(m_BloomOutputTexture) {
+		m_BloomOutputTexture->Shutdown();
+		delete m_BloomOutputTexture;
+		m_BloomOutputTexture = nullptr;
 	}
 
 	for(RenderTexture* rt : m_RenderTexures) {

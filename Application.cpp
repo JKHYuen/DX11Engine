@@ -198,18 +198,14 @@ bool Application::Frame(Input* input) {
 		return false;
 	}
 
-	if(mb_ShowImGuiMenu) {
-		m_DemoScene->UpdateMainImGuiWindow(m_FpsCounter->GetCurrentFPS(), mb_IsWireFrameRender, mb_ShowImGuiMenu, mb_ShowScreenFPS);
-	}
-
 	// Render scene texture with post processing to main back buffer
 	if(!RenderToBackBuffer()) {
 		return false;
 	}
 
 	/// USER INPUT
-	// Exit app if escape is pressed
-	if(input->IsEscapeKeyDown()) {
+	// Exit app if escape key down or ImGui quit flag
+	if(input->IsEscapeKeyDown() || mb_QuitApp) {
 		return false;
 	}
 
@@ -251,7 +247,6 @@ bool Application::UpdateFpsDisplay() {
 
 	// Setup the fps string.
 	strcpy_s(finalString, tempString);
-	//strcat_s(finalString, tempString);
 
 	float red, green, blue;
 	if(fps >= 60) {
@@ -297,28 +292,33 @@ bool Application::RenderSceneToScreenTexture() {
 }
 
 bool Application::RenderToBackBuffer() {
-	// Reset to back buffer render target
-	m_D3DInstance->SetToBackBufferRenderTargetAndViewPort();
-	m_D3DInstance->ClearBackBuffer(0.0f, 0.0f, 0.0f, 1.0f);
-
-	// Get the world, view, and projection matrices from the camera and d3d objects.
 	XMMATRIX worldMatrix {}, viewMatrix {}, projectionMatrix {}, orthoMatrix {};
 	m_D3DInstance->GetWorldMatrix(worldMatrix);
 	m_ScreenDisplayCamera->GetViewMatrix(viewMatrix);
-	//m_direct3D->GetProjectionMatrix(projectionMatrix);
 	m_D3DInstance->GetOrthoMatrix(orthoMatrix);
 
-	/// 2D Rendering
-	// Turn off the Z buffer to begin all 2D rendering.
-	m_D3DInstance->TurnZBufferOff();
-	m_D3DInstance->EnableAlphaBlending();
-
+	// NOTE: Calls m_D3DInstance->SetToBackBufferRenderTargetAndViewPort();
 	// Render the display plane using the post processing setup in scene
-	// TODO: move "SetToBackBufferRenderTargetAndViewPort()" into this function, i.e. do post processing (bloom) rendering then switch to back buffer
 	m_ScreenDisplayQuad->Render(m_D3DInstance->GetDeviceContext());
 	if(!m_DemoScene->RenderPostProcess(m_ScreenDisplayQuad->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix, m_ScreenRenderTexture->GetTextureSRV())) {
 		return false;
 	}
+
+	/// Alpha blended
+	m_D3DInstance->TurnZBufferOff();
+	m_D3DInstance->EnableAlphaBlending();
+
+	/// DEBUG Text (UI)
+	if(mb_ShowScreenFPS) {
+		m_FpsString->Render(m_D3DInstance->GetDeviceContext());
+		if(!m_FontShader->Render(m_D3DInstance->GetDeviceContext(), m_FpsString->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix,
+			m_Font->GetTexture(), m_FpsString->GetPixelColor())) {
+			return false;
+		}
+	}
+
+	m_D3DInstance->TurnZBufferOn();
+	m_D3DInstance->DisableAlphaBlending();
 
 	/// DEBUG textures (UI) //
 	// Depth Debug Quad
@@ -345,20 +345,11 @@ bool Application::RenderToBackBuffer() {
 		}
 	}
 
-	/// DEBUG Text (UI)
-	if(mb_ShowScreenFPS) {
-		m_FpsString->Render(m_D3DInstance->GetDeviceContext());
-		if(!m_FontShader->Render(m_D3DInstance->GetDeviceContext(), m_FpsString->GetIndexCount(), worldMatrix, viewMatrix, orthoMatrix,
-			m_Font->GetTexture(), m_FpsString->GetPixelColor())) {
-			return false;
-		}
+	/// Render IMGUI
+	if(mb_ShowImGuiMenu) {
+		m_DemoScene->UpdateMainImGuiWindow(m_FpsCounter->GetCurrentFPS(), mb_IsWireFrameRender, mb_ShowImGuiMenu, mb_ShowScreenFPS, mb_QuitApp);
 	}
 
-	// Turn the Z buffer back on now that all 2D rendering has completed.
-	m_D3DInstance->TurnZBufferOn();
-	m_D3DInstance->DisableAlphaBlending();
-
-	/// Render IMGUI
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 

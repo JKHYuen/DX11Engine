@@ -8,6 +8,7 @@
 using namespace DirectX;
 
 struct ID3D11ShaderResourceView;
+struct ID3D11Device;
 class Texture;
 class Model;
 class QuadModel;
@@ -38,7 +39,7 @@ public:
 	bool RenderPostProcess(int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX orthoMatrix, ID3D11ShaderResourceView* textureSRV);
 	bool RenderDirectionalLightSceneDepth(float time);
 	
-	void UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS);
+	void UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitApp);
 	void ProcessInput(Input* input, float deltaTime);
 
 	RenderTexture* GetDirectionalShadowMapRenderTexture() const { return m_DirectionalShadowMapRenderTexture; }
@@ -48,6 +49,7 @@ public:
 private:
 	bool LoadPBRTextureResource(const std::string& textureFileName);
 	bool LoadModelResource(const std::string& modelFileName);
+	bool LoadPBRShader(ID3D11Device* device, HWND hwnd);
 
 private:
 	D3DInstance* m_D3DInstance {};

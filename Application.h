@@ -90,6 +90,8 @@ private:
 	bool mb_IsWireFrameRender {};
 	bool mb_ShowScreenFPS {};
 
+	bool mb_QuitApp {};
+
 	FpsCounter* m_FpsCounter {};
 	Text* m_FpsString {};
 

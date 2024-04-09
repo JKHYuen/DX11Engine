@@ -213,6 +213,10 @@ void RenderTexture::ClearRenderTarget(float red, float green, float blue, float 
     m_DeviceContext->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 
+void RenderTexture::ClearDepth() {
+    m_DeviceContext->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
+}
+
 void RenderTexture::Shutdown() {
     if(m_DepthStencilView) {
         m_DepthStencilView->Release();

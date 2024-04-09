@@ -29,6 +29,7 @@ cbuffer MaterialParamBuffer : register(b1) {
     // Note: can move this into uv : TEXCOORD0
     float uvScale;
     float parallaxHeightScale;
+    // TODO: add min roughness
     float2 padding;
 };
 
@@ -207,6 +208,7 @@ float4 PBRPixelShader(PixelInputType i) : SV_TARGET {
     
     float metallic = metallicMap.Sample(SamplerWrap, i.uv).r;
     float roughness = roughnessMap.Sample(SamplerWrap, i.uv).r;
+    //roughness = max(0.025f, roughness);
     
     float3 viewDirection = normalize(i.cameraPosition - i.worldPosition.xyz);
     
@@ -232,8 +234,12 @@ float4 PBRPixelShader(PixelInputType i) : SV_TARGET {
     float3 F = FresnelSchlick(max(dot(viewDirection, H), 0.0), F0);
            
     float3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(normal, viewDirection), 0.0) * max(dot(normal, L), 0.0) + 0.0001; // + 0.0001 to prevent divide by zero
+    float denominator = 4.0 * max(dot(normal, viewDirection), 0.0) * max(dot(normal, L), 0.0) + 0.0001;
     float3 specular = numerator / denominator;
+    
+    // Prevent artifacts from extremely bright pixels on perfectly smooth materials (bandaid fix)
+    // This may cause some specular highilghts to be omitted (e.g. marble sphere from demo scene)
+    specular = clamp(specular, 0, 10000);
         
     // kS is equal to Fresnel
     float3 kS = F;
@@ -248,7 +254,6 @@ float4 PBRPixelShader(PixelInputType i) : SV_TARGET {
 
     // scale light by NdotL
     float NdotL = max(dot(normal, L), 0.0);
-
     // add to outgoing radiance Lo
     // note that we already multiplied the BRDF by the Fresnel (kS) so we won't multiply by kS again
     Lo += (kD * albedo / PI + specular) * radiance * NdotL;
@@ -265,11 +270,11 @@ float4 PBRPixelShader(PixelInputType i) : SV_TARGET {
     
     float3 irradiance = irradianceMap.Sample(SamplerWrap, normal).rgb;
     float3 diffuse = irradiance * albedo;
-  
+    
     float3 prefilteredColor = prefilterMap.SampleLevel(SamplerWrap, R, roughness * MAX_REFLECTION_LOD).rgb;
     float2 envBRDF = brdfLUT.Sample(SamplerClamp, float2(max(dot(normal, viewDirection), 0.0), roughness)).rg;
     float3 indirectSpecular = prefilteredColor * (F * envBRDF.x + envBRDF.y);
-  
+
     float3 ambient = (indirect_kD * diffuse + indirectSpecular) * ao;
     
     ////////////////////////

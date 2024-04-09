@@ -1,5 +1,5 @@
 Texture2D screenTexture : register(t0);
-SamplerState SampleType : register(s0);
+SamplerState ClampSampler : register(s0);
 
 struct PixelInputType {
     float4 position : SV_POSITION;
@@ -36,7 +36,7 @@ float3 HableTMO(float3 v) {
 
 // Rendered objects on screen texture should be in linear color space
 float4 TexturePixelShader(PixelInputType i) : SV_TARGET {
-    float4 color = screenTexture.Sample(SampleType, i.uv);
+    float4 color = screenTexture.Sample(ClampSampler, i.uv);
     
     // Tonemap
     color.rgb = ReinhardJodieTMO(color.rgb);

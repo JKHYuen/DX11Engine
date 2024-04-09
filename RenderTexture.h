@@ -16,6 +16,8 @@ public:
     bool SetTextureArrayRenderTargetAndViewport(ID3D11Device* device, int targetArrayIndex, int targetMipSlice, int targetWidth, int targetHeight, int arraySize = -1);
     void ClearRenderTarget(float red, float green, float blue, float alpha);
 
+    void ClearDepth();
+
     ID3D11ShaderResourceView* GetTextureSRV() const { return m_ShaderResourceView; }
     void GetProjectionMatrix(XMMATRIX& projectionMatrix) const { projectionMatrix = m_ProjectionMatrix; }
     void GetOrthoMatrix(XMMATRIX& orthoMatrix) const { orthoMatrix = m_OrthoMatrix; }

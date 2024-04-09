@@ -18,17 +18,29 @@
 #include "imgui_impl_dx11.h"
 
 #include <iostream>
+#include <stdio.h>
 #include <cmath>
 #include <future>
 
+// EXPERIMENTAL
+#define USE_MULTITHREAD_INITIALIZE 1
+
 /// Demo Scene starting values
 static const float kStartingDirectionalLightDirX = 50.0f;
-static const float kStartingDirectionalLightDirY = 30.0f;
+static const float kStartingDirectionalLightDirY = 230.0f;
 // sunlight color: 9.0f, 5.0f, 2.0f 
 //                 29.0f, 18.0f, 11.0f
 static const XMFLOAT3 kStartingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0f};
 
+// PBR Texture names (files included in demo build)
+static const std::vector<std::string> kPBRMaterialNames {"bog", "brick", "dented", "dirt", "marble", "metal_grid", "rust", "stonewall"};
+
 static std::mutex s_DeviceContextMutex {};
+
+bool Scene::LoadPBRShader(ID3D11Device* device, HWND hwnd) {
+	m_PBRShaderInstance = new PBRShader();
+	return m_PBRShaderInstance->Initialize(m_D3DInstance->GetDevice(), hwnd);
+}
 
 bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ, RenderTexture* screenRenderTexture, TextureShader* passThroughShaderInstance) {
 	bool result;
@@ -43,12 +55,16 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 		return false;
 	}
 
+#if USE_MULTITHREAD_INITIALIZE == 0
 	m_PBRShaderInstance = new PBRShader();
 	result = m_PBRShaderInstance->Initialize(m_D3DInstance->GetDevice(), hwnd);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize the PBR shader object.", L"Error", MB_OK);
 		return false;
 	}
+#else
+	auto fs1 = std::async(std::launch::async, &Scene::LoadPBRShader, this, m_D3DInstance->GetDevice(), hwnd);
+#endif
 
 	m_PostProcessShader = new TextureShader();
 	result = m_PostProcessShader->Initialize(m_D3DInstance->GetDevice(), hwnd, true /*isPostProcessShader*/);
@@ -72,10 +88,23 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	/// Load 3D Objects
 	// TODO: Check for failure
 	// TODO: Remove for release?
-#define USE_MULTITHREAD 1
-#if USE_MULTITHREAD == 0
+#if USE_MULTITHREAD_INITIALIZE == 0
 	LoadModelResource("sphere");
 	LoadModelResource("plane");
+	LoadModelResource("cube");
+#else
+	auto f1 = std::async(std::launch::async, &Scene::LoadModelResource, this, "sphere");
+	auto f2 = std::async(std::launch::async, &Scene::LoadModelResource, this, "plane");
+	auto f3 = std::async(std::launch::async, &Scene::LoadModelResource, this, "cube");
+
+	// NOTE: very primitive way to do multithreading, need to multithread Texture::Initialize() for real performance gain (Majority of LoadPBRTextureResource() is locked as a critical section currently)
+	//auto f3 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "rust");
+	//auto f4 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "stonewall");
+	//auto f5 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "metal_grid");
+	//auto f6 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "marble");
+	//auto f7 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "dirt");
+	//auto f8 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "bog");
+#endif
 
 	LoadPBRTextureResource("rust");
 	LoadPBRTextureResource("stonewall");
@@ -83,17 +112,6 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	LoadPBRTextureResource("marble");
 	LoadPBRTextureResource("dirt");
 	LoadPBRTextureResource("bog");
-#else
-	auto f7 = std::async(std::launch::async, &Scene::LoadModelResource, this, "sphere");
-	auto f8 = std::async(std::launch::async, &Scene::LoadModelResource, this, "plane");
-
-	auto f1 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "rust");
-	auto f2 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "stonewall");
-	auto f3 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "metal_grid");
-	auto f4 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "marble");
-	auto f5 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "dirt");
-	auto f6 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "bog");
-#endif
 
 	/// Load skybox cubemap
 	XMMATRIX screenOrthoMatrix;
@@ -101,22 +119,11 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 
 	m_CubeMapObject = new CubeMapObject();
 	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k | abandoned_tiled_room_4k
-	result = m_CubeMapObject->Initialize(m_D3DInstance, hwnd, "rural_landscape_4k", 2048, 9, 32, 512, 512, screenCameraViewMatrix, screenOrthoMatrix, quadModel);
+	result = m_CubeMapObject->Initialize(m_D3DInstance, hwnd, "industrial_sunset_puresky_4k", 2048, 9, 32, 512, 512, screenCameraViewMatrix, screenOrthoMatrix, quadModel);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize cubemap.", L"Error", MB_OK);
 		return false;
 	}
-
-#if USE_MULTITHREAD == 1
-	f1.wait();
-	f2.wait();
-	f3.wait();
-	f4.wait();
-	f5.wait();
-	f6.wait();
-	f7.wait();
-	f8.wait();
-#endif
 
 	// Temp scene system
 	struct GameObjectData {
@@ -193,6 +200,13 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	//m_Lights[3].SetDiffuseColor(1.0f, 1.0f, 1.0f, 1.0f);  // White
 	//m_Lights[3].SetPosition(3.0f, 1.0f, -3.0f);
 
+#if USE_MULTITHREAD_INITIALIZE == 1
+	if(!fs1.get()) {
+		MessageBox(hwnd, L"Could not initialize the PBR shader object.", L"Error", MB_OK);
+		return false;
+	}
+#endif
+
 	return true;
 }
 
@@ -216,14 +230,13 @@ bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
 		}
 	}
 
-	static ID3D11ShaderResourceView* nullSRV[6] = {nullptr, nullptr,nullptr, nullptr, nullptr, nullptr};
-	m_D3DInstance->GetDeviceContext()->PSSetShaderResources(0, 6, nullSRV);
+	static ID3D11ShaderResourceView* nullSRV[10] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+	m_D3DInstance->GetDeviceContext()->PSSetShaderResources(0, 10, nullSRV);
 
-	// TODO: figure out more elegant solution for raster states
+	// Render skybox
 	m_D3DInstance->SetToFrontCullRasterState();
 	m_CubeMapObject->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, CubeMapObject::kSkyBoxRender);
 	m_D3DInstance->SetToBackCullRasterState();
-
 
 	//m_ScreenRenderTexture->TurnZBufferOff();
 	//m_ScreenRenderTexture->EnableAlphaBlending();
@@ -237,19 +250,30 @@ bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
 }
 
 bool Scene::RenderPostProcess(int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX orthoMatrix, ID3D11ShaderResourceView* textureSRV) {
-	if(!m_PostProcessShader->Render(m_D3DInstance->GetDeviceContext(), indexCount, worldMatrix, viewMatrix, orthoMatrix, textureSRV)) {
-		return false;
-	}
-
-	// TEMP DEBUG
+	// Note: bloom and post process shader (tonemapping) are separated to keep shaders more readable in this demo
 	if(!m_BloomEffect->RenderEffect(m_D3DInstance, indexCount, worldMatrix, viewMatrix, orthoMatrix, textureSRV)) {
 		return false;
 	}
 
+	m_D3DInstance->SetToBackBufferRenderTargetAndViewPort();
+	m_D3DInstance->ClearBackBuffer(0.0f, 0.0f, 0.0f, 1.0f);
+
+	if(!m_PostProcessShader->Render(m_D3DInstance->GetDeviceContext(), indexCount, worldMatrix, viewMatrix, orthoMatrix, m_BloomEffect->GetBloomOutput()->GetTextureSRV())) {
+		return false;
+	}
+
+	// DEBUG: Bypass Bloom
+	//if(!m_PostProcessShader->Render(m_D3DInstance->GetDeviceContext(), indexCount, worldMatrix, viewMatrix, orthoMatrix, textureSRV)) {
+	//	return false;
+	//}
+
+	static ID3D11ShaderResourceView* nullSRV[2] = {nullptr, nullptr};
+	m_D3DInstance->GetDeviceContext()->PSSetShaderResources(0, 2, nullSRV);
+
 	return true;
 }
 
-RenderTexture* Scene::GetDebugBloomOutput() const { return m_BloomEffect->GetDebugBloomOutput(); }
+RenderTexture* Scene::GetDebugBloomOutput() const { return m_BloomEffect->GetDebugBloomTexture(); }
 
 bool Scene::RenderDirectionalLightSceneDepth(float time) {
 	// Set the render target to be the render texture and clear it.
@@ -285,8 +309,8 @@ bool Scene::LoadPBRTextureResource(const std::string& textureFileName) {
 		std::vector<Texture*> textureResources;
 		textureResources.reserve(textureFileNames.size());
 		for(size_t i = 0; i < textureFileNames.size(); i++) {
-#if USE_MULTITHREAD == 1
-			//std::lock_guard<std::mutex> lock {s_DeviceContextMutex};
+#if USE_MULTITHREAD_INITIALIZE == 1
+			std::lock_guard<std::mutex> lock {s_DeviceContextMutex};
 #endif
 			textureResources.push_back(new Texture());
 			if(!textureResources[i]->Initialize(
@@ -297,9 +321,6 @@ bool Scene::LoadPBRTextureResource(const std::string& textureFileName) {
 		}
 
 		m_LoadedTextureResources.emplace(textureFileName, textureResources);
-	}
-	else {
-		std::cout << "Warning: Attempting to load existing PBR material textures: \"" << textureFileName << "\"." << std::endl;
 	}
 
 	return true;
@@ -316,18 +337,37 @@ bool Scene::LoadModelResource(const std::string& modelFileName) {
 
 		m_LoadedModelResources.emplace(modelFileName, pTempModel);
 	}
-	else {
-		std::cout << "Warning: Attempting to load existing model: \"" << modelFileName << "\"." << std::endl;
-	}
 
 	return true;
 }
 
-void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS) {
+void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitApp) {
+	auto ImGuiHelpMarker = [](const char* desc) {
+		ImGui::SameLine();
+		ImGui::TextDisabled("(?)");
+		if(ImGui::BeginItemTooltip()) {
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+			ImGui::TextUnformatted(desc);
+			ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
+		}
+	};
+
 	static ImGuiSliderFlags sliderFlags = ImGuiSliderFlags_AlwaysClamp;
 
 	bool b_isMenuActive = true;
 	ImGui::Begin("Scene Menu", &b_isMenuActive, ImGuiWindowFlags_None);
+
+	/// Exit button
+	ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ImColor::HSV(0.0f, 0.6f, 0.6f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
+	if(ImGui::Button("EXIT APP")) {
+		b_QuitApp = true;
+	}
+	ImGui::PopStyleColor(3);
+	ImGuiHelpMarker("Press this button or \"Esc\" to quit app.");
+	ImGui::Spacing();
 
 	/// Misc
 	static char gpuName[128] {};
@@ -371,37 +411,61 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 	}
 	ImGui::Spacing();
 
-	/// Material Edit
-	ImGui::SeparatorText("Ground Material");
-	static float userParallaxHeight = m_GameObjects[m_GameObjects.size() - 1]->GetParallaxMapHeightScale();
-	if(ImGui::DragFloat("[x, y]", &userParallaxHeight, 0.001f, -1000.0f, 1000.0f, "%.3f", sliderFlags)) {
-		m_GameObjects[m_GameObjects.size() - 1]->SetParallaxMapHeightScale(userParallaxHeight);
-	}
-
-	static bool b1 {};
-	if(ImGui::Checkbox("Switch Ground Material", &b1)) {
-		m_GameObjects[m_GameObjects.size() - 1]->SetMaterialTextures(b1 ? m_LoadedTextureResources["bog"] : m_LoadedTextureResources["dirt"]);
-	}
-
 	/// Bloom Params
 	ImGui::SeparatorText("Bloom");
 	ImGui::Text("Intensity");
-	static float userBloomIntensity = 1.0f;
+	static float userBloomIntensity = m_BloomEffect->GetIntensity();
 	if(ImGui::DragFloat("##Intensity", &userBloomIntensity, 0.01f, 0.0f, 1000.0f, "%.2f", sliderFlags)) {
 		m_BloomEffect->SetIntensity(userBloomIntensity);
 	}
 
 	ImGui::Text("Threshold");
-	static float userBloomThreshold = 1.0f;
-	if(ImGui::DragFloat("##Thresh", &userBloomThreshold, 0.01f, 0.0f, 1000.0f, "%.2f", sliderFlags)) {
+	static float userBloomThreshold = m_BloomEffect->GetThreshold();
+	if(ImGui::DragFloat("##Thresh", &userBloomThreshold, 0.01f, 0.0f, 10000.0f, "%.2f", sliderFlags)) {
 		m_BloomEffect->SetThreshold(userBloomThreshold);
 	}
 
 	ImGui::Text("Soft Threshold");
-	static float userBloomSoftThreshold = 0.5f;
-	if(ImGui::DragFloat("##SoftThresh", &userBloomSoftThreshold, 0.01f, 0.0f, 1000.0f, "%.2f", sliderFlags)) {
-		m_BloomEffect->SetThreshold(userBloomSoftThreshold);
+	static float userBloomSoftThreshold = m_BloomEffect->GetSoftThreshold();
+	if(ImGui::DragFloat("##SoftThresh", &userBloomSoftThreshold, 0.001f, 0.0f, 1.0f, "%.2f", sliderFlags)) {
+		m_BloomEffect->SetSoftThreshold(userBloomSoftThreshold);
 	}
+	ImGui::Spacing();
+
+	/// Material Edit
+	ImGui::SeparatorText("Ground");
+
+	ImGui::Text("Material Select");
+	static int selected = 3;
+	if(ImGui::BeginTable("##materials", 3, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_Borders)) {
+		for(int i = 0; i < kPBRMaterialNames.size(); i++) {
+			ImGui::TableNextColumn();
+			if(ImGui::Selectable(kPBRMaterialNames[i].c_str(), selected == i)) {
+				LoadPBRTextureResource(kPBRMaterialNames[i % kPBRMaterialNames.size()]);
+				m_GameObjects[m_GameObjects.size() - 1]->SetMaterialTextures(m_LoadedTextureResources[kPBRMaterialNames[i % kPBRMaterialNames.size()]]);
+			}
+		}
+		ImGui::EndTable();
+	}
+
+	static float userParallaxHeight = m_GameObjects[m_GameObjects.size() - 1]->GetParallaxMapHeightScale();
+	if(ImGui::DragFloat("[x, y]", &userParallaxHeight, 0.001f, -1000.0f, 1000.0f, "%.3f", sliderFlags)) {
+		m_GameObjects[m_GameObjects.size() - 1]->SetParallaxMapHeightScale(userParallaxHeight);
+	}
+	ImGui::Spacing();
+
+
+	//static bool b1 {};
+	//if(ImGui::Checkbox("Switch Ground Material", &b1)) {
+	//	if(b1) {
+	//		LoadPBRTextureResource("dented");
+	//		m_GameObjects[m_GameObjects.size() - 1]->SetMaterialTextures(m_LoadedTextureResources["dented"]);
+	//	}
+	//	else {
+	//		LoadPBRTextureResource("dirt");
+	//		m_GameObjects[m_GameObjects.size() - 1]->SetMaterialTextures(m_LoadedTextureResources["dirt"]);
+	//	}
+	//}
 
 	ImGui::End();
 
@@ -410,6 +474,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		ShowCursor(b_ShowImGuiMenu);
 	}
 }
+
 
 void Scene::ProcessInput(Input* input, float deltaTime) {
 	static bool b_EnableFastMove = false;

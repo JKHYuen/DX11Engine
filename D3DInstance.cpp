@@ -167,8 +167,8 @@ bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND
 
 	// Create the swap chain, Direct3D device, and Direct3D device context.
 	result = D3D11CreateDeviceAndSwapChain(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL,
-		0,
-		//D3D11_CREATE_DEVICE_DEBUG,
+		//0,
+		D3D11_CREATE_DEVICE_DEBUG,
 		&featureLevel, 1,
 		D3D11_SDK_VERSION, &swapChainDesc, &m_SwapChain, &m_Device, NULL, &m_DeviceContext);
 	if(FAILED(result)) {
@@ -411,8 +411,6 @@ void D3DInstance::SwapPresent() {
 		// Present as fast as possible.
 		m_SwapChain->Present(0, 0);
 	}
-
-	return;
 }
 
 ID3D11Device* D3DInstance::GetDevice() {

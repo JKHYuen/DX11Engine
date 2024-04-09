@@ -6,8 +6,8 @@ cbuffer MaterialParamBuffer : register(b0) {
     float4 _Filter;
     float _BoxSampleDelta;
     float _Intensity;
-    float _UsePrefilter;
-    float padding;
+    int _UsePrefilter;
+    int _UseFinalPass;
 };
 
 struct PixelInputType {
@@ -15,37 +15,32 @@ struct PixelInputType {
     float2 uv : TEXCOORD0;
 };
 
-half3 Prefilter(half3 c) {
+float3 Prefilter(float3 c) {
     // brightness is max of color channels
-    half brightness = max(c.r, max(c.g, c.b));
-    half soft = brightness - _Filter.y;
+    float brightness = max(c.r, max(c.g, c.b));
+    float soft = brightness - _Filter.y;
     soft = clamp(soft, 0, _Filter.z);
     soft = soft * soft * _Filter.w;
-    half contribution = max(soft, brightness - _Filter.x);
+    float contribution = max(soft, brightness - _Filter.x);
     contribution /= max(brightness, 0.00001);
     return c * contribution;
 }
 
-half3 SampleBox(float2 uv, float delta) {
+float3 SampleBox(float2 uv, float delta) {
     float width, height, numOfLevels;
     screenTexture.GetDimensions(0, width, height, numOfLevels);
     
-    float4 o = float2(width, height).xyxy * float2(-delta, delta).xxyy;
-    half3 s = screenTexture.Sample(wrapSampler, uv + o.xy).rgb + screenTexture.Sample(wrapSampler, uv + o.zy).rgb +
-			  screenTexture.Sample(wrapSampler, uv + o.xw).rgb + screenTexture.Sample(wrapSampler, uv + o.zw).rgb;
+    float4 o = float2(1.0 / width, 1.0 / height).xyxy * float2(-delta, delta).xxyy;
+    float3 s = screenTexture.Sample(wrapSampler, uv + o.xy).rgb + screenTexture.Sample(wrapSampler, uv + o.zy).rgb +
+			   screenTexture.Sample(wrapSampler, uv + o.xw).rgb + screenTexture.Sample(wrapSampler, uv + o.zw).rgb;
     return s * 0.25f;
 }
 
 // NOTE: implementation of different shader passes for bloom using conditionals, may not be the most performant
-half4 BloomPixelShader(PixelInputType i) : SV_TARGET {
-    half3 color;
+float4 BloomPixelShader(PixelInputType i) : SV_TARGET {
+    float3 color;
     
-    // Use final upsample + bloom addition pass if _Intensity != 0
-    if(_Intensity != 0) {
-        color = sourceTexture.Sample(wrapSampler, i.uv).rgb;
-        color.rgb += _Intensity * SampleBox(i.uv, 0.5);
-    }
-    else {
+    if(_UseFinalPass == 0) {
         // Prefilter + first downsample pass
         if(_UsePrefilter != 0) {
             color = Prefilter(SampleBox(i.uv, 1));
@@ -55,6 +50,11 @@ half4 BloomPixelShader(PixelInputType i) : SV_TARGET {
             color = SampleBox(i.uv, _BoxSampleDelta);
         }
     }
+    // Use final upsample + bloom addition pass
+    else {
+        color = sourceTexture.Sample(wrapSampler, i.uv).rgb;
+        color.rgb += _Intensity * SampleBox(i.uv, 0.5);
+    }
     
-    return half4(color, 1.0);
+    return float4(color, 1.0);
 }

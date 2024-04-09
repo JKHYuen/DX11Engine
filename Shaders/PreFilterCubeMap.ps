@@ -85,7 +85,6 @@ float4 Frag(PixelInputType i) : SV_TARGET {
 
         float NdotL = max(dot(N, L), 0.0);
         if (NdotL > 0.0) {
-
             // sample from the environment's mip level based on roughness/pdf
             float D = DistributionGGX(N, H, roughness);
             float NdotH = max(dot(N, H), 0.0);
