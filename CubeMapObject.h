@@ -4,7 +4,6 @@
 #include <string>
 
 #include <d3d11.h>
-#include <d3dcompiler.h>
 #include <directxmath.h>
 using namespace DirectX;
 
@@ -57,7 +56,6 @@ private:
     };
 
 private:
-    void OutputShaderErrorMessage(ID3D10Blob*, HWND, WCHAR*);
     bool InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shaderName, ID3D11VertexShader** ppVertShader, ID3D11PixelShader** ppPixelShader);
     bool InitializeUnitCubeBuffers(ID3D11Device* device);
 

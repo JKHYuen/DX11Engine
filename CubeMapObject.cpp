@@ -1,75 +1,78 @@
 #include "CubeMapObject.h"
+#include "ShaderUtil.h"
+
 #include "QuadModel.h"
 #include "RenderTexture.h"
 #include "Texture.h"
 #include "D3DInstance.h"
-#include <fstream>
 
-static constexpr int s_UnitCubeVertexCount = 36;
-static constexpr int s_UnitCubeIndexCount = 36;
-static constexpr int s_UnitQuadIndexCount = 6;
-// x, y, z, u, v
-static constexpr float kUnitCubeVertices[] = {
-	-1.0 , 1.0, -1.0, 0.0 , 0.0,
-	 1.0 , 1.0, -1.0, 1.0 , 0.0,
-	-1.0, -1.0, -1.0, 0.0,  1.0,
-	-1.0, -1.0, -1.0, 0.0,  1.0,
-	 1.0 , 1.0, -1.0, 1.0 , 0.0,
-	 1.0 ,-1.0, -1.0, 1.0 , 1.0,
-	 1.0 , 1.0, -1.0, 0.0 , 0.0,
-	 1.0 , 1.0,  1.0, 1.0 , 0.0,
-	 1.0 ,-1.0, -1.0, 0.0 , 1.0,
-	 1.0 ,-1.0, -1.0, 0.0 , 1.0,
-	 1.0 , 1.0,  1.0, 1.0 , 0.0,
-	 1.0 ,-1.0,  1.0, 1.0 , 1.0,
-	 1.0 , 1.0,  1.0, 0.0 , 0.0,
-	-1.0,  1.0,  1.0, 1.0,  0.0,
-	 1.0 ,-1.0,  1.0, 0.0 , 1.0,
-	 1.0 ,-1.0,  1.0, 0.0 , 1.0,
-	-1.0,  1.0,  1.0, 1.0,  0.0,
-	-1.0, -1.0,  1.0, 1.0,  1.0,
-	-1.0,  1.0,  1.0, 0.0,  0.0,
-	-1.0,  1.0, -1.0, 1.0,  0.0,
-	-1.0, -1.0,  1.0, 0.0,  1.0,
-	-1.0, -1.0,  1.0, 0.0,  1.0,
-	-1.0,  1.0, -1.0, 1.0,  0.0,
-	-1.0, -1.0, -1.0, 1.0,  1.0,
-	-1.0,  1.0,  1.0, 0.0,  0.0,
-	 1.0 , 1.0,  1.0, 1.0 , 0.0,
-	-1.0,  1.0, -1.0, 0.0,  1.0,
-	-1.0,  1.0, -1.0, 0.0,  1.0,
-	 1.0 , 1.0,  1.0, 1.0 , 0.0,
-	 1.0 , 1.0, -1.0, 1.0 , 1.0,
-	-1.0, -1.0, -1.0, 0.0,  0.0,
-	 1.0 ,-1.0, -1.0, 1.0 , 0.0,
-	-1.0, -1.0,  1.0, 0.0,  1.0,
-	-1.0, -1.0,  1.0, 0.0,  1.0,
-	 1.0 ,-1.0, -1.0, 1.0 , 0.0,
-	 1.0 ,-1.0,  1.0, 1.0 , 1.0,
-};
+namespace {
+	static constexpr int s_UnitCubeVertexCount = 36;
+	static constexpr int s_UnitCubeIndexCount = 36;
+	static constexpr int s_UnitQuadIndexCount = 6;
+	// x, y, z, u, v
+	static constexpr float kUnitCubeVertices[] = {
+		-1.0 , 1.0, -1.0, 0.0 , 0.0,
+		 1.0 , 1.0, -1.0, 1.0 , 0.0,
+		-1.0, -1.0, -1.0, 0.0,  1.0,
+		-1.0, -1.0, -1.0, 0.0,  1.0,
+		 1.0 , 1.0, -1.0, 1.0 , 0.0,
+		 1.0 ,-1.0, -1.0, 1.0 , 1.0,
+		 1.0 , 1.0, -1.0, 0.0 , 0.0,
+		 1.0 , 1.0,  1.0, 1.0 , 0.0,
+		 1.0 ,-1.0, -1.0, 0.0 , 1.0,
+		 1.0 ,-1.0, -1.0, 0.0 , 1.0,
+		 1.0 , 1.0,  1.0, 1.0 , 0.0,
+		 1.0 ,-1.0,  1.0, 1.0 , 1.0,
+		 1.0 , 1.0,  1.0, 0.0 , 0.0,
+		-1.0,  1.0,  1.0, 1.0,  0.0,
+		 1.0 ,-1.0,  1.0, 0.0 , 1.0,
+		 1.0 ,-1.0,  1.0, 0.0 , 1.0,
+		-1.0,  1.0,  1.0, 1.0,  0.0,
+		-1.0, -1.0,  1.0, 1.0,  1.0,
+		-1.0,  1.0,  1.0, 0.0,  0.0,
+		-1.0,  1.0, -1.0, 1.0,  0.0,
+		-1.0, -1.0,  1.0, 0.0,  1.0,
+		-1.0, -1.0,  1.0, 0.0,  1.0,
+		-1.0,  1.0, -1.0, 1.0,  0.0,
+		-1.0, -1.0, -1.0, 1.0,  1.0,
+		-1.0,  1.0,  1.0, 0.0,  0.0,
+		 1.0 , 1.0,  1.0, 1.0 , 0.0,
+		-1.0,  1.0, -1.0, 0.0,  1.0,
+		-1.0,  1.0, -1.0, 0.0,  1.0,
+		 1.0 , 1.0,  1.0, 1.0 , 0.0,
+		 1.0 , 1.0, -1.0, 1.0 , 1.0,
+		-1.0, -1.0, -1.0, 0.0,  0.0,
+		 1.0 ,-1.0, -1.0, 1.0 , 0.0,
+		-1.0, -1.0,  1.0, 0.0,  1.0,
+		-1.0, -1.0,  1.0, 0.0,  1.0,
+		 1.0 ,-1.0, -1.0, 1.0 , 0.0,
+		 1.0 ,-1.0,  1.0, 1.0 , 1.0,
+	};
 
-// View matrices for the 6 different cube directions
-static constexpr XMFLOAT3 float3_000  {  0.0f,   0.0f,  0.0f };
-static constexpr XMFLOAT3 float3_100  {  1.0f,   0.0f,  0.0f };
-static constexpr XMFLOAT3 float3_010  {  0.0f,   1.0f,  0.0f };
-static constexpr XMFLOAT3 float3_n100 { -1.0f,   0.0f,  0.0f };
-static constexpr XMFLOAT3 float3_00n1 {  0.0f,   0.0f, -1.0f };
-static constexpr XMFLOAT3 float3_0n10 {  0.0f,  -1.0f,  0.0f };
-static constexpr XMFLOAT3 float3_001  {  0.0f,   0.0f,  1.0f };
-static const std::array<XMMATRIX, 6> kCubeMapCaptureViewMats = {
-	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_100),  XMLoadFloat3(&float3_010)),
-	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_n100), XMLoadFloat3(&float3_010)),
-	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_010),  XMLoadFloat3(&float3_00n1)),
-	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_0n10),	XMLoadFloat3(&float3_001)),
-	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_001),	XMLoadFloat3(&float3_010)),
-	XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
-};
+	// View matrices for the 6 different cube directions
+	static constexpr XMFLOAT3 float3_000 {0.0f,   0.0f,  0.0f};
+	static constexpr XMFLOAT3 float3_100 {1.0f,   0.0f,  0.0f};
+	static constexpr XMFLOAT3 float3_010 {0.0f,   1.0f,  0.0f};
+	static constexpr XMFLOAT3 float3_n100 {-1.0f,   0.0f,  0.0f};
+	static constexpr XMFLOAT3 float3_00n1 {0.0f,   0.0f, -1.0f};
+	static constexpr XMFLOAT3 float3_0n10 {0.0f,  -1.0f,  0.0f};
+	static constexpr XMFLOAT3 float3_001 {0.0f,   0.0f,  1.0f};
+	static const std::array<XMMATRIX, 6> kCubeMapCaptureViewMats = {
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_100),  XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_n100), XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_010),  XMLoadFloat3(&float3_00n1)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_0n10),	XMLoadFloat3(&float3_001)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_001),	XMLoadFloat3(&float3_010)),
+		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
+	};
 
-static const std::wstring s_HDRCubeMapShaderName       = L"HDRCubeMap";
-static const std::wstring s_ConvoluteCubeMapShaderName = L"ConvoluteCubeMap";
-static const std::wstring s_PrefilterCubeMapShaderName = L"PreFilterCubeMap";
-static const std::wstring s_IntegrateBRDFShaderName    = L"IntegrateBRDF";
-static const std::wstring s_SkyboxRenderShaderName     = L"CubeMap";
+	static const std::wstring s_HDRCubeMapShaderName = L"HDRCubeMap";
+	static const std::wstring s_ConvoluteCubeMapShaderName = L"ConvoluteCubeMap";
+	static const std::wstring s_PrefilterCubeMapShaderName = L"PreFilterCubeMap";
+	static const std::wstring s_IntegrateBRDFShaderName = L"IntegrateBRDF";
+	static const std::wstring s_SkyboxRenderShaderName = L"CubeMap";
+}
 
 bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
 	bool result;
@@ -277,18 +280,16 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstri
 	ID3D10Blob* vertexShaderBuffer {};
 	ID3D10Blob* pixelShaderBuffer {};
 
-	std::wstring vsFileName = L"../DX11Engine/Shaders/" + shaderName + L".vs";
-	std::wstring psFileName = L"../DX11Engine/Shaders/" + shaderName + L".ps";
+	const std::wstring vsFileName = L"../DX11Engine/Shaders/" + shaderName + L".vs";
+	const std::wstring psFileName = L"../DX11Engine/Shaders/" + shaderName + L".ps";
 
 	// Compile the vertex shader code.
 	result = D3DCompileFromFile(vsFileName.c_str(), NULL, NULL, "Vert", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&vertexShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
-		// If the shader failed to compile it should have writen something to the error message.
 		if(errorMessage) {
-			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)vsFileName.c_str());
+			OutputShaderErrorMessage(errorMessage, hwnd, vsFileName.c_str());
 		}
-		// If there was  nothing in the error message then it simply could not find the shader file itself.
 		else {
 			MessageBox(hwnd, vsFileName.c_str(), L"Missing Shader File", MB_OK);
 		}
@@ -300,11 +301,9 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstri
 	result = D3DCompileFromFile(psFileName.c_str(), NULL, NULL, "Frag", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&pixelShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
-		// If the shader failed to compile it should have writen something to the error message.
 		if(errorMessage) {
 			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)psFileName.c_str());
 		}
-		// If there was nothing in the error message then it simply could not find the file itself.
 		else {
 			MessageBox(hwnd, psFileName.c_str(), L"Missing Shader File", MB_OK);
 		}
@@ -492,39 +491,6 @@ ID3D11ShaderResourceView* CubeMapObject::GetIrradianceMapSRV() const { return m_
 ID3D11ShaderResourceView* CubeMapObject::GetPrefilteredMapSRV() const { return m_PrefilteredCubeMapTex->GetTextureSRV(); }
 ID3D11ShaderResourceView* CubeMapObject::GetPrecomputedBRDFSRV() const { return m_PrecomputedBRDFTex->GetTextureSRV(); }
 
-void CubeMapObject::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR* shaderFilename) {
-	char* compileErrors;
-	unsigned long long bufferSize, i;
-	std::ofstream fout;
-
-	// Get a pointer to the error message text buffer.
-	compileErrors = (char*)(errorMessage->GetBufferPointer());
-
-	// Get the length of the message.
-	bufferSize = errorMessage->GetBufferSize();
-
-	// Open a file to write the error message to.
-	fout.open("shader-error.txt");
-
-	// Write out the error message.
-	for(i = 0; i < bufferSize; i++) {
-		fout << compileErrors[i];
-	}
-
-	// Close the file.
-	fout.close();
-
-	// Release the error message.
-	errorMessage->Release();
-	errorMessage = nullptr;
-
-	// Pop a message up on the screen to notify the user to check the text file for compile errors.
-	MessageBox(hwnd, L"Error compiling shader.  Check shader-error.txt for message.", shaderFilename, MB_OK);
-
-	return;
-}
-
-// Shutdown the vertex and pixel shaders as well as the related objects.
 void CubeMapObject::Shutdown() {
 	if(m_ClampSampleState) {
 		m_ClampSampleState->Release();

@@ -1,15 +1,13 @@
 #include "PBRShader.h"
+#include "ShaderUtil.h"
+
 #include "DirectionalLight.h"
 #include "Texture.h"
 
-#include <d3dcompiler.h>
-#include <fstream>
-
 bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
-    wchar_t vsFilename[128];
-    wchar_t psFilename[128];
-    int error;
-    bool result;
+    wchar_t vsFilename[128] {};
+    wchar_t psFilename[128] {};
+    int error {};
 
     // Set the filename of the vertex shader.
     error = wcscpy_s(vsFilename, 128, L"../DX11Engine/Shaders/PBR.vs");
@@ -23,42 +21,17 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
         return false;
     }
 
-    // Initialize the vertex and pixel shaders.
-    result = InitializeShader(device, hwnd, vsFilename, psFilename);
-    if(!result) {
-        return false;
-    }
-
-    return true;
-}
-
-bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilename, WCHAR* psFilename) {
     HRESULT result {};
     ID3D10Blob* errorMessage {};
     ID3D10Blob* vertexShaderBuffer {};
     ID3D10Blob* pixelShaderBuffer {};
 
-    D3D11_INPUT_ELEMENT_DESC polygonLayout[5] {};
-    unsigned int numElements {};
-    D3D11_SAMPLER_DESC samplerDesc {};
-    D3D11_BUFFER_DESC matrixBufferDesc {};
-
-    D3D11_BUFFER_DESC cameraBufferDesc {};
-    D3D11_BUFFER_DESC lightBufferDesc {};
-
-    //D3D11_BUFFER_DESC lightColorBufferDesc {};
-    //D3D11_BUFFER_DESC lightPositionBufferDesc {};
-
-    D3D11_BUFFER_DESC materialParamBuffer {};
-
     // Compile the vertex shader code.
     result = D3DCompileFromFile(vsFilename, NULL, NULL, "PBRVertexShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &vertexShaderBuffer, &errorMessage);
     if(FAILED(result)) {
-        // If the shader failed to compile it should have writen something to the error message.
         if(errorMessage) {
             OutputShaderErrorMessage(errorMessage, hwnd, vsFilename);
         }
-        // If there was nothing in the error message then it simply could not find the shader file itself.
         else {
             MessageBox(hwnd, vsFilename, L"Missing Shader File", MB_OK);
         }
@@ -69,11 +42,9 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     // Compile the pixel shader code.
     result = D3DCompileFromFile(psFilename, NULL, NULL, "PBRPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pixelShaderBuffer, &errorMessage);
     if(FAILED(result)) {
-        // If the shader failed to compile it should have writen something to the error message.
         if(errorMessage) {
             OutputShaderErrorMessage(errorMessage, hwnd, psFilename);
         }
-        // If there was nothing in the error message then it simply could not find the file itself.
         else {
             MessageBox(hwnd, psFilename, L"Missing Shader File", MB_OK);
         }
@@ -95,6 +66,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
 
     // Create the vertex input layout description.
     // This setup needs to match the VertexType stucture in the ModelClass and in the shader.
+    D3D11_INPUT_ELEMENT_DESC polygonLayout[5] {};
     polygonLayout[0].SemanticName = "POSITION";
     polygonLayout[0].SemanticIndex = 0;
     polygonLayout[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
@@ -136,7 +108,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     polygonLayout[4].InstanceDataStepRate = 0;
 
     // Get a count of the elements in the layout.
-    numElements = sizeof(polygonLayout) / sizeof(polygonLayout[0]);
+    unsigned int numElements = sizeof(polygonLayout) / sizeof(polygonLayout[0]);
 
     // Create the vertex input layout.
     result =
@@ -156,6 +128,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     pixelShaderBuffer = nullptr;
 
     /// Create the texture sampler states
+    D3D11_SAMPLER_DESC samplerDesc {};
     samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
     samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
     samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
@@ -200,6 +173,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     }
 
     /// Setup constant buffers
+    D3D11_BUFFER_DESC matrixBufferDesc {};
     matrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
     matrixBufferDesc.ByteWidth = sizeof(MatrixBufferType);
     matrixBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -214,6 +188,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     }
 
     //// Setup the description of the dynamic constant buffer that is in the pixel shader.
+    //D3D11_BUFFER_DESC lightColorBufferDesc {};
     //lightColorBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
     //lightColorBufferDesc.ByteWidth = sizeof(LightColorBufferType);
     //lightColorBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -228,6 +203,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     //}
 
     //// Setup the description of the dynamic constant buffer that is in the vertex shader.
+    //D3D11_BUFFER_DESC lightPositionBufferDesc {};
     //lightPositionBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
     //lightPositionBufferDesc.ByteWidth = sizeof(LightPositionBufferType);
     //lightPositionBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -242,6 +218,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
     //}
 
     // Setup the description of the camera dynamic constant buffer that is in the vertex shader.
+    D3D11_BUFFER_DESC cameraBufferDesc {};
     cameraBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
     cameraBufferDesc.ByteWidth = sizeof(CameraBufferType);
     cameraBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -257,6 +234,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
 
     // Setup the description of the light dynamic constant buffer that is in the pixel shader.
     // Note that ByteWidth always needs to be a multiple of 16 if using D3D11_BIND_CONSTANT_BUFFER or CreateBuffer will fail.
+    D3D11_BUFFER_DESC lightBufferDesc {};
     lightBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
     lightBufferDesc.ByteWidth = sizeof(LightBufferType);
     lightBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -270,6 +248,7 @@ bool PBRShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsFilen
         return false;
     }
 
+    D3D11_BUFFER_DESC materialParamBuffer {};
     materialParamBuffer.Usage = D3D11_USAGE_DYNAMIC;
     materialParamBuffer.ByteWidth = sizeof(MaterialParamBufferType);
     materialParamBuffer.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
@@ -497,60 +476,20 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     //deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightColorBuffer);
 
     // Now render the prepared buffers with the shader.
-    RenderShader(deviceContext, indexCount);
-
-    return true;
-}
-
-void PBRShader::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR* shaderFilename) {
-    char* compileErrors;
-    unsigned __int64 bufferSize, i;
-    std::ofstream fout;
-
-    // Get a pointer to the error message text buffer.
-    compileErrors = (char*)(errorMessage->GetBufferPointer());
-
-    // Get the length of the message.
-    bufferSize = errorMessage->GetBufferSize();
-
-    // Open a file to write the error message to.
-    fout.open("shader-error.txt");
-
-    // Write out the error message.
-    for(i = 0; i < bufferSize; i++) {
-        fout << compileErrors[i];
-    }
-
-    // Close the file.
-    fout.close();
-
-    // Release the error message.
-    errorMessage->Release();
-    errorMessage = nullptr;
-
-    // Pop a message up on the screen to notify the user to check the text file for compile errors.
-    MessageBox(hwnd, L"Error compiling shader.  Check shader-error.txt for message.", shaderFilename, MB_OK);
-
-    return;
-}
-
-void PBRShader::RenderShader(ID3D11DeviceContext* deviceContext, int indexCount) {
-    // Set the vertex input layout.
     deviceContext->IASetInputLayout(m_Layout);
 
-    // Set the vertex and pixel shaders that will be used to render this triangle.
     deviceContext->VSSetShader(m_VertexShader, NULL, 0);
     deviceContext->PSSetShader(m_PixelShader, NULL, 0);
 
-    // Set the sampler states
     deviceContext->PSSetSamplers(0, 1, &m_SampleStateWrap);
     deviceContext->PSSetSamplers(1, 1, &m_SampleStateBorder);
     deviceContext->PSSetSamplers(2, 1, &m_SampleStateClamp);
 
     deviceContext->VSSetSamplers(0, 1, &m_SampleStateWrap);
 
-    // Render
     deviceContext->DrawIndexed(indexCount, 0, 0);
+
+    return true;
 }
 
 void PBRShader::Shutdown() {

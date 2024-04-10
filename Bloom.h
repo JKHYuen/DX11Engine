@@ -31,7 +31,6 @@ public:
 	~Bloom() {}
 
 	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader, TextureShader* simplePassThroughShaderInstance);
-	bool InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shaderName);
 	bool RenderEffect(D3DInstance* d3dInstance, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV);
 	bool Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV, bool b_IsFinalPass) const;
 	void Shutdown();
@@ -58,12 +57,9 @@ private:
 		XMFLOAT4 filter;
 		float boxSampleDelta;
 		float intensity;
-		int b_UsePrefilter;
-		int b_UseFinalPass;
+		float b_UsePrefilter;
+		float b_UseFinalPass;
 	};
-
-private:
-	void OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR* shaderFilename);
 
 private:
 	// Bloom params

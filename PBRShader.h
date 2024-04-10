@@ -56,12 +56,6 @@ public:
     bool Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, const std::vector<Texture*> materialTextures, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPosition, float time, float uvScale, float heightMapScale, float parallaxHeightScale);
 
 private:
-    bool InitializeShader(ID3D11Device*, HWND, WCHAR*, WCHAR*);
-    void OutputShaderErrorMessage(ID3D10Blob*, HWND, WCHAR*);
-
-    void RenderShader(ID3D11DeviceContext*, int);
-
-private:
     ID3D11VertexShader* m_VertexShader {};
     ID3D11PixelShader*  m_PixelShader {};
     ID3D11InputLayout*  m_Layout {};

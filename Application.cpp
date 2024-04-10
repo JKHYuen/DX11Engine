@@ -28,7 +28,7 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	bool result;
 	char fpsString[32];
 
-	// Note: currently only used for debug quad position calc
+	// Note: member currently only used to calc debug quad screen position later, this could probably be simplified
 	m_ScreenWidth = screenWidth;
 	m_ScreenHeight = screenHeight;
 

@@ -71,6 +71,7 @@
     <ClInclude Include="GameObject.h" />
     <ClInclude Include="RenderTexture.h" />
     <ClInclude Include="Scene.h" />
+    <ClInclude Include="ShaderUtil.h" />
     <ClInclude Include="Sprite.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="D3DInstance.h" />

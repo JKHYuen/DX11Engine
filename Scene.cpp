@@ -22,8 +22,13 @@
 #include <future>
 #include <string_view>
 
-// EXPERIMENTAL
+// EXPERIMENTAL:
+// Currently only multithreads functions that don't use device context
 #define USE_MULTITHREAD_INITIALIZE 1
+static std::mutex s_DeviceContextMutex {};
+
+// PBR Texture names (included in demo build) - used for IMGUI, can be built programmatically from files
+static const std::vector<std::string> s_PBRMaterialNames {"bog", "brick", "dented", "dirt", "marble", "metal_grid", "rust", "stonewall"};
 
 /// Demo Scene starting values
 static constexpr float s_StartingDirectionalLightDirX = 50.0f;
@@ -31,16 +36,6 @@ static constexpr float s_StartingDirectionalLightDirY = 230.0f;
 // sunlight color: 9.0f, 5.0f, 2.0f 
 //                 29.0f, 18.0f, 11.0f
 static constexpr XMFLOAT3 s_StartingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0f};
-
-// PBR Texture names (files included in demo build)
-static const std::vector<std::string> s_PBRMaterialNames {"bog", "brick", "dented", "dirt", "marble", "metal_grid", "rust", "stonewall"};
-
-static std::mutex s_DeviceContextMutex {};
-
-bool Scene::LoadPBRShader(ID3D11Device* device, HWND hwnd) {
-	m_PBRShaderInstance = new PBRShader();
-	return m_PBRShaderInstance->Initialize(m_D3DInstance->GetDevice(), hwnd);
-}
 
 bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ, RenderTexture* screenRenderTexture, TextureShader* passThroughShaderInstance) {
 	bool result;
@@ -85,33 +80,32 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	m_Camera = new Camera();
 	m_Camera->SetPosition(0.0f, 4.0f, -10.0f);
 
-	/// Load 3D Objects
-	// TODO: Check for failure
-	// TODO: Remove for release?
+	/// Preload 3D resources
+	/// Note: this should be programmatic in a real scene system
 #if USE_MULTITHREAD_INITIALIZE == 0
 	LoadModelResource("sphere");
 	LoadModelResource("plane");
 	LoadModelResource("cube");
 #else
-	auto f1 = std::async(std::launch::async, &Scene::LoadModelResource, this, "sphere");
-	auto f2 = std::async(std::launch::async, &Scene::LoadModelResource, this, "plane");
-	auto f3 = std::async(std::launch::async, &Scene::LoadModelResource, this, "cube");
+	auto fm1 = std::async(std::launch::async, &Scene::LoadModelResource, this, "sphere");
+	auto fm2 = std::async(std::launch::async, &Scene::LoadModelResource, this, "plane");
+	auto fm3 = std::async(std::launch::async, &Scene::LoadModelResource, this, "cube");
 
 	// NOTE: very primitive way to do multithreading, need to multithread Texture::Initialize() for real performance gain (Majority of LoadPBRTextureResource() is locked as a critical section currently)
-	//auto f3 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "rust");
-	//auto f4 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "stonewall");
-	//auto f5 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "metal_grid");
-	//auto f6 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "marble");
-	//auto f7 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "dirt");
-	//auto f8 = std::async(std::launch::async, &Scene::LoadPBRTextureResource, this, "bog");
 #endif
 
-	LoadPBRTextureResource("rust");
-	LoadPBRTextureResource("stonewall");
-	LoadPBRTextureResource("metal_grid");
-	LoadPBRTextureResource("marble");
-	LoadPBRTextureResource("dirt");
-	LoadPBRTextureResource("bog");
+	result = LoadPBRTextureResource("rust");
+	if(!result) { MessageBox(hwnd, L"Could initialize texture resource.", L"Error", MB_OK); return false; };
+	result = LoadPBRTextureResource("stonewall");
+	if(!result) { MessageBox(hwnd, L"Could initialize texture resource.", L"Error", MB_OK); return false; };
+	result = LoadPBRTextureResource("metal_grid");
+	if(!result) { MessageBox(hwnd, L"Could initialize texture resource.", L"Error", MB_OK); return false; };
+	result = LoadPBRTextureResource("marble");
+	if(!result) { MessageBox(hwnd, L"Could initialize texture resource.", L"Error", MB_OK); return false; };
+	result = LoadPBRTextureResource("dirt");
+	if(!result) { MessageBox(hwnd, L"Could initialize texture resource.", L"Error", MB_OK); return false; };
+	result = LoadPBRTextureResource("bog");
+	if(!result) { MessageBox(hwnd, L"Could initialize texture resource.", L"Error", MB_OK); return false; };
 
 	/// Load skybox cubemap
 	XMMATRIX screenOrthoMatrix;
@@ -136,6 +130,7 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	//	float parallaxMapHeightScale = 0.0f;
 	//};
 
+	/// Load scene
 	const std::vector<GameObject::GameObjectData> sceneObjects = {
 		// Objects
 		{"sphere", "rust",       {-3.0f, 4.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
@@ -143,7 +138,7 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 		{"sphere", "metal_grid", {3.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
 		{"sphere", "marble",     {0.0f, 7.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
 		//{"cube",   "marble",     {0.0f, 11.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
-		// Floor			    					 
+		// Ground: should be last item, for IMGUI display			    					 
 		{"plane",  "dirt",  {0.0f, 0.0f, 0.0f},  {5.0f, 1.0f, 5.0f}, 0.0f, 9.0f, 0.0f, 0.025f},
 	};
 
@@ -197,9 +192,18 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 		MessageBox(hwnd, L"Could not initialize the PBR shader object.", L"Error", MB_OK);
 		return false;
 	}
+	if(!fm1.get() || !fm2.get() || !fm3.get()) {
+		MessageBox(hwnd, L"Could not initialize 3D model.", L"Error", MB_OK);
+		return false;
+	}
 #endif
 
 	return true;
+}
+
+bool Scene::LoadPBRShader(ID3D11Device* device, HWND hwnd) {
+	m_PBRShaderInstance = new PBRShader();
+	return m_PBRShaderInstance->Initialize(m_D3DInstance->GetDevice(), hwnd);
 }
 
 bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
@@ -545,7 +549,6 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		ShowCursor(b_ShowImGuiMenu);
 	}
 }
-
 
 void Scene::ProcessInput(Input* input, float deltaTime) {
 	static bool b_EnableFastMove = false;

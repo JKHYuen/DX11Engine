@@ -1,20 +1,15 @@
 #include "Bloom.h"
+#include "ShaderUtil.h"
 
 #include "RenderTexture.h"
 #include "TextureShader.h"
 #include "D3DInstance.h"
-
-#include <d3dcompiler.h>
-#include <fstream>
-#include <iostream>
 
 // default maximum number of down/upsample iterations for bloom effect, m_IterationCount is number of iterations to use in current bloom instance (depends on screen resolution)
 static const int k_DefaultMaxIterations = 16;
 
 // TODO: combine post processing (tonemapping shader) functionality from "Scene" with this class, rename this class to "PostProcess"
 bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader, TextureShader* passThroughShaderInstance) {
-	bool result;
-
 	m_PassThroughShaderInstance = passThroughShaderInstance;
 	m_ScreenVertexShaderInstance = screenRenderShader->GetVertexShader();
 	m_screenShaderLayoutInstance = screenRenderShader->GetShaderInputLayout();
@@ -26,7 +21,7 @@ bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext,
 	float farZ = screenTexture->GetFarZ();
 
 	m_BloomOutputTexture = new RenderTexture();
-	result = m_BloomOutputTexture->Initialize(device, deviceContext, width, height, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	bool result = m_BloomOutputTexture->Initialize(device, deviceContext, width, height, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
 	if(!result) return false;
 
 	m_IterationCount = k_DefaultMaxIterations;
@@ -45,35 +40,26 @@ bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext,
 		}
 	}
 
-	result = InitializeShader(device, hwnd, L"Bloom");
-	if(!result) return false;
-
-	return true;
-}
-
-bool Bloom::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring pixelShaderName) {
-	HRESULT result {};
+	HRESULT hresult {};
 	ID3D10Blob* errorMessage {};
 	ID3D10Blob* pixelShaderBuffer {};
-
-	std::wstring psFileName = L"../DX11Engine/Shaders/" + pixelShaderName + L".ps";
-
+	const WCHAR* psFileName = L"../DX11Engine/Shaders/Bloom.ps";
 	/// Compile the pixel shader
-	result = D3DCompileFromFile(psFileName.c_str(), NULL, NULL, "BloomPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
+	hresult = D3DCompileFromFile(psFileName, NULL, NULL, "BloomPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&pixelShaderBuffer, &errorMessage);
-	if(FAILED(result)) {
+	if(FAILED(hresult)) {
 		if(errorMessage) {
-			OutputShaderErrorMessage(errorMessage, hwnd, (WCHAR*)psFileName.c_str());
+			OutputShaderErrorMessage(errorMessage, hwnd, psFileName);
 		}
 		else {
-			MessageBox(hwnd, psFileName.c_str(), L"Missing Shader File", MB_OK);
+			MessageBox(hwnd, psFileName, L"Missing Shader File", MB_OK);
 		}
 
 		return false;
 	}
 
-	result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_PixelShader);
-	if(FAILED(result)) {
+	hresult = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_PixelShader);
+	if(FAILED(hresult)) {
 		return false;
 	}
 	pixelShaderBuffer->Release();
@@ -89,8 +75,8 @@ bool Bloom::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring pixel
 	matrixBufferDesc.StructureByteStride = 0;
 
 	D3D11_BUFFER_DESC shaderParamBufferDesc {};
-	result = device->CreateBuffer(&matrixBufferDesc, NULL, &m_MatrixBuffer);
-	if(FAILED(result)) {
+	hresult = device->CreateBuffer(&matrixBufferDesc, NULL, &m_MatrixBuffer);
+	if(FAILED(hresult)) {
 		return false;
 	}
 
@@ -102,8 +88,8 @@ bool Bloom::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring pixel
 	shaderParamBufferDesc.MiscFlags = 0;
 	shaderParamBufferDesc.StructureByteStride = 0;
 
-	result = device->CreateBuffer(&shaderParamBufferDesc, NULL, &m_BloomParamBuffer);
-	if(FAILED(result)) {
+	hresult = device->CreateBuffer(&shaderParamBufferDesc, NULL, &m_BloomParamBuffer);
+	if(FAILED(hresult)) {
 		return false;
 	}
 
@@ -123,9 +109,8 @@ bool Bloom::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring pixel
 	samplerDesc.MinLOD = 0;
 	samplerDesc.MaxLOD = 0;
 
-	// Create the texture sampler state.
-	result = device->CreateSamplerState(&samplerDesc, &m_SampleState);
-	if(FAILED(result)) {
+	hresult = device->CreateSamplerState(&samplerDesc, &m_SampleState);
+	if(FAILED(hresult)) {
 		return false;
 	}
 
@@ -218,8 +203,8 @@ bool Bloom::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX 
 	bloomDataPtr->filter         = filter;
 	bloomDataPtr->boxSampleDelta = m_BoxSampleDelta;
 	bloomDataPtr->intensity      = m_Intensity;
-	bloomDataPtr->b_UsePrefilter   = mb_UsePrefilter ? 1 : 0;
-	bloomDataPtr->b_UseFinalPass   = b_IsFinalPass   ? 1 : 0;
+	bloomDataPtr->b_UsePrefilter = mb_UsePrefilter ? 1.0f : 0.0f;
+	bloomDataPtr->b_UseFinalPass = b_IsFinalPass   ? 1.0f : 0.0f;
 
 	deviceContext->Unmap(m_BloomParamBuffer, 0);
 	deviceContext->PSSetConstantBuffers(0, 1, &m_BloomParamBuffer);
@@ -238,36 +223,6 @@ bool Bloom::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX 
 	deviceContext->DrawIndexed(indexCount, 0, 0);
 
 	return true;
-}
-
-void Bloom::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR* shaderFilename) {
-	char* compileErrors;
-	unsigned long long bufferSize, i;
-	std::ofstream fout;
-
-	// Get a pointer to the error message text buffer.
-	compileErrors = (char*)(errorMessage->GetBufferPointer());
-
-	// Get the length of the message.
-	bufferSize = errorMessage->GetBufferSize();
-
-	// Open a file to write the error message to.
-	fout.open("shader-error.txt");
-
-	// Write out the error message.
-	for(i = 0; i < bufferSize; i++) {
-		fout << compileErrors[i];
-	}
-
-	// Close the file.
-	fout.close();
-
-	// Release the error message.
-	errorMessage->Release();
-	errorMessage = nullptr;
-
-	// Pop a message up on the screen to notify the user to check the text file for compile errors.
-	MessageBox(hwnd, L"Error compiling shader.  Check shader-error.txt for message.", shaderFilename, MB_OK);
 }
 
 // Note: do not cleanup vertex shader or input layout instances, they are passed in by screen shader and are managed externally

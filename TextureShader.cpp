@@ -1,8 +1,7 @@
 #include "TextureShader.h"
+#include "ShaderUtil.h"
 
-#include <fstream>
-#include <d3dcompiler.h>
-
+// Note: a bit spaghetti, works well enough for this demo project
 bool TextureShader::Initialize(ID3D11Device* device, HWND hwnd, bool isPostProcessShader) {
 	bool result;
 	wchar_t vsFilename[128];
@@ -35,7 +34,7 @@ bool TextureShader::Initialize(ID3D11Device* device, HWND hwnd, bool isPostProce
 }
 
 bool TextureShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix,
-	XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV) {
+	XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV) const {
 	// Transpose the matrices to prepare them for the shader.
 	worldMatrix = XMMatrixTranspose(worldMatrix);
 	viewMatrix = XMMatrixTranspose(viewMatrix);
@@ -151,14 +150,6 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsF
 	polygonLayout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	polygonLayout[1].InstanceDataStepRate = 0;
 
-	//polygonLayout[2].SemanticName = "NORMAL";
-	//polygonLayout[2].SemanticIndex = 0;
-	//polygonLayout[2].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	//polygonLayout[2].InputSlot = 0;
-	//polygonLayout[2].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
-	//polygonLayout[2].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-	//polygonLayout[2].InstanceDataStepRate = 0;
-
 	// Get a count of the elements in the layout.
 	unsigned int numElements = sizeof(polygonLayout) / sizeof(polygonLayout[0]);
 
@@ -215,36 +206,6 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsF
 	}
 
 	return true;
-}
-
-void TextureShader::OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, WCHAR* shaderFilename) {
-	char* compileErrors;
-	unsigned long long bufferSize, i;
-	std::ofstream fout;
-
-	// Get a pointer to the error message text buffer.
-	compileErrors = (char*)(errorMessage->GetBufferPointer());
-
-	// Get the length of the message.
-	bufferSize = errorMessage->GetBufferSize();
-
-	// Open a file to write the error message to.
-	fout.open("shader-error.txt");
-
-	// Write out the error message.
-	for(i = 0; i < bufferSize; i++) {
-		fout << compileErrors[i];
-	}
-
-	// Close the file.
-	fout.close();
-
-	// Release the error message.
-	errorMessage->Release();
-	errorMessage = nullptr;
-
-	// Pop a message up on the screen to notify the user to check the text file for compile errors.
-	MessageBox(hwnd, L"Error compiling shader.  Check shader-error.txt for message.", shaderFilename, MB_OK);
 }
 
 void TextureShader::Shutdown() {
