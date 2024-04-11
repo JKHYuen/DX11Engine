@@ -21,7 +21,7 @@
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
     <ClCompile Include="Bloom.cpp" />
-    <ClCompile Include="CubeMapObject.cpp" />
+    <ClCompile Include="Skybox.cpp" />
     <ClCompile Include="DepthShader.cpp" />
     <ClCompile Include="Include\imgui\imgui.cpp" />
     <ClCompile Include="Include\imgui\imgui_demo.cpp" />
@@ -55,7 +55,7 @@
   <ItemGroup>
     <ClInclude Include="Application.h" />
     <ClInclude Include="Bloom.h" />
-    <ClInclude Include="CubeMapObject.h" />
+    <ClInclude Include="Skybox.h" />
     <ClInclude Include="DepthShader.h" />
     <ClInclude Include="Include\imgui\imconfig.h" />
     <ClInclude Include="Include\imgui\imgui.h" />

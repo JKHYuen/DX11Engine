@@ -1,12 +1,13 @@
 #include "Scene.h"
 
+#include "Application.h"
 #include "Texture.h"
 #include "Model.h"
 #include "D3DInstance.h"
 #include "PBRShader.h"
 #include "DepthShader.h"
 #include "GameObject.h"
-#include "CubeMapObject.h"
+#include "SkyBox.h"
 #include "RenderTexture.h"
 #include "TextureShader.h"
 #include "DirectionalLight.h"
@@ -25,22 +26,37 @@
 // EXPERIMENTAL:
 // Currently only multithreads functions that don't use device context
 #define USE_MULTITHREAD_INITIALIZE 1
-static std::mutex s_DeviceContextMutex {};
 
-// PBR Texture names (included in demo build) - used for IMGUI, can be built programmatically from files
-static const std::vector<std::string> s_PBRMaterialNames {"bog", "brick", "dented", "dirt", "marble", "metal_grid", "rust", "stonewall"};
+namespace {
+	std::mutex s_DeviceContextMutex {};
 
-/// Demo Scene starting values
-static constexpr float s_StartingDirectionalLightDirX = 50.0f;
-static constexpr float s_StartingDirectionalLightDirY = 230.0f;
-// sunlight color: 9.0f, 5.0f, 2.0f 
-//                 29.0f, 18.0f, 11.0f
-static constexpr XMFLOAT3 s_StartingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0f};
+	// Resource names (included in demo build) - used for IMGUI, can be built programmatically from files
+	const std::vector<std::string> s_PBRMaterialFileNames {"bog", "brick", "dented", "dirt", "marble", "metal_grid", "rust", "stonewall"};
+	const std::vector<std::string> s_ModelFileNames {"cube", "plane", "sphere"};
+	const std::vector<std::string> s_HDRSkyboxFileNames {"rural_landscape_4k", "industrial_sunset_puresky_4k", "kloppenheim_03_4k", "schachen_forest_4k", "abandoned_tiled_room_4k"};
 
-bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ, RenderTexture* screenRenderTexture, TextureShader* passThroughShaderInstance) {
+	/// Demo Scene starting values
+	//const std::string s_DefaultSkyboxName {"rural_landscape_4k"};
+	constexpr int s_DefaultSkyboxIndex         = 0;
+	constexpr int s_CubeFaceResolution         = 2048;
+	constexpr int s_CubeMapMipLevels           = 9;
+	constexpr int s_IrradianceMapResolution    = 32;
+	constexpr int s_FullPrefilterMapResolution = 512;
+	constexpr int s_PrecomputedBRDFResolution  = 512;
+
+	constexpr float s_StartingDirectionalLightDirX = 50.0f;
+	constexpr float s_StartingDirectionalLightDirY = 230.0f;
+	// sunlight color: 9.0f, 5.0f, 2.0f 
+	//                 29.0f, 18.0f, 11.0f
+	constexpr XMFLOAT3 s_StartingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0f};
+}
+
+bool Scene::InitializeDemoScene(Application* appInstance) {
 	bool result;
 
-	m_D3DInstance = d3dInstance;
+	m_AppInstance = appInstance;
+	m_D3DInstance = appInstance->GetD3DInstance();
+	HWND hwnd = appInstance->GetHWND();
 
 	/// Compile shaders
 	m_DepthShaderInstance = new DepthShader();
@@ -70,7 +86,7 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 
 	// Bloom post process effect
 	m_BloomEffect = new Bloom();
-	result = m_BloomEffect->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), hwnd, screenRenderTexture, m_PostProcessShader, passThroughShaderInstance);
+	result = m_BloomEffect->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), hwnd, appInstance->GetScreenRenderTexture(), m_PostProcessShader);
 	if(!result) {
 		MessageBox(hwnd, L"Could initialize bloom post processing.", L"Error", MB_OK);
 		return false;
@@ -87,11 +103,10 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	LoadModelResource("plane");
 	LoadModelResource("cube");
 #else
+	// NOTE: very primitive way to do multithreading, need to multithread Texture::Initialize() for real performance gain (Majority of LoadPBRTextureResource() is locked as a critical section currently)
 	auto fm1 = std::async(std::launch::async, &Scene::LoadModelResource, this, "sphere");
 	auto fm2 = std::async(std::launch::async, &Scene::LoadModelResource, this, "plane");
 	auto fm3 = std::async(std::launch::async, &Scene::LoadModelResource, this, "cube");
-
-	// NOTE: very primitive way to do multithreading, need to multithread Texture::Initialize() for real performance gain (Majority of LoadPBRTextureResource() is locked as a critical section currently)
 #endif
 
 	result = LoadPBRTextureResource("rust");
@@ -107,17 +122,10 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	result = LoadPBRTextureResource("bog");
 	if(!result) { MessageBox(hwnd, L"Could initialize texture resource.", L"Error", MB_OK); return false; };
 
-	/// Load skybox cubemap
-	XMMATRIX screenOrthoMatrix;
-	d3dInstance->GetOrthoMatrix(screenOrthoMatrix);
-
-	m_CubeMapObject = new CubeMapObject();
-	// rural_landscape_4k | industrial_sunset_puresky_4k | kloppenheim_03_4k | schachen_forest_4k | abandoned_tiled_room_4k | mud_road_puresky_4k
-	result = m_CubeMapObject->Initialize(m_D3DInstance, hwnd, "rural_landscape_4k", 2048, 9, 32, 512, 512, screenCameraViewMatrix, screenOrthoMatrix, quadModel);
-	if(!result) {
-		MessageBox(hwnd, L"Could not initialize cubemap.", L"Error", MB_OK);
-		return false;
-	}
+	/// Load default skybox cubemap
+	m_CurrentCubemapIndex = s_DefaultSkyboxIndex;
+	LoadCubemapResource(s_HDRSkyboxFileNames[m_CurrentCubemapIndex]);
+	//m_CubeMapObject = m_LoadedCubemapResources[s_DefaultSkyboxName];
 
 	//struct GameObjectData {
 	//	std::string modelName {};
@@ -133,10 +141,10 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	/// Load scene
 	const std::vector<GameObject::GameObjectData> sceneObjects = {
 		// Objects
-		{"sphere", "rust",       {-3.0f, 4.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
+		{"sphere", "rust",       {-3.0f, 4.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.0f, 0.0f},
 		{"sphere", "stonewall",  {0.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
-		{"sphere", "metal_grid", {3.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
-		{"sphere", "marble",     {0.0f, 7.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
+		{"sphere", "metal_grid", {3.0f, 4.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.0f, 0.0f},
+		{"sphere", "marble",     {0.0f, 7.0f, 0.0f},  {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.0f, 0.0f},
 		//{"cube",   "marble",     {0.0f, 11.0f, 0.0f}, {1.0f, 1.0f, 1.0f}, 0.1f, 1.0f, 0.1f, 0.0f},
 		// Ground: should be last item, for IMGUI display			    					 
 		{"plane",  "dirt",  {0.0f, 0.0f, 0.0f},  {5.0f, 1.0f, 5.0f}, 0.0f, 9.0f, 0.0f, 0.025f},
@@ -154,7 +162,7 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 	/// Lighting
 	// Create and initialize the shadow map texture
 	m_DirectionalShadowMapRenderTexture = new RenderTexture();
-	result = m_DirectionalShadowMapRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), shadowMapWidth, shadowMapWidth, shadowMapNearZ, shadowMapFarZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	result = m_DirectionalShadowMapRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), g_ShadowMapWidth, g_ShadowMapWidth, g_ShadowMapNear, g_ShadowMapFar, DXGI_FORMAT_R32G32B32A32_FLOAT);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize shadow map texture.", L"Error", MB_OK);
 		return false;
@@ -165,7 +173,7 @@ bool Scene::InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX sc
 
 	// Initialize Directional light
 	m_DirectionalLight->SetColor(s_StartingDirectionalLightColor.x, s_StartingDirectionalLightColor.y, s_StartingDirectionalLightColor.z, 1.0f);
-	m_DirectionalLight->GenerateOrthoMatrix(40.0f, shadowMapNearZ, shadowMapFarZ);
+	m_DirectionalLight->GenerateOrthoMatrix(40.0f, g_ShadowMapNear, g_ShadowMapFar);
 	m_DirectionalLight->SetDirection(XMConvertToRadians(s_StartingDirectionalLightDirX), XMConvertToRadians(s_StartingDirectionalLightDirY), 0.0f);
 
 	//// Set the number of lights we will use.
@@ -220,8 +228,9 @@ bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
 
 	}
 
+	SkyBox* currentCubemap = m_LoadedCubemapResources[s_HDRSkyboxFileNames[m_CurrentCubemapIndex]];
 	for(size_t i = 0; i < m_GameObjects.size(); i++) {
-		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), m_CubeMapObject->GetIrradianceMapSRV(), m_CubeMapObject->GetPrefilteredMapSRV(), m_CubeMapObject->GetPrecomputedBRDFSRV(), m_DirectionalLight, m_Camera->GetPosition(), time)) {
+		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), currentCubemap->GetIrradianceMapSRV(), currentCubemap->GetPrefilteredMapSRV(), currentCubemap->GetPrecomputedBRDFSRV(), m_DirectionalLight, m_Camera->GetPosition(), time)) {
 			return false;
 		}
 	}
@@ -231,7 +240,7 @@ bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
 
 	// Render skybox
 	m_D3DInstance->SetToFrontCullRasterState();
-	m_CubeMapObject->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, CubeMapObject::kSkyBoxRender);
+	currentCubemap->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, SkyBox::kSkyBoxRender);
 	m_D3DInstance->SetToBackCullRasterState();
 
 	//m_ScreenRenderTexture->TurnZBufferOff();
@@ -324,23 +333,41 @@ bool Scene::LoadPBRTextureResource(const std::string& textureFileName) {
 
 bool Scene::LoadModelResource(const std::string& modelFileName) {
 	if(m_LoadedModelResources.find(modelFileName) == m_LoadedModelResources.end()) {
-		Model* pTempModel = new Model();
-		if(!pTempModel->Initialize(
+		Model* pModel = new Model();
+		if(!pModel->Initialize(
 			m_D3DInstance->GetDevice(), "../DX11Engine/data/" + modelFileName + ".txt")
 			) {
 			return false;
 		}
 
-		m_LoadedModelResources.emplace(modelFileName, pTempModel);
+		m_LoadedModelResources.emplace(modelFileName, pModel);
 	}
 
 	return true;
 }
 
-void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitApp) {
-	static auto ImGuiHelpMarker = [](const char* desc, bool b_IsSameLine = true) {
+bool Scene::LoadCubemapResource(const std::string& hdrFileName) {
+	if(m_LoadedCubemapResources.find(hdrFileName) == m_LoadedCubemapResources.end()) {
+		XMMATRIX screenOrthoMatrix {}, screenCamViewMatrix {};
+		m_D3DInstance->GetOrthoMatrix(screenOrthoMatrix);
+		m_AppInstance->GetScreenDisplayCamera()->GetViewMatrix(screenCamViewMatrix);
+
+		SkyBox* pCubemap = new SkyBox();
+		bool result = pCubemap->Initialize(m_D3DInstance, m_AppInstance->GetHWND(), hdrFileName, s_CubeFaceResolution, s_CubeMapMipLevels, s_IrradianceMapResolution, s_FullPrefilterMapResolution, s_PrecomputedBRDFResolution, screenCamViewMatrix, screenOrthoMatrix, m_AppInstance->GetScreenDisplayQuadInstance());
+		if(!result) {
+			MessageBox(m_AppInstance->GetHWND(), L"Could not initialize cubemap.", L"Error", MB_OK);
+			return false;
+		}
+		m_LoadedCubemapResources.emplace(hdrFileName, pCubemap);
+	}
+
+	return true;
+}
+
+void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitApp, bool& b_ShowDebugQuad1, bool& b_ShowDebugQuad2) {
+	static auto ImGuiHelpMarker = [](const char* desc, bool b_IsSameLine = true, bool b_IsWarning = false) {
 		if(b_IsSameLine) ImGui::SameLine();
-		ImGui::TextDisabled("(?)");
+		if(b_IsWarning)  ImGui::TextDisabled("(!)"); else ImGui::TextDisabled("(?)");
 		if(ImGui::BeginItemTooltip()) {
 			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
 			ImGui::TextUnformatted(desc);
@@ -350,8 +377,16 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 	};
 	// Note: a little flimsy, assumes matName exists in s_PBRMaterialNames
 	static auto FindPBRMaterialIndex = [](std::string_view matName) {
-		for(int i = 0; i < s_PBRMaterialNames.size(); i++) {
-			if(s_PBRMaterialNames[i] == matName) {
+		for(int i = 0; i < s_PBRMaterialFileNames.size(); i++) {
+			if(s_PBRMaterialFileNames[i] == matName) {
+				return i;
+			}
+		}
+		return -1;
+	};
+	static auto FindModelIndex = [](std::string_view modelName) {
+		for(int i = 0; i < s_ModelFileNames.size(); i++) {
+			if(s_ModelFileNames[i] == modelName) {
 				return i;
 			}
 		}
@@ -387,11 +422,30 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 
 	if(ImGui::CollapsingHeader("Display")) {
 		ImGui::Spacing();
-		ImGui::Checkbox("Show FPS on screen", &b_ShowScreenFPS);
-		ImGui::Checkbox("Enable Wireframe Render", &b_IsWireFrameRender);
+		ImGui::Checkbox("Show FPS on screen", &b_ShowScreenFPS); ImGuiHelpMarker("Keybind: F1");
+		ImGui::SameLine(200);
+		ImGui::Checkbox("Wireframe Render", &b_IsWireFrameRender); ImGuiHelpMarker("Keybind: F2");
+		ImGui::Checkbox("Shadow Map View", &b_ShowDebugQuad1); ImGuiHelpMarker("Directional light shadow map.");
+		ImGui::SameLine(200);
+		ImGui::Checkbox("Bloom Filter View", &b_ShowDebugQuad2); ImGuiHelpMarker("Bloom intensity not included.");
 		ImGui::Spacing();
 	}
+	
+	if(ImGui::CollapsingHeader("Skybox")) {
+		if(ImGui::BeginTable("##skybox", 3, kTableFlags)) {
+			for(int i = 0; i < s_HDRSkyboxFileNames.size(); i++) {
+				ImGui::TableNextColumn();
+				if(ImGui::Selectable(s_HDRSkyboxFileNames[i].c_str(), m_CurrentCubemapIndex == i)) {
+					LoadCubemapResource(s_HDRSkyboxFileNames[i]);
+					m_CurrentCubemapIndex = i;
+				}
+			}
+			ImGui::EndTable();
+		}
+	}
+	ImGuiHelpMarker("*Environment maps are built in real time, might be slow on first selection of skybox. Results are cached.*", true, true);
 
+	// TODO: add shadow bias slider
 	/// Directional Light
 	if(ImGui::CollapsingHeader("Directional Light")) {
 		ImGui::Spacing();
@@ -443,21 +497,25 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 	}
 
 	/// Object Material Edit
-	/// NOTE: implementation could be simpller with use of GameObject::GameObjectData struct
+	/// NOTE: implementation could be simpler with use of GameObject::GameObjectData struct
 	bool b_ShowSceneObjectHeader = ImGui::CollapsingHeader("Scene Objects");
 	ImGuiHelpMarker("Select a scene object to edit its object and material parameters.");
 	if(b_ShowSceneObjectHeader) {
+		// Note: Ground object is selected by default
 		static int userSelectedGameObjectIndex = (int)m_GameObjects.size() - 1;
-		// Start true to intialize variables below
+		// Note: Start true to intialize variables below
 		static bool b_NewSceneObjectSelected = true;
+		static bool b_UserObjectIsPlane {};
+
+		static bool b_UserObjectEnabled = true;
 		static int userSelectedMaterialIndex {};
+		static int userSelectedModelIndex {};
 		static float userPosition[3] {};
 		static float userScale[3] {};
 		static float userUVScale {};
 		static float userDisplacementHeight {};
 		static float userParallaxHeight {};
 
-		// Ground object is selected by default
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if(ImGui::TreeNode("Scene Object Select")) {
 			if(ImGui::BeginTable("##GameObjects", 3, kTableFlags)) {
@@ -486,27 +544,35 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		ImGui::SeparatorText("Edit Parameters");
 		ImGui::Spacing();
 
-		// Update parameter display if needed
+		GameObject* pSelectedGO = m_GameObjects[userSelectedGameObjectIndex];
+		if(ImGui::Checkbox("Enable", &b_UserObjectEnabled)) {
+			pSelectedGO->SetEnabled(b_UserObjectEnabled);
+		}
+
+		// Update parameters for new selected object if needed
 		if(b_NewSceneObjectSelected) {
-			userSelectedMaterialIndex = FindPBRMaterialIndex(m_GameObjects[userSelectedGameObjectIndex]->GetPBRMaterialName());
-			m_GameObjects[userSelectedGameObjectIndex]->GetPosition(userPosition[0], userPosition[1], userPosition[2]);
-			m_GameObjects[userSelectedGameObjectIndex]->GetScale(userScale[0], userScale[1], userScale[2]);
-			userUVScale = m_GameObjects[userSelectedGameObjectIndex]->GetUVScale();
-			userDisplacementHeight = m_GameObjects[userSelectedGameObjectIndex]->GetDisplacementMapHeightScale();
-			userParallaxHeight = m_GameObjects[userSelectedGameObjectIndex]->GetParallaxMapHeightScale();
+			b_UserObjectEnabled = pSelectedGO->GetEnabled();
+			userSelectedMaterialIndex = FindPBRMaterialIndex(pSelectedGO->GetPBRMaterialName());
+			userSelectedModelIndex = FindModelIndex(pSelectedGO->GetModelName());
+			b_UserObjectIsPlane = pSelectedGO->GetModelName() == "plane";
+			pSelectedGO->GetPosition(userPosition[0], userPosition[1], userPosition[2]);
+			pSelectedGO->GetScale(userScale[0], userScale[1], userScale[2]);
+			userUVScale = pSelectedGO->GetUVScale();
+			userDisplacementHeight = pSelectedGO->GetDisplacementMapHeightScale();
+			userParallaxHeight = pSelectedGO->GetParallaxMapHeightScale();
 			b_NewSceneObjectSelected = false;
 		}
 
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if(ImGui::TreeNode("Material Select")) {
 			if(ImGui::BeginTable("##materials", 3, kTableFlags)) {
-				for(int i = 0; i < s_PBRMaterialNames.size(); i++) {
+				for(int i = 0; i < s_PBRMaterialFileNames.size(); i++) {
 					ImGui::TableNextColumn();
-					if(ImGui::Selectable(s_PBRMaterialNames[i].c_str(), userSelectedMaterialIndex == i)) {
+					if(ImGui::Selectable(s_PBRMaterialFileNames[i].c_str(), userSelectedMaterialIndex == i)) {
 						userSelectedMaterialIndex = i;
-						std::string matName = s_PBRMaterialNames[i % s_PBRMaterialNames.size()];
+						std::string matName = s_PBRMaterialFileNames[i % s_PBRMaterialFileNames.size()];
 						LoadPBRTextureResource(matName);
-						m_GameObjects[userSelectedGameObjectIndex]->SetMaterialTextures(matName, m_LoadedTextureResources[matName]);
+						m_GameObjects[userSelectedGameObjectIndex]->SetPBRMaterialTextures(matName, m_LoadedTextureResources[matName]);
 					}
 				}
 				ImGui::EndTable();
@@ -515,29 +581,48 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		}
 		ImGui::Spacing();
 
-		// TODO: enable/disable
-		// TODO: model select
+		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
+		if(ImGui::TreeNode("Model Select")) {
+			if(ImGui::BeginTable("##models", 3, kTableFlags)) {
+				for(int i = 0; i < s_ModelFileNames.size(); i++) {
+					ImGui::TableNextColumn();
+					if(ImGui::Selectable(s_ModelFileNames[i].c_str(), userSelectedModelIndex == i)) {
+						userSelectedModelIndex = i;
+						std::string modelName = s_ModelFileNames[i % s_ModelFileNames.size()];
+						LoadModelResource(modelName);
+						m_GameObjects[userSelectedGameObjectIndex]->SetModel(modelName, m_LoadedModelResources[modelName]);
+					}
+				}
+				ImGui::EndTable();
+			}
+			ImGui::TreePop();
+		}
+		ImGui::Spacing();
+
+		// TODO: self shadow toggle
+		// TODO: minimum roughness
 
 		if(ImGui::DragFloat3("Position", userPosition, 0.001f, -1000.0f, 1000.0f, "%.3f", kSliderFlags)) {
-			m_GameObjects[userSelectedGameObjectIndex]->SetPosition(userPosition[0], userPosition[1], userPosition[2]);
+			pSelectedGO->SetPosition(userPosition[0], userPosition[1], userPosition[2]);
 		}
 
 		if(ImGui::DragFloat3("Scale", userScale, 0.001f, -1000.0f, 1000.0f, "%.3f", kSliderFlags)) {
-			m_GameObjects[userSelectedGameObjectIndex]->SetScale(userScale[0], userScale[1], userScale[2]);
+			pSelectedGO->SetScale(userScale[0], userScale[1], userScale[2]);
 		}
 
 		if(ImGui::DragFloat("UV Scale", &userUVScale, 0.001f, 1.0f, 1000.0f, "%.3f", kSliderFlags)) {
-			m_GameObjects[userSelectedGameObjectIndex]->SetUVScale(userUVScale);
+			pSelectedGO->SetUVScale(userUVScale);
 		}
 
 		if(ImGui::DragFloat("Displacement Height", &userDisplacementHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
-			m_GameObjects[userSelectedGameObjectIndex]->SetDisplacementMapHeightScale(userDisplacementHeight);
+			pSelectedGO->SetDisplacementMapHeightScale(userDisplacementHeight);
 		}
+		ImGuiHelpMarker("Vertex Displalcement Scale\n\n*Will not work properly for \"cube\" and \"plane\" models as there are not enough vertices.*", true, true);
 
-		// TODO: disable if not "plane" model
 		if(ImGui::DragFloat("Parallax Height", &userParallaxHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
-			m_GameObjects[userSelectedGameObjectIndex]->SetParallaxMapHeightScale(userParallaxHeight);
+			pSelectedGO->SetParallaxMapHeightScale(userParallaxHeight);
 		}
+		ImGuiHelpMarker("Parallax Occlusion Height Scale\n\n*WARNING: Only supported if using \"plane\" model.*", true, true);
 
 		ImGui::Spacing();
 	}
@@ -552,10 +637,10 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 
 void Scene::ProcessInput(Input* input, float deltaTime) {
 	static bool b_EnableFastMove = false;
-	if(input->IsLeftShiftKeyUp()) {
+	if(input->IsKeyUp(DIK_LSHIFT)) {
 		b_EnableFastMove = false;
 	}
-	else if(input->IsLeftShiftKeyDown()) {
+	else if(input->IsKeyDown(DIK_LSHIFT)) {
 		b_EnableFastMove = true;
 	}
 	
@@ -617,10 +702,10 @@ void Scene::Shutdown() {
 	//	m_lights = nullptr;
 	//}
 
-	if(m_CubeMapObject) {
-		m_CubeMapObject->Shutdown();
-		delete m_CubeMapObject;
-		m_CubeMapObject = nullptr;
+	for(std::pair kvp : m_LoadedCubemapResources) {
+		kvp.second->Shutdown();
+		delete kvp.second;
+		kvp.second = nullptr;
 	}
 
 	for(std::pair kvp : m_LoadedTextureResources) {

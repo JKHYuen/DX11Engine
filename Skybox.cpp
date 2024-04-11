@@ -1,4 +1,4 @@
-#include "CubeMapObject.h"
+#include "Skybox.h"
 #include "ShaderUtil.h"
 
 #include "QuadModel.h"
@@ -7,11 +7,11 @@
 #include "D3DInstance.h"
 
 namespace {
-	static constexpr int s_UnitCubeVertexCount = 36;
-	static constexpr int s_UnitCubeIndexCount = 36;
-	static constexpr int s_UnitQuadIndexCount = 6;
+	constexpr int s_UnitCubeVertexCount = 36;
+	constexpr int s_UnitCubeIndexCount = 36;
+	constexpr int s_UnitQuadIndexCount = 6;
 	// x, y, z, u, v
-	static constexpr float kUnitCubeVertices[] = {
+	constexpr float kUnitCubeVertices[] = {
 		-1.0 , 1.0, -1.0, 0.0 , 0.0,
 		 1.0 , 1.0, -1.0, 1.0 , 0.0,
 		-1.0, -1.0, -1.0, 0.0,  1.0,
@@ -51,14 +51,14 @@ namespace {
 	};
 
 	// View matrices for the 6 different cube directions
-	static constexpr XMFLOAT3 float3_000 {0.0f,   0.0f,  0.0f};
-	static constexpr XMFLOAT3 float3_100 {1.0f,   0.0f,  0.0f};
-	static constexpr XMFLOAT3 float3_010 {0.0f,   1.0f,  0.0f};
-	static constexpr XMFLOAT3 float3_n100 {-1.0f,   0.0f,  0.0f};
-	static constexpr XMFLOAT3 float3_00n1 {0.0f,   0.0f, -1.0f};
-	static constexpr XMFLOAT3 float3_0n10 {0.0f,  -1.0f,  0.0f};
-	static constexpr XMFLOAT3 float3_001 {0.0f,   0.0f,  1.0f};
-	static const std::array<XMMATRIX, 6> kCubeMapCaptureViewMats = {
+	constexpr XMFLOAT3 float3_000  {0.0f,   0.0f,  0.0f};
+	constexpr XMFLOAT3 float3_100  {1.0f,   0.0f,  0.0f};
+	constexpr XMFLOAT3 float3_010  {0.0f,   1.0f,  0.0f};
+	constexpr XMFLOAT3 float3_n100 {-1.0f,   0.0f,  0.0f};
+	constexpr XMFLOAT3 float3_00n1 {0.0f,   0.0f, -1.0f};
+	constexpr XMFLOAT3 float3_0n10 {0.0f,  -1.0f,  0.0f};
+	constexpr XMFLOAT3 float3_001  {0.0f,   0.0f,  1.0f};
+	const std::array<XMMATRIX, 6> kCubeMapCaptureViewMats = {
 		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_100),  XMLoadFloat3(&float3_010)),
 		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_n100), XMLoadFloat3(&float3_010)),
 		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_010),  XMLoadFloat3(&float3_00n1)),
@@ -67,65 +67,26 @@ namespace {
 		XMMatrixLookAtLH(XMLoadFloat3(&float3_000), XMLoadFloat3(&float3_00n1), XMLoadFloat3(&float3_010)),
 	};
 
-	static const std::wstring s_HDRCubeMapShaderName = L"HDRCubeMap";
-	static const std::wstring s_ConvoluteCubeMapShaderName = L"ConvoluteCubeMap";
-	static const std::wstring s_PrefilterCubeMapShaderName = L"PreFilterCubeMap";
-	static const std::wstring s_IntegrateBRDFShaderName = L"IntegrateBRDF";
-	static const std::wstring s_SkyboxRenderShaderName = L"CubeMap";
+	const std::wstring s_HDRCubeMapShaderName = L"HDRCubeMap";
+	const std::wstring s_ConvoluteCubeMapShaderName = L"ConvoluteCubeMap";
+	const std::wstring s_PrefilterCubeMapShaderName = L"PreFilterCubeMap";
+	const std::wstring s_IntegrateBRDFShaderName = L"IntegrateBRDF";
+	const std::wstring s_SkyboxRenderShaderName = L"CubeMap";
 }
 
-bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
+bool SkyBox::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
 	bool result;
 
 	ID3D11Device* device = d3dInstance->GetDevice();
 	ID3D11DeviceContext* deviceContext = d3dInstance->GetDeviceContext();
-	
-	/// Create texture sampler states
-	D3D11_SAMPLER_DESC clampSamplerDesc{};
-	clampSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	clampSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	clampSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	clampSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	clampSamplerDesc.MipLODBias = 0.0f;
-	clampSamplerDesc.MaxAnisotropy = 1;
-	clampSamplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
-	clampSamplerDesc.BorderColor[0] = 0;
-	clampSamplerDesc.BorderColor[1] = 0;
-	clampSamplerDesc.BorderColor[2] = 0;
-	clampSamplerDesc.BorderColor[3] = 0;
-	clampSamplerDesc.MinLOD = 0;
-	clampSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
 
-	HRESULT hresult = device->CreateSamplerState(&clampSamplerDesc, &m_ClampSampleState);
-	if(FAILED(hresult)) {
-		return false;
+	if(!mb_StaticsInitialized) {
+		InitializeStaticResources(d3dInstance, hwnd, precomputedBRDFResolution, screenDisplayViewMatrix, screenOrthoMatrix, screenDisplayQuad);
 	}
 
-	/// Initialize the vertex and pixel shaders
-	/// Note: only needs to be done once, change this if loading more than one cubemap
-	result = InitializeShader(device, hwnd, s_HDRCubeMapShaderName, &m_HDREquiVertexShader, &m_HDREquiPixelShader);
-	if(!result) return false; 
-
-	result = InitializeShader(device, hwnd, s_ConvoluteCubeMapShaderName, &m_ConvolutionVertexShader, &m_ConvolutionPixelShader);
-	if(!result) return false;
-
-	result = InitializeShader(device, hwnd, s_PrefilterCubeMapShaderName, &m_PrefilterVertexShader, &m_PrefilterPixelShader);
-	if(!result) return false;
-
-	result = InitializeShader(device, hwnd, s_IntegrateBRDFShaderName, &m_IntegrateBRDFVertexShader, &m_IntegrateBRDFPixelShader);
-	if(!result) return false;
-
-	result = InitializeShader(device, hwnd, s_SkyboxRenderShaderName, &m_CubeMapVertexShader, &m_CubeMapPixelShader);
-	if(!result) return false;
-
-	/// Load unit cube model
-	result = InitializeUnitCubeBuffers(device);
-	if(!result) return false;
-
-
-	/// Load HDR cubemap texture from disk and render to 6 cubemap textures to build skybox
 	d3dInstance->SetToFrontCullRasterState();
 
+	/// Load HDR cubemap texture from disk and render to 6 cubemap textures to build skybox
 	// NOTE: HDRTexture defaults to no mipmaps
 	m_HDRCubeMapTex = new Texture();
 	result = m_HDRCubeMapTex->Initialize(device, deviceContext, "../DX11Engine/data/cubemaps/" + fileName + ".hdr", DXGI_FORMAT_R32G32B32A32_FLOAT, 1);
@@ -198,7 +159,59 @@ bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::s
 	}
 
 	d3dInstance->SetToBackCullRasterState();
-	
+
+	return true;
+}
+
+bool SkyBox::InitializeStaticResources(D3DInstance* d3dInstance, HWND hwnd, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
+
+	ID3D11Device* device = d3dInstance->GetDevice();
+	ID3D11DeviceContext* deviceContext = d3dInstance->GetDeviceContext();
+
+	/// Create texture sampler states
+	D3D11_SAMPLER_DESC clampSamplerDesc {};
+	clampSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	clampSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	clampSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	clampSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	clampSamplerDesc.MipLODBias = 0.0f;
+	clampSamplerDesc.MaxAnisotropy = 1;
+	clampSamplerDesc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+	clampSamplerDesc.BorderColor[0] = 0;
+	clampSamplerDesc.BorderColor[1] = 0;
+	clampSamplerDesc.BorderColor[2] = 0;
+	clampSamplerDesc.BorderColor[3] = 0;
+	clampSamplerDesc.MinLOD = 0;
+	clampSamplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+
+	HRESULT hresult = device->CreateSamplerState(&clampSamplerDesc, &m_ClampSampleState);
+	if(FAILED(hresult)) {
+		return false;
+	}
+
+	/// Initialize the vertex and pixel shaders
+	/// Note: only needs to be done once, change this if loading more than one cubemap
+	bool result = InitializeShader(device, hwnd, s_HDRCubeMapShaderName, &m_HDREquiVertexShader, &m_HDREquiPixelShader);
+	if(!result) return false;
+
+	result = InitializeShader(device, hwnd, s_ConvoluteCubeMapShaderName, &m_ConvolutionVertexShader, &m_ConvolutionPixelShader);
+	if(!result) return false;
+
+	result = InitializeShader(device, hwnd, s_PrefilterCubeMapShaderName, &m_PrefilterVertexShader, &m_PrefilterPixelShader);
+	if(!result) return false;
+
+	result = InitializeShader(device, hwnd, s_IntegrateBRDFShaderName, &m_IntegrateBRDFVertexShader, &m_IntegrateBRDFPixelShader);
+	if(!result) return false;
+
+	result = InitializeShader(device, hwnd, s_SkyboxRenderShaderName, &m_CubeMapVertexShader, &m_CubeMapPixelShader);
+	if(!result) return false;
+
+	/// Load unit cube model
+	result = InitializeUnitCubeBuffers(device);
+	if(!result) return false;
+
+	d3dInstance->SetToBackCullRasterState();
+
 	/// Precompute BRDF (independent of environment maps, can be stored outside of class instance)
 	m_PrecomputedBRDFTex = new RenderTexture();
 	m_PrecomputedBRDFTex->Initialize(device, deviceContext, precomputedBRDFResolution, precomputedBRDFResolution, 0.1f, 10.0f, DXGI_FORMAT_R16G16_FLOAT);
@@ -208,10 +221,11 @@ bool CubeMapObject::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::s
 	result = Render(deviceContext, screenDisplayViewMatrix, screenOrthoMatrix, kIntegrateBRDFRender);
 	if(!result) return false;
 
+	mb_StaticsInitialized = true;
 	return true;
 }
 
-bool CubeMapObject::InitializeUnitCubeBuffers(ID3D11Device* device) {
+bool SkyBox::InitializeUnitCubeBuffers(ID3D11Device* device) {
 	VertexType* vertices = new VertexType[s_UnitCubeVertexCount];
 	unsigned long* indices = new unsigned long[s_UnitCubeIndexCount];
 
@@ -238,7 +252,7 @@ bool CubeMapObject::InitializeUnitCubeBuffers(ID3D11Device* device) {
 	vertexData.SysMemSlicePitch = 0;
 
 	// Now create the vertex buffer.
-	HRESULT result = device->CreateBuffer(&vertexBufferDesc, &vertexData, &m_VertexBuffer);
+	HRESULT result = device->CreateBuffer(&vertexBufferDesc, &vertexData, &m_CubeVertexBuffer);
 	if(FAILED(result)) {
 		return false;
 	}
@@ -259,7 +273,7 @@ bool CubeMapObject::InitializeUnitCubeBuffers(ID3D11Device* device) {
 	indexData.SysMemSlicePitch = 0;
 
 	// Create the index buffer.
-	result = device->CreateBuffer(&indexBufferDesc, &indexData, &m_IndexBuffer);
+	result = device->CreateBuffer(&indexBufferDesc, &indexData, &m_CubeIndexBuffer);
 	if(FAILED(result)) {
 		return false;
 	}
@@ -274,7 +288,7 @@ bool CubeMapObject::InitializeUnitCubeBuffers(ID3D11Device* device) {
 	return true;
 }
 
-bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shaderName, ID3D11VertexShader** ppVertShader, ID3D11PixelShader** ppPixelShader) {
+bool SkyBox::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shaderName, ID3D11VertexShader** ppVertShader, ID3D11PixelShader** ppPixelShader) {
 	HRESULT result {};
 	ID3D10Blob* errorMessage {};
 	ID3D10Blob* vertexShaderBuffer {};
@@ -392,13 +406,13 @@ bool CubeMapObject::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstri
 	return true;
 }
 
-bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, RenderType renderType, float roughness) {
+bool SkyBox::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, RenderType renderType, float roughness) {
 	if(renderType != kIntegrateBRDFRender) {
 		/// Render Unit Cube
 		unsigned int stride = sizeof(VertexType);
 		unsigned int offset = 0;
-		deviceContext->IASetVertexBuffers(0, 1, &m_VertexBuffer, &stride, &offset);
-		deviceContext->IASetIndexBuffer(m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+		deviceContext->IASetVertexBuffers(0, 1, &m_CubeVertexBuffer, &stride, &offset);
+		deviceContext->IASetIndexBuffer(m_CubeIndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 		// removing translation in view matrix by truncating 4x4 matrix to 3x3
@@ -487,11 +501,11 @@ bool CubeMapObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatr
 	return true;
 }
 
-ID3D11ShaderResourceView* CubeMapObject::GetIrradianceMapSRV() const { return m_IrradianceCubeMapTex->GetTextureSRV(); }
-ID3D11ShaderResourceView* CubeMapObject::GetPrefilteredMapSRV() const { return m_PrefilteredCubeMapTex->GetTextureSRV(); }
-ID3D11ShaderResourceView* CubeMapObject::GetPrecomputedBRDFSRV() const { return m_PrecomputedBRDFTex->GetTextureSRV(); }
+ID3D11ShaderResourceView* SkyBox::GetIrradianceMapSRV() const { return m_IrradianceCubeMapTex->GetTextureSRV(); }
+ID3D11ShaderResourceView* SkyBox::GetPrefilteredMapSRV() const { return m_PrefilteredCubeMapTex->GetTextureSRV(); }
+ID3D11ShaderResourceView* SkyBox::GetPrecomputedBRDFSRV() const { return m_PrecomputedBRDFTex->GetTextureSRV(); }
 
-void CubeMapObject::Shutdown() {
+void SkyBox::Shutdown() {
 	if(m_ClampSampleState) {
 		m_ClampSampleState->Release();
 		m_ClampSampleState = nullptr;
@@ -572,6 +586,12 @@ void CubeMapObject::Shutdown() {
 	if(m_PrefilteredCubeMapTex) {
 		m_PrefilteredCubeMapTex->Shutdown();
 		m_PrefilteredCubeMapTex = nullptr;
+	}
+
+
+	if(m_PrecomputedBRDFTex) {
+		m_PrecomputedBRDFTex->Shutdown();
+		m_PrecomputedBRDFTex = nullptr;
 	}
 }
 

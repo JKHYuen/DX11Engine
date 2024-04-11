@@ -30,7 +30,7 @@ public:
 	Bloom(const Bloom&) {}
 	~Bloom() {}
 
-	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader, TextureShader* simplePassThroughShaderInstance);
+	bool Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader);
 	bool RenderEffect(D3DInstance* d3dInstance, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV);
 	bool Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV, bool b_IsFinalPass) const;
 	void Shutdown();
@@ -75,7 +75,6 @@ private:
 
 	int m_IterationCount {};
 
-	TextureShader*      m_PassThroughShaderInstance {};
 	ID3D11VertexShader* m_ScreenVertexShaderInstance {};
 	ID3D11InputLayout*  m_screenShaderLayoutInstance {};
 

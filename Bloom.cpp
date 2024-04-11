@@ -5,12 +5,13 @@
 #include "TextureShader.h"
 #include "D3DInstance.h"
 
-// default maximum number of down/upsample iterations for bloom effect, m_IterationCount is number of iterations to use in current bloom instance (depends on screen resolution)
-static const int k_DefaultMaxIterations = 16;
+namespace {
+	// default maximum number of down/upsample iterations for bloom effect, m_IterationCount is number of iterations to use in current bloom instance (depends on screen resolution)
+	const int k_DefaultMaxIterations = 16;
+}
 
 // TODO: combine post processing (tonemapping shader) functionality from "Scene" with this class, rename this class to "PostProcess"
-bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader, TextureShader* passThroughShaderInstance) {
-	m_PassThroughShaderInstance = passThroughShaderInstance;
+bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader) {
 	m_ScreenVertexShaderInstance = screenRenderShader->GetVertexShader();
 	m_screenShaderLayoutInstance = screenRenderShader->GetShaderInputLayout();
 

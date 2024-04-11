@@ -9,6 +9,7 @@ using namespace DirectX;
 
 struct ID3D11ShaderResourceView;
 struct ID3D11Device;
+class Application;
 class Texture;
 class Model;
 class QuadModel;
@@ -16,7 +17,7 @@ class GameObject;
 class D3DInstance;
 class PBRShader;
 class DepthShader;
-class CubeMapObject;
+class SkyBox;
 class RenderTexture;
 class TextureShader;
 class DirectionalLight;
@@ -30,7 +31,7 @@ public:
 	Scene(const Texture& other) {}
 	~Scene() {}
 
-	bool InitializeDemoScene(D3DInstance* d3dInstance, HWND hwnd, XMMATRIX screenCameraViewMatrix, QuadModel* quadModel, int shadowMapWidth, float shadowMapNearZ, float shadowMapFarZ, RenderTexture* screenRenderTexture, TextureShader* passThroughShaderInstance);
+	bool InitializeDemoScene(Application* appInstance);
 	void Shutdown();
 	
 	// Render objects to scene quad
@@ -42,7 +43,7 @@ public:
 	void ProcessInput(Input* input, float deltaTime);
 	
 	// Note: Implemented here for convenience, probably doesn't belong in this class
-	void UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitApp);
+	void UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitApp, bool& b_ShowDebugQuad1, bool& b_ShowDebugQuad2);
 
 	RenderTexture* GetDirectionalShadowMapRenderTexture() const { return m_DirectionalShadowMapRenderTexture; }
 	RenderTexture* GetDebugBloomOutput() const;
@@ -50,20 +51,21 @@ public:
 private:
 	bool LoadPBRTextureResource(const std::string& textureFileName);
 	bool LoadModelResource(const std::string& modelFileName);
+	bool LoadCubemapResource(const std::string& hdrFileName);
 	bool LoadPBRShader(ID3D11Device* device, HWND hwnd);
 
 private:
+	Application* m_AppInstance {};
 	D3DInstance* m_D3DInstance {};
 	Camera* m_Camera {};
 
 	PBRShader* m_PBRShaderInstance {};
 	DepthShader* m_DepthShaderInstance {};
 
-	CubeMapObject* m_CubeMapObject {};
+	int m_CurrentCubemapIndex {};
 	DirectionalLight* m_DirectionalLight {};
 	RenderTexture* m_DirectionalShadowMapRenderTexture {};
 
-	// TODO: combine these
 	TextureShader* m_PostProcessShader {};
 	Bloom* m_BloomEffect {};
 
@@ -76,4 +78,5 @@ private:
 	std::vector<GameObject*> m_GameObjects {};
 	std::unordered_map<std::string, std::vector<Texture*>> m_LoadedTextureResources {};
 	std::unordered_map<std::string, Model*> m_LoadedModelResources {};
+	std::unordered_map<std::string, SkyBox*> m_LoadedCubemapResources {};
 };

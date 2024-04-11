@@ -10,9 +10,9 @@ Texture2D heightMap    : register(t5);
 Texture2D depthMap : register(t6);
 
 // IBL
-TextureCube irradianceMap : register(t7);
-TextureCube prefilterMap  : register(t8);
-Texture2D brdfLUT         : register(t9);
+TextureCube irradianceMap  : register(t7);
+TextureCube prefilterMap   : register(t8);
+Texture2D   brdfLUT        : register(t9);
 
 SamplerState SamplerWrap   : register(s0);
 SamplerState SamplerBorder : register(s1);
@@ -26,10 +26,9 @@ cbuffer LightBuffer : register(b0) {
 };
 
 cbuffer MaterialParamBuffer : register(b1) {
-    // Note: can move this into uv : TEXCOORD0
     float uvScale;
     float parallaxHeightScale;
-    // TODO: add min roughness
+    // TODO: add min roughness, min/max parallax layers, shadow bias
     float2 padding;
 };
 
@@ -287,13 +286,14 @@ float4 PBRPixelShader(PixelInputType i) : SV_TARGET {
     float lightDepthValue = i.lightViewPosition.z / i.lightViewPosition.w;
         
     // Set the bias value for fixing the floating point precision issues.
-    //float bias = 0.001f;
-    float bias = max(0.01 * (dot(normal, -lightDirection)), 0.005);
-    // Subtract the bias from the lightDepthValue.
+    float bias = 0.001f;
+    //float bias = max(0.05 * (1.0 - dot(normal, -lightDirection)), 0.005);
+    
+    // apply bias
     lightDepthValue = lightDepthValue - bias;
         
-    // Shadowmap PCF multisampling
-    float shadowFactor = 0.0;
+    // Shadowmap with basic 5x5 PCF multisampling
+    float shadowFactor = 0.0; // 0: in shadow, 1: not in shadow
     float width, height, numOfLevels;
     depthMap.GetDimensions(0, width, height, numOfLevels);
     float2 texelSize = 1.0 / width;

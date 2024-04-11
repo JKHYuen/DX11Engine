@@ -43,7 +43,7 @@ bool EngineSystem::Initialize() {
 
 	// Setup Platform/Renderer backends
 	ImGui_ImplWin32_Init(m_Hwnd);
-	ImGui_ImplDX11_Init(m_Application->GetD3DClass()->GetDevice(), m_Application->GetD3DClass()->GetDeviceContext());
+	ImGui_ImplDX11_Init(m_Application->GetD3DInstance()->GetDevice(), m_Application->GetD3DInstance()->GetDeviceContext());
 
 	return true;
 }

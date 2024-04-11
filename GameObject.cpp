@@ -12,6 +12,7 @@ bool GameObject::Initialize(PBRShader* pbrShaderInstance, DepthShader* depthShad
 	m_ModelInstance = model;
 
 	m_PBRMaterialName = initialGameObjectData.materialName;
+	m_ModelName = initialGameObjectData.modelName;
 
 	m_Position = initialGameObjectData.position;
 	m_Scale = initialGameObjectData.scale;
@@ -27,6 +28,10 @@ bool GameObject::Initialize(PBRShader* pbrShaderInstance, DepthShader* depthShad
 }
 
 bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLight* light, float time){
+	if(!mb_IsEnabled) {
+		return true;
+	}
+
 	XMMATRIX srtMatrix = XMMatrixMultiply(XMMatrixMultiply(
 		XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z),
 		XMMatrixRotationY(time * m_RotationYSpeed)),
@@ -45,6 +50,10 @@ bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLi
 
 // TODO: use CubeMapObject as parameter?
 bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPos, float time) {
+	if(!mb_IsEnabled) {
+		return true;
+	}
+
 	XMMATRIX srtMatrix = XMMatrixMultiply(XMMatrixMultiply(
 		XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z),
 		XMMatrixRotationY(time * m_RotationYSpeed)),
@@ -52,6 +61,5 @@ bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix,
 	);
 
 	m_ModelInstance->Render(deviceContext);
-	// Render the model using the light shader.
 	return m_PBRShaderInstance->Render(deviceContext, m_ModelInstance->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_MaterialTextures, shadowMap, irradianceMap, prefilteredMap, BRDFLut, light, cameraPos, time, m_UVScale, m_DisplacementHeightScale, m_ParallaxHeightScale);
 }

@@ -21,14 +21,9 @@ public:
     void GetMouseLocation(int&, int&);
     bool IsMousePressed();
 
-    // Lazy hardcoded keyboard input
-    bool IsEscapeKeyDown() const { return (m_CurrentKeyboardState[DIK_ESCAPE] & 0x80) && !(m_PrevFrameKeyboardState[DIK_ESCAPE] & 0x80); };
-    bool IsTabKeyDown() const { return (m_CurrentKeyboardState[DIK_TAB] & 0x80) && !(m_PrevFrameKeyboardState[DIK_TAB] & 0x80); };
-    bool IsF1KeyDown() const { return (m_CurrentKeyboardState[DIK_F1] & 0x80) && !(m_PrevFrameKeyboardState[DIK_F1] & 0x80); };
-    bool Is1KeyDown() const { return (m_CurrentKeyboardState[DIK_1] & 0x80) && !(m_PrevFrameKeyboardState[DIK_1] & 0x80); };
-    bool IsLeftShiftKeyUp() const { return !(m_CurrentKeyboardState[DIK_LSHIFT] & 0x80) && (m_PrevFrameKeyboardState[DIK_LSHIFT] & 0x80); };
-    bool IsLeftShiftKeyDown() const { return (m_CurrentKeyboardState[DIK_LSHIFT] & 0x80) && !(m_PrevFrameKeyboardState[DIK_LSHIFT] & 0x80); };
-    bool IsLeftShiftKey() const { return m_CurrentKeyboardState[DIK_LSHIFT] & 0x80; };
+    bool IsKeyDown(int keyCode) const { return (m_CurrentKeyboardState[keyCode] & 0x80) && !(m_PrevFrameKeyboardState[keyCode] & 0x80); }
+    bool IsKeyUp(int keyCode) const { return !(m_CurrentKeyboardState[keyCode] & 0x80) && (m_PrevFrameKeyboardState[keyCode] & 0x80); }
+    bool IsKeyHeld(int keyCode) const { return m_CurrentKeyboardState[keyCode] & 0x80; }
 
     LONG GetMouseAxisHorizontal() const { return m_MouseState.lX; };
     LONG GetMouseAxisVertical() const { return m_MouseState.lY; };

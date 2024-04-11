@@ -10,14 +10,13 @@
 #include "QuadModel.h"
 #include "Model.h"
 #include "Texture.h"
+#include "Scene.h"
 
 #include "Font.h"
 #include "Text.h"
 #include "Sprite.h"
 #include "Timer.h"
 #include "FpsCounter.h"
-
-#include "Scene.h"
 
 #include "imgui_impl_dx11.h"
 
@@ -28,7 +27,9 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	bool result;
 	char fpsString[32];
 
-	// Note: member currently only used to calc debug quad screen position later, this could probably be simplified
+	m_Hwnd = hwnd;
+
+	// Note: these members currently only used to calc debug quad screen position later, this could probably be simplified
 	m_ScreenWidth = screenWidth;
 	m_ScreenHeight = screenHeight;
 
@@ -36,7 +37,7 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 
 	// Create and initialize the Direct3D object
 	m_D3DInstance = new D3DInstance();
-	result = m_D3DInstance->Initialize(screenWidth, screenHeight, g_VsyncEnabled, hwnd, isFullScreen, g_ScreenDepth, g_ScreenNear);
+	result = m_D3DInstance->Initialize(screenWidth, screenHeight, g_VsyncEnabled, hwnd, isFullScreen, g_ScreenFar, g_ScreenNear);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize Direct3D", L"Error", MB_OK);
 		return false;
@@ -52,7 +53,7 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	/// Screen Render
 	// Create and initialize the screen render texture
 	m_ScreenRenderTexture = new RenderTexture();
-	result = m_ScreenRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), screenWidth, screenHeight, g_ScreenNear, g_ScreenDepth, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	result = m_ScreenRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), screenWidth, screenHeight, g_ScreenNear, g_ScreenFar, DXGI_FORMAT_R32G32B32A32_FLOAT);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize screen render texture.", L"Error", MB_OK);
 		return false;
@@ -110,7 +111,8 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	m_D3DInstance->GetOrthoMatrix(screenOrthoMatrix);
 
 	m_DemoScene = new Scene();
-	result = m_DemoScene->InitializeDemoScene(m_D3DInstance, hwnd, screenCameraViewMatrix, m_ScreenDisplayQuad, g_ShadowMapWidth, g_ShadowMapNear, g_ShadowMapDepth, m_ScreenRenderTexture, m_PassThroughShader);
+	//result = m_DemoScene->InitializeDemoScene(m_D3DInstance, hwnd, screenCameraViewMatrix, m_ScreenDisplayQuad, g_ShadowMapWidth, g_ShadowMapNear, g_ShadowMapDepth, m_ScreenRenderTexture, m_PassThroughShader);
+	result = m_DemoScene->InitializeDemoScene(this);
 	if(!result) {
 		MessageBox(hwnd, L"Could not load scene.", L"Error", MB_OK);
 		return false;
@@ -205,17 +207,29 @@ bool Application::Frame(Input* input) {
 
 	/// USER INPUT
 	// Exit app if escape key down or ImGui quit flag
-	if(input->IsEscapeKeyDown() || mb_QuitApp) {
+	if(input->IsKeyDown(DIK_ESCAPE) || mb_QuitApp) {
 		return false;
 	}
 
-	if(input->IsTabKeyDown()) {
+	if(input->IsKeyDown(DIK_TAB)) {
 		mb_ShowImGuiMenu = !mb_ShowImGuiMenu;
 		ShowCursor(mb_ShowImGuiMenu);
 	}
 
-	if(input->IsF1KeyDown()) {
-		mb_RenderDebugQuad = !mb_RenderDebugQuad;
+	if(input->IsKeyDown(DIK_1)) {
+		mb_RenderDebugQuad1 = !mb_RenderDebugQuad1;
+	}
+
+	if(input->IsKeyDown(DIK_2)) {
+		mb_RenderDebugQuad2 = !mb_RenderDebugQuad2;
+	}
+
+	if(input->IsKeyDown(DIK_F1)) {
+		mb_ShowScreenFPS = !mb_ShowScreenFPS;
+	}
+
+	if(input->IsKeyDown(DIK_F2)) {
+		mb_IsWireFrameRender = !mb_IsWireFrameRender;
 	}
 
 	// Enable camera controls if IMGUI is hidden
@@ -322,7 +336,7 @@ bool Application::RenderToBackBuffer() {
 
 	/// DEBUG textures (UI) //
 	// Depth Debug Quad
-	if(mb_RenderDebugQuad) {
+	if(mb_RenderDebugQuad1) {
 		m_DebugDisplayQuad1->Render(m_D3DInstance->GetDeviceContext());
 		// Bottom left
 		static XMMATRIX translationMatrix1 = XMMatrixTranslation(
@@ -332,14 +346,15 @@ bool Application::RenderToBackBuffer() {
 		if(!m_PassThroughShader->Render(m_D3DInstance->GetDeviceContext(), m_DebugDisplayQuad1->GetIndexCount(), translationMatrix1, viewMatrix, orthoMatrix, m_DemoScene->GetDirectionalShadowMapRenderTexture()->GetTextureSRV())) {
 			return false;
 		}
+	}
 
+	if(mb_RenderDebugQuad2) {
 		m_DebugDisplayQuad2->Render(m_D3DInstance->GetDeviceContext());
 		// Bottom right
 		static XMMATRIX translationMatrix2 = XMMatrixTranslation(
 			m_ScreenWidth / 2.0f - m_ScreenWidth / 6.0f,
 			-m_ScreenHeight / 2.0f + m_ScreenHeight / 6.0f, 0
 		);
-
 		if(!m_PassThroughShader->Render(m_D3DInstance->GetDeviceContext(), m_DebugDisplayQuad2->GetIndexCount(), translationMatrix2, viewMatrix, orthoMatrix, m_DemoScene->GetDebugBloomOutput()->GetTextureSRV())) {
 			return false;
 		}
@@ -347,7 +362,7 @@ bool Application::RenderToBackBuffer() {
 
 	/// Render IMGUI
 	if(mb_ShowImGuiMenu) {
-		m_DemoScene->UpdateMainImGuiWindow(m_FpsCounter->GetCurrentFPS(), mb_IsWireFrameRender, mb_ShowImGuiMenu, mb_ShowScreenFPS, mb_QuitApp);
+		m_DemoScene->UpdateMainImGuiWindow(m_FpsCounter->GetCurrentFPS(), mb_IsWireFrameRender, mb_ShowImGuiMenu, mb_ShowScreenFPS, mb_QuitApp, mb_RenderDebugQuad1, mb_RenderDebugQuad2);
 	}
 
 	ImGui::Render();

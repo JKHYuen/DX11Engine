@@ -114,8 +114,6 @@ bool DepthShader::Initialize(ID3D11Device* device, HWND hwnd) {
 	}
 
 	return true;
-
-	return true;
 }
 
 

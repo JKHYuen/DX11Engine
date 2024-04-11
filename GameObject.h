@@ -36,6 +36,9 @@ public:
 
 	bool RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLight* light, float time);
 
+	void SetEnabled(bool state) { mb_IsEnabled = state; }
+	bool GetEnabled() const { return mb_IsEnabled; }
+
 	void SetUVScale(float newScale) { m_UVScale = newScale; }
 	float GetUVScale() const { return m_UVScale; }
 
@@ -53,15 +56,23 @@ public:
 	void GetScale(float& x, float& y, float& z) const { x = m_Scale.x; y = m_Scale.y; z = m_Scale.z; }
 
 	// m_PBRMaterialName needed for IMGUI
-	void SetMaterialTextures(std::string_view name, const std::vector<Texture*>& textures) { 
+	void SetPBRMaterialTextures(std::string_view name, const std::vector<Texture*>& newTextures) { 
 		m_PBRMaterialName = name;
-		m_MaterialTextures = textures; 
+		m_MaterialTextures = newTextures; 
 	}
-
 	std::string_view GetPBRMaterialName() const { return m_PBRMaterialName; }
 
+	void SetModel(std::string_view name, Model* newModel) {
+		m_ModelName = name;
+		m_ModelInstance = newModel;
+	}
+	std::string_view GetModelName() const { return m_ModelName; }
+
 private:
+	bool mb_IsEnabled = true;
 	std::string m_PBRMaterialName {};
+	std::string m_ModelName {};
+
 	float m_RotationYSpeed {};
 	float m_UVScale {};
 	float m_DisplacementHeightScale {};

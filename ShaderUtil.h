@@ -1,7 +1,8 @@
 #include <d3dcompiler.h>
 #include <fstream>
 
-/// Note: Dynamic linkage heplers and other generalized shader functions would be implemented in this file in a more serious project
+// NOTE: "D3DCompileFromFile()" Should probably be implemented here with error checking
+
 static void OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, const WCHAR* shaderFilename) {
 	char* compileErrors {};
 	unsigned long long bufferSize {}, i {};
