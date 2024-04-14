@@ -1,6 +1,6 @@
 #include "D3DInstance.h"
 
-bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hwnd, bool fullscreen, float screenDepth, float screenNear) {
+bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hwnd, bool b_IsFullscreen, float screenNear, float screenFar) {
 	HRESULT result {};
 	IDXGIFactory* factory {};
 	IDXGIAdapter* adapter {};
@@ -149,7 +149,7 @@ bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND
 	swapChainDesc.SampleDesc.Quality = 0;
 
 	// Set to full screen or windowed mode.
-	swapChainDesc.Windowed = !fullscreen;
+	swapChainDesc.Windowed = !b_IsFullscreen;
 
 	// Set the scan line ordering and scaling to unspecified.
 	swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
@@ -316,13 +316,13 @@ bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND
 	screenAspect = (float)screenWidth / (float)screenHeight;
 
 	// Create the projection matrix for 3D rendering.
-	m_ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(fieldOfView, screenAspect, screenNear, screenDepth);
+	m_ProjectionMatrix = DirectX::XMMatrixPerspectiveFovLH(fieldOfView, screenAspect, screenNear, screenFar);
 
 	// Initialize the world matrix to the identity matrix.
 	m_WorldMatrix = DirectX::XMMatrixIdentity();
 
 	// Create an orthographic projection matrix for 2D rendering.
-	m_OrthoMatrix = DirectX::XMMatrixOrthographicLH((float)screenWidth, (float)screenHeight, screenNear, screenDepth);
+	m_OrthoMatrix = DirectX::XMMatrixOrthographicLH((float)screenWidth, (float)screenHeight, screenNear, screenFar);
 
 	// Clear the second depth stencil state before setting the parameters.
 	ZeroMemory(&depthDisabledStencilDesc, sizeof(depthDisabledStencilDesc));

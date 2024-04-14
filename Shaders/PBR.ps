@@ -50,8 +50,8 @@ struct PixelInputType {
 static const float PI = 3.14159265359;
 // Must change cubemap gen LOD count if this valule is changed
 static const float MAX_REFLECTION_LOD = 9.0;
-static const float MIN_PARALLAX_LAYERS = 64;
-static const float MAX_PARALLAX_LAYERS = 128;
+static const float MIN_PARALLAX_LAYERS = 8;
+static const float MAX_PARALLAX_LAYERS = 32;
 
 // Normal distribution function
 float DistributionGGX(float3 N, float3 H, float roughness) {
@@ -109,6 +109,7 @@ float2 ParallaxMapping(float2 texCoords, float3 viewDir) {
     float2 currentTexCoords = texCoords;
     float currentDepthMapValue = 1.0 - heightMap.Sample(SamplerWrap, currentTexCoords).r;
       
+    [loop]
     for(int i = 0; i < MAX_PARALLAX_LAYERS && currentLayerDepth < currentDepthMapValue; i++) {
         // shift texture coordinates along direction of P
         currentTexCoords -= deltaTexCoords;

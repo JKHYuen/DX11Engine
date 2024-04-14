@@ -10,6 +10,21 @@
 #include <cmath>
 #include <iostream>
 
+// App params
+namespace {
+	constexpr bool sb_IsFullScreen = false;
+	constexpr bool sb_IsVsyncEnabled = true;
+	constexpr int s_DefaultWindowedWidth = 1280;
+	constexpr int s_DefaultWindowedHeight = 720;
+
+	constexpr float s_ScreenNear = 0.1f;
+	constexpr float s_ScreenFar = 1000.0f;
+
+	constexpr int s_ShadowMapResolution = 2048;
+	constexpr float s_ShadowMapFar = 100.0f;
+	constexpr float s_ShadowMapNear = 1.0f;
+}
+
 bool EngineSystem::Initialize() {
 	// Initialize the width and height of the screen to zero before sending the variables into the function.
 	int screenWidth {};
@@ -28,7 +43,7 @@ bool EngineSystem::Initialize() {
 
 	// Create and initialize the application class object.  This object will handle rendering all the graphics for this application.
 	m_Application = new Application();
-	result = m_Application->Initialize(g_FullScreen, screenWidth, screenHeight, m_Hwnd);
+	result = m_Application->Initialize(sb_IsFullScreen, sb_IsVsyncEnabled, screenWidth, screenHeight, s_ScreenNear, s_ScreenFar, s_ShadowMapResolution, s_ShadowMapNear, s_ShadowMapFar, m_Hwnd);
 	if (!result) {
 		return false;
 	}
@@ -140,7 +155,7 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 	screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
 	// Setup the screen settings depending on whether it is running in full screen or in windowed mode.
-	if(g_FullScreen) {
+	if(sb_IsFullScreen) {
 		// If full screen set the screen to maximum size of the users desktop and 32bit.
 		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
 		dmScreenSettings.dmSize = sizeof(dmScreenSettings);
@@ -157,8 +172,8 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 	}
 	else {
 		// If windowed then set it to 800x600 resolution.
-		screenWidth = g_DefaultWindowedWidth;
-		screenHeight = g_DefaultWindowedHeight;
+		screenWidth = s_DefaultWindowedWidth;
+		screenHeight = s_DefaultWindowedHeight;
 
 		// Place the window in the middle of the screen.
 		posX = (GetSystemMetrics(SM_CXSCREEN) - screenWidth) / 2;
@@ -179,8 +194,8 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 	ShowCursor(false);
 
 	//RECT rect {};
-	//GetWindowRect(m_hwnd, &rect);
-	//MapWindowPoints(m_hwnd, nullptr, reinterpret_cast<POINT*>(&rect), 2);
+	//GetWindowRect(m_Hwnd, &rect);
+	//MapWindowPoints(m_Hwnd, nullptr, reinterpret_cast<POINT*>(&rect), 2);
 	//ClipCursor(&rect);
 }
 
@@ -225,7 +240,7 @@ void EngineSystem::Shutdown() {
 	ShowCursor(true);
 
 	// Fix the display settings if leaving full screen mode.
-	if(g_FullScreen) {
+	if(sb_IsFullScreen) {
 		ChangeDisplaySettings(NULL, 0);
 	}
 

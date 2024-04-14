@@ -1,0 +1,5 @@
+- Directional Light shadow map:
+	- No vertex displacement
+	- shadowmap resolution is set at 2048 (can not be changed)
+	
+- Cursor not restrained to window

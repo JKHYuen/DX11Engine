@@ -7,17 +7,6 @@
 #include <chrono>
 #include "GameObject.h"
 
-constexpr bool g_FullScreen = true;
-constexpr int g_DefaultWindowedWidth = 1280;
-constexpr int g_DefaultWindowedHeight = 720;
-
-constexpr bool g_VsyncEnabled = true;
-constexpr float g_ScreenFar = 1000.0f;
-constexpr float g_ScreenNear = 0.1f;
-constexpr int g_ShadowMapWidth = 2048;
-constexpr float g_ShadowMapFar = 100.0f;
-constexpr float g_ShadowMapNear = 1.0f;
-
 using ChronoTimePoint = std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>>;
 
 class D3DInstance;
@@ -47,7 +36,7 @@ public:
 	Application(const Application&) {}
 	~Application() {}
 
-	bool Initialize(bool isFullScreen, int screenWidth, int screenHeight, HWND hwnd);
+	bool Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, float screenNear, float screenFar, int shadowMapResolution, float shadowMapNear, float shadowMapFar, HWND hwnd);
 	void Shutdown();
 	bool Frame(Input* input);
 
@@ -65,9 +54,7 @@ private:
 	bool UpdateFpsDisplay();
 
 private:
-	int m_ScreenWidth {};
-	int m_ScreenHeight {};
-
+	bool mb_QuitApp {};
 	D3DInstance* m_D3DInstance {};
 	HWND m_Hwnd {};
 	Camera* m_ScreenDisplayCamera {};
@@ -93,11 +80,11 @@ private:
 	// Debug
 	bool mb_RenderDebugQuad1 {};
 	bool mb_RenderDebugQuad2 {};
+	XMMATRIX m_DebugQuadTranslationMatrix1 {};
+	XMMATRIX m_DebugQuadTranslationMatrix2 {};
 	bool mb_ShowImGuiMenu {};
 	bool mb_IsWireFrameRender {};
 	bool mb_ShowScreenFPS {};
-
-	bool mb_QuitApp {};
 
 	FpsCounter* m_FpsCounter {};
 	Text* m_FpsString {};

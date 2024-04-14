@@ -51,7 +51,7 @@ namespace {
 	constexpr XMFLOAT3 s_StartingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0f};
 }
 
-bool Scene::InitializeDemoScene(Application* appInstance) {
+bool Scene::InitializeDemoScene(Application* appInstance, int shadowMapResolution, float shadowMapNear, float shadowMapFar) {
 	bool result;
 
 	m_AppInstance = appInstance;
@@ -162,7 +162,7 @@ bool Scene::InitializeDemoScene(Application* appInstance) {
 	/// Lighting
 	// Create and initialize the shadow map texture
 	m_DirectionalShadowMapRenderTexture = new RenderTexture();
-	result = m_DirectionalShadowMapRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), g_ShadowMapWidth, g_ShadowMapWidth, g_ShadowMapNear, g_ShadowMapFar, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	result = m_DirectionalShadowMapRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), shadowMapResolution, shadowMapResolution, shadowMapNear, shadowMapFar, DXGI_FORMAT_R32G32B32A32_FLOAT);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize shadow map texture.", L"Error", MB_OK);
 		return false;
@@ -173,7 +173,7 @@ bool Scene::InitializeDemoScene(Application* appInstance) {
 
 	// Initialize Directional light
 	m_DirectionalLight->SetColor(s_StartingDirectionalLightColor.x, s_StartingDirectionalLightColor.y, s_StartingDirectionalLightColor.z, 1.0f);
-	m_DirectionalLight->GenerateOrthoMatrix(40.0f, g_ShadowMapNear, g_ShadowMapFar);
+	m_DirectionalLight->GenerateOrthoMatrix(40.0f, shadowMapNear, shadowMapFar);
 	m_DirectionalLight->SetDirection(XMConvertToRadians(s_StartingDirectionalLightDirX), XMConvertToRadians(s_StartingDirectionalLightDirY), 0.0f);
 
 	//// Set the number of lights we will use.
@@ -431,7 +431,9 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		ImGui::Spacing();
 	}
 	
-	if(ImGui::CollapsingHeader("Skybox")) {
+	bool b_ShowSkyboxHeader = ImGui::CollapsingHeader("Skybox");
+	ImGuiHelpMarker("*Environment maps for IBL are generated in run time, might be slow on first selection of skybox. Results are cached.*", true, true);
+	if(b_ShowSkyboxHeader) {
 		if(ImGui::BeginTable("##skybox", 3, kTableFlags)) {
 			for(int i = 0; i < s_HDRSkyboxFileNames.size(); i++) {
 				ImGui::TableNextColumn();
@@ -443,7 +445,6 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 			ImGui::EndTable();
 		}
 	}
-	ImGuiHelpMarker("*Environment maps are built in real time, might be slow on first selection of skybox. Results are cached.*", true, true);
 
 	// TODO: add shadow bias slider
 	/// Directional Light

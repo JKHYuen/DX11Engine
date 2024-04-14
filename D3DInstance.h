@@ -10,10 +10,10 @@ public:
     D3DInstance(const D3DInstance&) {}
     ~D3DInstance() {}
 
-    bool Initialize(int, int, bool, HWND, bool, float, float);
+    bool Initialize(int screenWidth, int screenHeight, bool vsync, HWND hwnd, bool b_IsFullscreen, float screenNear, float screenFar);
     void Shutdown();
 
-    void ClearBackBuffer(float, float, float, float);
+    void ClearBackBuffer(float red, float green, float blue, float alpha);
     void SwapPresent();
 
     ID3D11Device* GetDevice();

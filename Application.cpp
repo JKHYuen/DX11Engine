@@ -23,21 +23,17 @@
 #include <iostream>
 #include <algorithm>
 
-bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeight, HWND hwnd) {
+bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, float screenNear, float screenFar, int shadowMapResolution, float shadowMapNear, float shadowMapFar, HWND hwnd) {
 	bool result;
 	char fpsString[32];
 
 	m_Hwnd = hwnd;
 
-	// Note: these members currently only used to calc debug quad screen position later, this could probably be simplified
-	m_ScreenWidth = screenWidth;
-	m_ScreenHeight = screenHeight;
-
 	m_StartTime = std::chrono::steady_clock::now();
 
 	// Create and initialize the Direct3D object
 	m_D3DInstance = new D3DInstance();
-	result = m_D3DInstance->Initialize(screenWidth, screenHeight, g_VsyncEnabled, hwnd, isFullScreen, g_ScreenFar, g_ScreenNear);
+	result = m_D3DInstance->Initialize(screenWidth, screenHeight, b_IsVsyncEnabled, hwnd, b_IsFullScreen, screenNear, screenFar);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize Direct3D", L"Error", MB_OK);
 		return false;
@@ -53,7 +49,7 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	/// Screen Render
 	// Create and initialize the screen render texture
 	m_ScreenRenderTexture = new RenderTexture();
-	result = m_ScreenRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), screenWidth, screenHeight, g_ScreenNear, g_ScreenFar, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	result = m_ScreenRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), screenWidth, screenHeight, screenNear, screenFar, DXGI_FORMAT_R32G32B32A32_FLOAT);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize screen render texture.", L"Error", MB_OK);
 		return false;
@@ -68,21 +64,33 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 		return false;
 	}
 
-	// Create and initialize the debug displays
-	// NOTE: unit quad can be reused with scaling instead of multiple quads
+	/// Create and initialize the debug displays
+	/// NOTE: unit quad can be reused with scaling instead of multiple quads
+	// Square aspect used for directional light shadow map
 	m_DebugDisplayQuad1 = new QuadModel();
 	result = m_DebugDisplayQuad1->Initialize(m_D3DInstance->GetDevice(), screenHeight / 6.0f, screenHeight / 6.0f);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize debug quad.", L"Error", MB_OK);
 		return false;
 	}
+	// Bottom left
+	m_DebugQuadTranslationMatrix1 = XMMatrixTranslation(
+		-screenWidth  / 2.0f + screenHeight / 6.0f,
+		-screenHeight / 2.0f + screenHeight / 6.0f, 0
+	);
 
+	// Screen aspect used for bloom prefilter view
 	m_DebugDisplayQuad2 = new QuadModel();
 	result = m_DebugDisplayQuad2->Initialize(m_D3DInstance->GetDevice(), screenWidth / 6.0f, screenHeight / 6.0f);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize debug quad.", L"Error", MB_OK);
 		return false;
 	}
+	// Bottom right
+	m_DebugQuadTranslationMatrix2 = XMMatrixTranslation(
+		screenWidth   / 2.0f - screenWidth  / 6.0f,
+		-screenHeight / 2.0f + screenHeight / 6.0f, 0
+	);
 
 	/// Screen shaders
 	// Shader for depth debug quad
@@ -111,8 +119,7 @@ bool Application::Initialize(bool isFullScreen, int screenWidth, int screenHeigh
 	m_D3DInstance->GetOrthoMatrix(screenOrthoMatrix);
 
 	m_DemoScene = new Scene();
-	//result = m_DemoScene->InitializeDemoScene(m_D3DInstance, hwnd, screenCameraViewMatrix, m_ScreenDisplayQuad, g_ShadowMapWidth, g_ShadowMapNear, g_ShadowMapDepth, m_ScreenRenderTexture, m_PassThroughShader);
-	result = m_DemoScene->InitializeDemoScene(this);
+	result = m_DemoScene->InitializeDemoScene(this, shadowMapResolution, shadowMapNear, shadowMapFar);
 	if(!result) {
 		MessageBox(hwnd, L"Could not load scene.", L"Error", MB_OK);
 		return false;
@@ -338,24 +345,14 @@ bool Application::RenderToBackBuffer() {
 	// Depth Debug Quad
 	if(mb_RenderDebugQuad1) {
 		m_DebugDisplayQuad1->Render(m_D3DInstance->GetDeviceContext());
-		// Bottom left
-		static XMMATRIX translationMatrix1 = XMMatrixTranslation(
-			-m_ScreenWidth / 2.0f + m_ScreenHeight / 6.0f,
-			-m_ScreenHeight / 2.0f + m_ScreenHeight / 6.0f, 0
-		);
-		if(!m_PassThroughShader->Render(m_D3DInstance->GetDeviceContext(), m_DebugDisplayQuad1->GetIndexCount(), translationMatrix1, viewMatrix, orthoMatrix, m_DemoScene->GetDirectionalShadowMapRenderTexture()->GetTextureSRV())) {
+		if(!m_PassThroughShader->Render(m_D3DInstance->GetDeviceContext(), m_DebugDisplayQuad1->GetIndexCount(), m_DebugQuadTranslationMatrix1, viewMatrix, orthoMatrix, m_DemoScene->GetDirectionalShadowMapRenderTexture()->GetTextureSRV())) {
 			return false;
 		}
 	}
 
 	if(mb_RenderDebugQuad2) {
 		m_DebugDisplayQuad2->Render(m_D3DInstance->GetDeviceContext());
-		// Bottom right
-		static XMMATRIX translationMatrix2 = XMMatrixTranslation(
-			m_ScreenWidth / 2.0f - m_ScreenWidth / 6.0f,
-			-m_ScreenHeight / 2.0f + m_ScreenHeight / 6.0f, 0
-		);
-		if(!m_PassThroughShader->Render(m_D3DInstance->GetDeviceContext(), m_DebugDisplayQuad2->GetIndexCount(), translationMatrix2, viewMatrix, orthoMatrix, m_DemoScene->GetDebugBloomOutput()->GetTextureSRV())) {
+		if(!m_PassThroughShader->Render(m_D3DInstance->GetDeviceContext(), m_DebugDisplayQuad2->GetIndexCount(), m_DebugQuadTranslationMatrix2, viewMatrix, orthoMatrix, m_DemoScene->GetDebugBloomOutput()->GetTextureSRV())) {
 			return false;
 		}
 	}
