@@ -23,17 +23,18 @@
 #include <iostream>
 #include <algorithm>
 
-bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, float screenNear, float screenFar, int shadowMapResolution, float shadowMapNear, float shadowMapFar, HWND hwnd) {
+bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, float nearZ, float farZ, int shadowMapResolution, float shadowMapNear, float shadowMapFar, HWND hwnd) {
 	bool result;
-	char fpsString[32];
 
 	m_Hwnd = hwnd;
-
+	mb_IsFullScreen = b_IsFullScreen;
 	m_StartTime = std::chrono::steady_clock::now();
+	m_ScreenNear = nearZ;
+	m_ScreenFar = farZ;
 
 	// Create and initialize the Direct3D object
 	m_D3DInstance = new D3DInstance();
-	result = m_D3DInstance->Initialize(screenWidth, screenHeight, b_IsVsyncEnabled, hwnd, b_IsFullScreen, screenNear, screenFar);
+	result = m_D3DInstance->Initialize(screenWidth, screenHeight, b_IsVsyncEnabled, hwnd, b_IsFullScreen, nearZ, farZ);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize Direct3D", L"Error", MB_OK);
 		return false;
@@ -49,7 +50,7 @@ bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int scr
 	/// Screen Render
 	// Create and initialize the screen render texture
 	m_ScreenRenderTexture = new RenderTexture();
-	result = m_ScreenRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), screenWidth, screenHeight, screenNear, screenFar, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	result = m_ScreenRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), screenWidth, screenHeight, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize screen render texture.", L"Error", MB_OK);
 		return false;
@@ -157,6 +158,7 @@ bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int scr
 	m_FpsCounter->Initialize(1.0f);
 
 	// Set the initial fps and fps string.
+	char fpsString[32];
 	strcpy_s(fpsString, "0");
 
 	// Create and initialize the text object for the fps string.
@@ -169,6 +171,33 @@ bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int scr
 	if(!result) {
 		return false;
 	}
+
+	return true;
+}
+
+bool Application::ToggleFullscreen() {
+	mb_IsFullScreen = !mb_IsFullScreen;
+	int newWidth = mb_IsFullScreen ? 1920 : 1280;
+	int newHeight = mb_IsFullScreen ? 1080 : 720;
+	m_D3DInstance->ResizeWindow(m_Hwnd, newWidth, newHeight, m_ScreenNear, m_ScreenFar);
+
+	// TODO: update, debug quads/translation matrices
+	m_ScreenRenderTexture->Shutdown();
+	delete m_ScreenRenderTexture;
+	m_ScreenRenderTexture = new RenderTexture();
+	bool result = m_ScreenRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), newWidth, newHeight, m_ScreenNear, m_ScreenFar, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	if(!result) return false; 
+
+	m_ScreenDisplayQuad->Shutdown();
+	delete m_ScreenDisplayQuad;
+	m_ScreenDisplayQuad = new QuadModel();
+	result = m_ScreenDisplayQuad->Initialize(m_D3DInstance->GetDevice(), newWidth / 2.0f, newHeight / 2.0f);
+	if(!result) return false;
+
+	m_FpsString->SetScreenDimensions(newWidth, newHeight);
+
+	m_D3DInstance->SetToBackBufferRenderTargetAndViewPort();
+	m_D3DInstance->ClearBackBuffer(0, 0, 0, 1);
 
 	return true;
 }
@@ -223,11 +252,11 @@ bool Application::Frame(Input* input) {
 		ShowCursor(mb_ShowImGuiMenu);
 	}
 
-	if(input->IsKeyDown(DIK_1)) {
+	if(input->IsKeyDown(DIK_Z)) {
 		mb_RenderDebugQuad1 = !mb_RenderDebugQuad1;
 	}
 
-	if(input->IsKeyDown(DIK_2)) {
+	if(input->IsKeyDown(DIK_X)) {
 		mb_RenderDebugQuad2 = !mb_RenderDebugQuad2;
 	}
 
@@ -242,6 +271,10 @@ bool Application::Frame(Input* input) {
 	// Enable camera controls if IMGUI is hidden
 	if(!mb_ShowImGuiMenu) {
 		m_DemoScene->ProcessInput(input, m_DeltaTime);
+	}
+
+	if(input->IsKeyDown(DIK_F)) {
+		ToggleFullscreen();
 	}
 
 	return true;

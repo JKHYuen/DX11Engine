@@ -51,20 +51,15 @@ void RedirectIOToConsole() {
 }
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PSTR pScmdline, int iCmdshow) {
-    
     RedirectIOToConsole();
 
-	// Create the system object.
 	EngineSystem* system = new EngineSystem();
 
-	// Initialize and run the system object.
 	if (system->Initialize()) {
 		system->Run();
 	}
 
-	// Shutdown and release the system object.
 	system->Shutdown();
-
 	delete system;
 	system = nullptr;
 

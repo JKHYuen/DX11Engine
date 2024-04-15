@@ -23,12 +23,19 @@ public:
     bool UpdateText(ID3D11DeviceContext* deviceContext, Font* Font, char* text, int positionX, int positionY, float red, float green, float blue);
     XMFLOAT4 GetPixelColor();
 
+    void SetScreenDimensions(int newWidth, int newHeight) { 
+        m_ScreenWidth = newWidth;
+        m_ScreenHeight = newHeight;
+    }
 private:
     void ShutdownBuffers();
     void RenderBuffers(ID3D11DeviceContext* deviceContext);
 
 private:
-    ID3D11Buffer* m_vertexBuffer {}, * m_indexBuffer {};
-    int m_screenWidth {}, m_screenHeight {}, m_maxLength {}, m_vertexCount {}, m_indexCount {};
+    ID3D11Buffer* m_VertexBuffer {};
+    ID3D11Buffer* m_IndexBuffer {};
+    int m_ScreenWidth {}, m_ScreenHeight {};
+    int m_VertexCount {}, m_IndexCount {};
+    int m_MaxLength {};
     XMFLOAT4 m_pixelColor {};
 };

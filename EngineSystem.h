@@ -18,6 +18,9 @@ public:
 
 	LRESULT CALLBACK MessageHandler(HWND, UINT, WPARAM, LPARAM);
 
+	int GetUserScreenWidth() const { return m_UserScreenWidth; }
+	int GetUserScreenHeight() const { return m_UserScreenHeight; }
+
 private:
 	bool Frame();
 	void InitializeWindows(int&, int&);
@@ -29,6 +32,9 @@ private:
 
 	Input* m_Input {};
 	Application* m_Application {};
+
+	int m_UserScreenWidth {};
+	int m_UserScreenHeight {};
 };
 
 static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);

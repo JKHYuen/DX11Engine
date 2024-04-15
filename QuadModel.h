@@ -18,16 +18,13 @@ public:
 
     bool Initialize(ID3D11Device*, float, float);
     void Shutdown();
-    void Render(ID3D11DeviceContext*);
+    void Render(ID3D11DeviceContext*) const;
 
     int GetIndexCount();
 
 private:
-    void ShutdownBuffers();
-
-private:
-    ID3D11Buffer* m_vertexBuffer {};
-    ID3D11Buffer* m_indexBuffer {};
-    int m_vertexCount {};
-    int m_indexCount {};
+    ID3D11Buffer* m_VertexBuffer {};
+    ID3D11Buffer* m_IndexBuffer {};
+    int m_VertexCount {};
+    int m_IndexCount {};
 };

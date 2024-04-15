@@ -10,7 +10,6 @@ namespace {
 	const int k_DefaultMaxIterations = 16;
 }
 
-// TODO: combine post processing (tonemapping shader) functionality from "Scene" with this class, rename this class to "PostProcess"
 bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext, HWND hwnd, RenderTexture* screenTexture, TextureShader* screenRenderShader) {
 	m_ScreenVertexShaderInstance = screenRenderShader->GetVertexShader();
 	m_screenShaderLayoutInstance = screenRenderShader->GetShaderInputLayout();
@@ -118,7 +117,6 @@ bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext,
 	return true;
 }
 
-// TODO: look into clearing shader resources properly
 bool Bloom::RenderEffect(D3DInstance* d3dInstance , int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* screenTextureSource) {
 	bool result {};
 	

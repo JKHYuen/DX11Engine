@@ -35,8 +35,6 @@ namespace {
 	const std::vector<std::string> s_ModelFileNames {"cube", "plane", "sphere"};
 	const std::vector<std::string> s_HDRSkyboxFileNames {"rural_landscape_4k", "industrial_sunset_puresky_4k", "kloppenheim_03_4k", "schachen_forest_4k", "abandoned_tiled_room_4k"};
 
-	/// Demo Scene starting values
-	//const std::string s_DefaultSkyboxName {"rural_landscape_4k"};
 	constexpr int s_DefaultSkyboxIndex         = 0;
 	constexpr int s_CubeFaceResolution         = 2048;
 	constexpr int s_CubeMapMipLevels           = 9;
@@ -44,6 +42,7 @@ namespace {
 	constexpr int s_FullPrefilterMapResolution = 512;
 	constexpr int s_PrecomputedBRDFResolution  = 512;
 
+	/// Demo Scene starting values
 	constexpr float s_StartingDirectionalLightDirX = 50.0f;
 	constexpr float s_StartingDirectionalLightDirY = 230.0f;
 	// sunlight color: 9.0f, 5.0f, 2.0f 
@@ -425,9 +424,9 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		ImGui::Checkbox("Show FPS on screen", &b_ShowScreenFPS); ImGuiHelpMarker("Keybind: F1");
 		ImGui::SameLine(200);
 		ImGui::Checkbox("Wireframe Render", &b_IsWireFrameRender); ImGuiHelpMarker("Keybind: F2");
-		ImGui::Checkbox("Shadow Map View", &b_ShowDebugQuad1); ImGuiHelpMarker("Directional light shadow map.");
+		ImGui::Checkbox("Shadow Map View", &b_ShowDebugQuad1); ImGuiHelpMarker("Directional light shadow map.\nKeybing: Z");
 		ImGui::SameLine(200);
-		ImGui::Checkbox("Bloom Filter View", &b_ShowDebugQuad2); ImGuiHelpMarker("Bloom intensity not included.");
+		ImGui::Checkbox("Bloom Filter View", &b_ShowDebugQuad2); ImGuiHelpMarker("Bloom intensity not included.\nKeybing: X");
 		ImGui::Spacing();
 	}
 	
@@ -602,6 +601,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 
 		// TODO: self shadow toggle
 		// TODO: minimum roughness
+		// TODO: parallax min/max layers
 
 		if(ImGui::DragFloat3("Position", userPosition, 0.001f, -1000.0f, 1000.0f, "%.3f", kSliderFlags)) {
 			pSelectedGO->SetPosition(userPosition[0], userPosition[1], userPosition[2]);

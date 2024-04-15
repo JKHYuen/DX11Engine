@@ -17,8 +17,9 @@ namespace {
 	constexpr int s_DefaultWindowedWidth = 1280;
 	constexpr int s_DefaultWindowedHeight = 720;
 
-	constexpr float s_ScreenNear = 0.1f;
-	constexpr float s_ScreenFar = 1000.0f;
+	// This is used for 3d world cam and cam to render screen quad
+	constexpr float s_NearZ = 0.1f;
+	constexpr float s_FarZ = 1000.0f;
 
 	constexpr int s_ShadowMapResolution = 2048;
 	constexpr float s_ShadowMapFar = 100.0f;
@@ -26,24 +27,23 @@ namespace {
 }
 
 bool EngineSystem::Initialize() {
-	// Initialize the width and height of the screen to zero before sending the variables into the function.
 	int screenWidth {};
 	int screenHeight {};
 	bool result;
 
-	// Initialize the windows api.
+	// Initialize the windows api
 	InitializeWindows(screenWidth, screenHeight);
 
-	// Create and initialize the input object.  This object will be used to handle reading the keyboard input from the user.
+	// Create and initialize the input object
 	m_Input = new Input();
 	result = m_Input->Initialize(m_Hinstance, m_Hwnd, screenWidth, screenHeight);
 	if(!result) {
 		return false;
 	}
 
-	// Create and initialize the application class object.  This object will handle rendering all the graphics for this application.
+	// Create and initialize the application class object
 	m_Application = new Application();
-	result = m_Application->Initialize(sb_IsFullScreen, sb_IsVsyncEnabled, screenWidth, screenHeight, s_ScreenNear, s_ScreenFar, s_ShadowMapResolution, s_ShadowMapNear, s_ShadowMapFar, m_Hwnd);
+	result = m_Application->Initialize(sb_IsFullScreen, sb_IsVsyncEnabled, screenWidth, screenHeight, s_NearZ, s_FarZ, s_ShadowMapResolution, s_ShadowMapNear, s_ShadowMapFar, m_Hwnd);
 	if (!result) {
 		return false;
 	}
@@ -154,6 +154,9 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 	screenWidth = GetSystemMetrics(SM_CXSCREEN);
 	screenHeight = GetSystemMetrics(SM_CYSCREEN);
 
+	m_UserScreenWidth = screenWidth;
+	m_UserScreenHeight = screenHeight;
+
 	// Setup the screen settings depending on whether it is running in full screen or in windowed mode.
 	if(sb_IsFullScreen) {
 		// If full screen set the screen to maximum size of the users desktop and 32bit.
@@ -161,7 +164,7 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 		dmScreenSettings.dmSize = sizeof(dmScreenSettings);
 		dmScreenSettings.dmPelsWidth = (unsigned long)screenWidth;
 		dmScreenSettings.dmPelsHeight = (unsigned long)screenHeight;
-		dmScreenSettings.dmBitsPerPel = 64;
+		dmScreenSettings.dmBitsPerPel = 32;
 		dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
 		// Change the display settings to full screen.
@@ -171,7 +174,7 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 		posX = posY = 0;
 	}
 	else {
-		// If windowed then set it to 800x600 resolution.
+		// Set to default windowed resolution.
 		screenWidth = s_DefaultWindowedWidth;
 		screenHeight = s_DefaultWindowedHeight;
 
@@ -215,7 +218,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
 			PostQuitMessage(0);
 			return 0;
 
-		// All other messages pass to the message handler in the system class.
+		// Pass all other messages
 		default:
 			return g_ApplicationHandle->MessageHandler(hwnd, umessage, wparam, lparam);
 	}

@@ -10,23 +10,25 @@ public:
     D3DInstance(const D3DInstance&) {}
     ~D3DInstance() {}
 
-    bool Initialize(int screenWidth, int screenHeight, bool vsync, HWND hwnd, bool b_IsFullscreen, float screenNear, float screenFar);
+    bool Initialize(int screenWidth, int screenHeight, bool vsync, HWND hwnd, bool b_IsFullscreen, float nearZ, float farZ);
     void Shutdown();
 
+    bool ResizeWindow(HWND hwnd, int newWidth, int newHeight, float screenNear, float screenFar);
     void ClearBackBuffer(float red, float green, float blue, float alpha);
     void SwapPresent();
 
-    ID3D11Device* GetDevice();
-    ID3D11DeviceContext* GetDeviceContext();
+    ID3D11Device* GetDevice() const { return m_Device; }
+    ID3D11DeviceContext* GetDeviceContext() const { return m_DeviceContext; }
 
-    void GetProjectionMatrix(DirectX::XMMATRIX&);
-    void GetWorldMatrix(DirectX::XMMATRIX&);
-    void GetOrthoMatrix(DirectX::XMMATRIX&);
-
-    void GetVideoCardInfo(char*, int&);
+    void GetProjectionMatrix(DirectX::XMMATRIX& projectionMatrix) const { projectionMatrix = m_ProjectionMatrix; }
+    void GetWorldMatrix(DirectX::XMMATRIX& worldMatrix) const { worldMatrix = m_WorldMatrix; }
+    void GetOrthoMatrix(DirectX::XMMATRIX& orthoMatrix) const { orthoMatrix = m_OrthoMatrix; }
+    void GetVideoCardInfo(char* cardName, int& memory) const {
+        strcpy_s(cardName, 128, m_VideoCardDescription);
+        memory = m_VideoCardMemory;
+    }
 
     void SetToBackBufferRenderTargetAndViewPort();
-    void ResetViewport();
 
     void SetToWireBackCullRasterState();
     void SetToBackCullRasterState();
@@ -40,9 +42,16 @@ public:
     void EnableAdditiveBlending();
 
 private:
+    static constexpr inline float s_DefaultFOV = DirectX::XM_PIDIV4;
     bool m_Vsync_enabled {};
+    
+    // Note: refresh rate detected on app launch, not updated at any point afterwards
+    unsigned int m_RefreshRateNumerator {};
+    unsigned int m_RefreshRateDenominator {};
+
     int m_VideoCardMemory {};
     char m_VideoCardDescription[128] {};
+
     IDXGISwapChain* m_SwapChain {};
     ID3D11Device* m_Device {};
     ID3D11DeviceContext* m_DeviceContext {};

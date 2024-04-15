@@ -1,5 +1,26 @@
+- uses d3d feature level 11_0
+
+- Some outdated code practices to keep consistent with rastertek base 
+	- No smart pointers
+	- objects are initialized and cleaned up manually
+	- Constructors, destructors and copy constructors are disabled
+	- Some outdated DXGI (1.1) functions are used (e.g. using IDXGISwapChain::Present rather than IDXGISwapChain1::Present1)
+
+- bloom blur iterations hardcoded to log2(screen height)
+
 - Directional Light shadow map:
-	- No vertex displacement
-	- shadowmap resolution is set at 2048 (can not be changed)
+	- No vertex displacement support
+	- shadow map resolution is hardcoded to 2048x2048
 	
-- Cursor not restrained to window
+- Environment cubemaps used for image based lighting are generated in runtime (not cached on disk)
+- Cubemap generation parameters are hardcoded to the following:
+	- Cube face resolution: 2048x2048
+	- Irradiance map resolution: 32x32
+	- Prefiltered environment map: 512x512
+	- Cube map mip levels (for PBR smoothness interpolation): 9
+	- Precomputed BRDF map: 512x512
+	
+- Cursor not constrained to window
+- (QOL) Cursor does not loop when adjusting values in IMGUI
+
+- Only directional light source, no point lights, spotlights, etc.

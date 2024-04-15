@@ -1,10 +1,13 @@
 #pragma once
+#define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
+
 #include <vector>
 #include <unordered_map>
 #include <string>
 #include <chrono>
+
 #include "GameObject.h"
 
 using ChronoTimePoint = std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>>;
@@ -36,7 +39,7 @@ public:
 	Application(const Application&) {}
 	~Application() {}
 
-	bool Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, float screenNear, float screenFar, int shadowMapResolution, float shadowMapNear, float shadowMapFar, HWND hwnd);
+	bool Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, float nearZ, float farZ, int shadowMapResolution, float shadowMapNear, float shadowMapFar, HWND hwnd);
 	void Shutdown();
 	bool Frame(Input* input);
 
@@ -45,43 +48,46 @@ public:
 
 	QuadModel* GetScreenDisplayQuadInstance() const { return m_ScreenDisplayQuad; }
 	RenderTexture* GetScreenRenderTexture() const { return m_ScreenRenderTexture; }
-	//TextureShader* GetPassThroughShaderInstance() const { return m_PassThroughShader; }
 	Camera* GetScreenDisplayCamera() const { return m_ScreenDisplayCamera; }
 
 private:
 	bool RenderToBackBuffer();
 	bool RenderSceneToScreenTexture();
 	bool UpdateFpsDisplay();
+	bool ToggleFullscreen();
 
 private:
+	bool mb_IsFullScreen {};
 	bool mb_QuitApp {};
+
+	float m_ScreenNear {};
+	float m_ScreenFar {};
+
 	D3DInstance* m_D3DInstance {};
 	HWND m_Hwnd {};
 	Camera* m_ScreenDisplayCamera {};
 
-	// Scene
 	Scene* m_DemoScene {};
 
-	// Screen Rendering
+	/// Screen Rendering
 	RenderTexture* m_ScreenRenderTexture {};
-
 	QuadModel* m_ScreenDisplayQuad {};
-	QuadModel* m_DebugDisplayQuad1 {};
-	QuadModel* m_DebugDisplayQuad2 {};
-
 	// Shader that only renders texture with no effects
 	TextureShader* m_PassThroughShader {};
 
-	//SpriteClass* m_sprite {};
-
 	FontShader* m_FontShader {};
 	Font* m_Font {};
+	//SpriteClass* m_sprite {};
 
-	// Debug
+	/// Debug
+	QuadModel* m_DebugDisplayQuad1 {};
+	QuadModel* m_DebugDisplayQuad2 {};
 	bool mb_RenderDebugQuad1 {};
 	bool mb_RenderDebugQuad2 {};
+	// for hardcoded debug quad placement
 	XMMATRIX m_DebugQuadTranslationMatrix1 {};
 	XMMATRIX m_DebugQuadTranslationMatrix2 {};
+
 	bool mb_ShowImGuiMenu {};
 	bool mb_IsWireFrameRender {};
 	bool mb_ShowScreenFPS {};
@@ -89,7 +95,7 @@ private:
 	FpsCounter* m_FpsCounter {};
 	Text* m_FpsString {};
 
-	// Timer
+	/// Timer
 	ChronoTimePoint m_StartTime {};
 	ChronoTimePoint m_LastFrameTimePoint {};
 	float m_DeltaTime {};
