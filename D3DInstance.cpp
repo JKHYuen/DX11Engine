@@ -1,6 +1,6 @@
 #include "D3DInstance.h"
 
-bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hwnd, bool b_IsFullscreen, float nearZ, float farZ) {
+bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND hwnd, float nearZ, float farZ) {
 	HRESULT result {};
 
 	m_Vsync_enabled = vsync;
@@ -132,7 +132,7 @@ bool D3DInstance::Initialize(int screenWidth, int screenHeight, bool vsync, HWND
 	swapChainDesc.SampleDesc.Quality = 0;
 
 	// Set to full screen or windowed mode.
-	swapChainDesc.Windowed = !b_IsFullscreen;
+	swapChainDesc.Windowed = true;
 
 	// Set the scan line ordering and scaling to unspecified.
 	swapChainDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
@@ -378,9 +378,16 @@ bool D3DInstance::ResizeWindow(HWND hwnd, int newWidth, int newHeight, float scr
 	hr = m_SwapChain->ResizeTarget(&dxgiDesc);
 	if(FAILED(hr)) return false;
 
-	SetWindowPos(hwnd, HWND_TOP, 0, 0, newWidth, newHeight, 0);
+	int posX = (GetSystemMetrics(SM_CXSCREEN) - newWidth) / 2;
+	int posY = (GetSystemMetrics(SM_CYSCREEN) - newHeight) / 2;
 
-	// Note: "proper" way is to trigger the following with WM_SIZE in message loop
+	// Same as InitializeWindows() in EngineSystem.cpp
+	LONG_PTR newStyle = WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_POPUP;
+	LONG_PTR style_ptr = SetWindowLongPtr(hwnd, GWL_STYLE, newStyle);
+
+	SetWindowPos(hwnd, HWND_TOP, posX, posY, newWidth, newHeight, SWP_SHOWWINDOW | SWP_NOSIZE);
+
+	// Note: proper way is to trigger the following with WM_SIZE in message loop
 	hr = m_SwapChain->ResizeBuffers(2, newWidth, newHeight, DXGI_FORMAT_R16G16B16A16_FLOAT, 0);
 	if(FAILED(hr)) return false;
 

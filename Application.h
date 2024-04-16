@@ -39,7 +39,7 @@ public:
 	Application(const Application&) {}
 	~Application() {}
 
-	bool Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, float nearZ, float farZ, int shadowMapResolution, float shadowMapNear, float shadowMapFar, HWND hwnd);
+	bool Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, int defaultWindowedWidth, int defaultWindowedHeight, float nearZ, float farZ, int shadowMapResolution, float shadowMapNear, float shadowMapFar, HWND hwnd);
 	void Shutdown();
 	bool Frame(Input* input);
 
@@ -54,6 +54,8 @@ private:
 	bool RenderToBackBuffer();
 	bool RenderSceneToScreenTexture();
 	bool UpdateFpsDisplay();
+
+	bool GenerateRenderQuads(int screenWidth, int screenHeight);
 	bool ToggleFullscreen();
 
 private:
@@ -62,6 +64,8 @@ private:
 
 	float m_ScreenNear {};
 	float m_ScreenFar {};
+	int m_DefaultWindowedWidth  {};
+	int m_DefaultWindowedHeight {};
 
 	D3DInstance* m_D3DInstance {};
 	HWND m_Hwnd {};

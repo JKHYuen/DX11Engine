@@ -662,6 +662,13 @@ void Scene::ProcessInput(Input* input, float deltaTime) {
 	m_Camera->SetPosition(m_Camera->GetPositionX() + XMVectorGetX(camMoveVector), m_Camera->GetPositionY() + XMVectorGetY(camMoveVector), m_Camera->GetPositionZ() + XMVectorGetZ(camMoveVector));
 }
 
+bool Scene::ResizeWindow(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int screenWidth, int screenHeight, float nearZ, float farZ) {
+	bool result = m_BloomEffect->GenerateRenderTextures(device, deviceContext, screenWidth, screenHeight, nearZ, farZ);
+	if(!result) return false;
+
+	return true;
+}
+
 void Scene::Shutdown() {
 	if(m_PBRShaderInstance) {
 		m_PBRShaderInstance->Shutdown();

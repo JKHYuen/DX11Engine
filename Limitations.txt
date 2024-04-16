@@ -8,6 +8,9 @@
 
 - bloom blur iterations hardcoded to log2(screen height)
 
+- no exclusive fullscreen mode
+	- can be toggled to windowed mode (hardcoded to 1280x720 resolution) or fullscreen windowed borderless
+
 - Directional Light shadow map:
 	- No vertex displacement support
 	- shadow map resolution is hardcoded to 2048x2048

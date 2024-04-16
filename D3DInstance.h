@@ -10,7 +10,7 @@ public:
     D3DInstance(const D3DInstance&) {}
     ~D3DInstance() {}
 
-    bool Initialize(int screenWidth, int screenHeight, bool vsync, HWND hwnd, bool b_IsFullscreen, float nearZ, float farZ);
+    bool Initialize(int screenWidth, int screenHeight, bool vsync, HWND hwnd , float nearZ, float farZ);
     void Shutdown();
 
     bool ResizeWindow(HWND hwnd, int newWidth, int newHeight, float screenNear, float screenFar);

@@ -5,6 +5,8 @@
 #include "TextureShader.h"
 #include "D3DInstance.h"
 
+#include <iostream>
+
 namespace {
 	// default maximum number of down/upsample iterations for bloom effect, m_IterationCount is number of iterations to use in current bloom instance (depends on screen resolution)
 	const int k_DefaultMaxIterations = 16;
@@ -15,30 +17,8 @@ bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext,
 	m_screenShaderLayoutInstance = screenRenderShader->GetShaderInputLayout();
 
 	/// Generate render textures for down/up sampling
-	int width = screenTexture->GetTextureWidth();
-	int height = screenTexture->GetTextureHeight();
-	float nearZ = screenTexture->GetNearZ();
-	float farZ = screenTexture->GetFarZ();
-
-	m_BloomOutputTexture = new RenderTexture();
-	bool result = m_BloomOutputTexture->Initialize(device, deviceContext, width, height, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	bool result = GenerateRenderTextures(device, deviceContext, screenTexture->GetTextureWidth(), screenTexture->GetTextureHeight(), screenTexture->GetNearZ(), screenTexture->GetFarZ());
 	if(!result) return false;
-
-	m_IterationCount = k_DefaultMaxIterations;
-	for(int i = 0; i < k_DefaultMaxIterations; i++) {
-		m_RenderTexures.push_back(new RenderTexture());
-		result = m_RenderTexures[i]->Initialize(device, deviceContext, width, height, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
-		if(!result) return false;
-
-		width /= 2;
-		height /= 2;
-
-		// Note: should check min of height and width 
-		if(height < 2) {
-			m_IterationCount = i + 1;
-			break;
-		}
-	}
 
 	HRESULT hresult {};
 	ID3D10Blob* errorMessage {};
@@ -112,6 +92,42 @@ bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext,
 	hresult = device->CreateSamplerState(&samplerDesc, &m_SampleState);
 	if(FAILED(hresult)) {
 		return false;
+	}
+
+	return true;
+}
+
+bool Bloom::GenerateRenderTextures(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int screenWidth, int screenHeight, float nearZ, float farZ) {
+	bool b_Regenerate = m_BloomOutputTexture != nullptr;
+	if(b_Regenerate) {
+		m_BloomOutputTexture->Shutdown();
+		delete m_BloomOutputTexture;
+		for(RenderTexture* rt : m_RenderTexures) {
+			rt->Shutdown();
+			delete rt;
+		}
+		m_RenderTexures.clear();
+	}
+
+	m_BloomOutputTexture = new RenderTexture();
+	bool result = m_BloomOutputTexture->Initialize(device, deviceContext, screenWidth, screenHeight, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	if(!result) return false;
+
+	m_RenderTexures.reserve(k_DefaultMaxIterations);
+	m_IterationCount = k_DefaultMaxIterations;
+	for(int i = 0; i < k_DefaultMaxIterations; i++) {
+		m_RenderTexures.push_back(new RenderTexture());
+		result = m_RenderTexures[i]->Initialize(device, deviceContext, screenWidth, screenHeight, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
+		if(!result) return false;
+
+		screenWidth /= 2;
+		screenHeight /= 2;
+
+		// Note: should check min of height and width 
+		if(screenHeight < 2) {
+			m_IterationCount = i + 1;
+			break;
+		}
 	}
 
 	return true;
@@ -258,3 +274,4 @@ void Bloom::Shutdown() {
 		rt = nullptr;
 	}
 }
+

@@ -35,6 +35,9 @@ public:
 	bool Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* textureSRV, bool b_IsFinalPass) const;
 	void Shutdown();
 
+	// Resizes (recreates) all render textures if they have been generated before
+	bool GenerateRenderTextures(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int screenWidth, int screenHeight, float nearZ, float farZ);
+
 	RenderTexture* GetDebugBloomTexture() const { return m_RenderTexures[0]; }
 	RenderTexture* GetBloomOutput() const { return m_BloomOutputTexture; }
 

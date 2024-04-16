@@ -10,9 +10,9 @@
 #include <cmath>
 #include <iostream>
 
-// App params
+// App params (hardcoded)
 namespace {
-	constexpr bool sb_IsFullScreen = false;
+	constexpr bool sb_StartFullScreenState = false;
 	constexpr bool sb_IsVsyncEnabled = true;
 	constexpr int s_DefaultWindowedWidth = 1280;
 	constexpr int s_DefaultWindowedHeight = 720;
@@ -43,7 +43,7 @@ bool EngineSystem::Initialize() {
 
 	// Create and initialize the application class object
 	m_Application = new Application();
-	result = m_Application->Initialize(sb_IsFullScreen, sb_IsVsyncEnabled, screenWidth, screenHeight, s_NearZ, s_FarZ, s_ShadowMapResolution, s_ShadowMapNear, s_ShadowMapFar, m_Hwnd);
+	result = m_Application->Initialize(sb_StartFullScreenState, sb_IsVsyncEnabled, screenWidth, screenHeight, s_DefaultWindowedWidth, s_DefaultWindowedHeight, s_NearZ, s_FarZ, s_ShadowMapResolution, s_ShadowMapNear, s_ShadowMapFar, m_Hwnd);
 	if (!result) {
 		return false;
 	}
@@ -120,10 +120,6 @@ LRESULT CALLBACK EngineSystem::MessageHandler(HWND hwnd, UINT umsg, WPARAM wpara
 }
 
 void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
-	WNDCLASSEX wc;
-	DEVMODE dmScreenSettings;
-	int posX, posY;
-
 	// Get an external pointer to this object.	
 	g_ApplicationHandle = this;
 
@@ -131,9 +127,10 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 	m_Hinstance = GetModuleHandle(NULL);
 
 	// Give the application a name.
-	m_ApplicationName = L"DX11EngineTest";
+	m_ApplicationName = L"DX11Engine";
 
 	// Setup the windows class with default settings.
+	WNDCLASSEX wc {};
 	wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
 	wc.lpfnWndProc = WndProc;
 	wc.cbClsExtra = 0;
@@ -150,42 +147,39 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 	// Register the window class.
 	RegisterClassEx(&wc);
 
-	// Determine the resolution of the clients desktop screen.
-	screenWidth = GetSystemMetrics(SM_CXSCREEN);
-	screenHeight = GetSystemMetrics(SM_CYSCREEN);
+	/// UNUSED - (for exclusive fullscreen) this app currently only supports borderelss windowed fullscreen
+	//if(sb_IsFullScreen) {
+	//	// If full screen set the screen to maximum size of the users desktop and 32bit.
+	//  DEVMODE dmScreenSettings;
+	//	memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
+	//	dmScreenSettings.dmSize = sizeof(dmScreenSettings);
+	//	dmScreenSettings.dmPelsWidth = (unsigned long)screenWidth;
+	//	dmScreenSettings.dmPelsHeight = (unsigned long)screenHeight;
+	//	dmScreenSettings.dmBitsPerPel = 32;
+	//	dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
-	m_UserScreenWidth = screenWidth;
-	m_UserScreenHeight = screenHeight;
+	//	// Change the display settings to full screen.
+	//	ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN);
 
-	// Setup the screen settings depending on whether it is running in full screen or in windowed mode.
-	if(sb_IsFullScreen) {
-		// If full screen set the screen to maximum size of the users desktop and 32bit.
-		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
-		dmScreenSettings.dmSize = sizeof(dmScreenSettings);
-		dmScreenSettings.dmPelsWidth = (unsigned long)screenWidth;
-		dmScreenSettings.dmPelsHeight = (unsigned long)screenHeight;
-		dmScreenSettings.dmBitsPerPel = 32;
-		dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+	//	// Set the position of the window to the top left corner.
+	//	posX = posY = 0;
+	//}
 
-		// Change the display settings to full screen.
-		ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN);
+	// Set starting windowed resolution.
+	screenWidth = sb_StartFullScreenState ? GetSystemMetrics(SM_CXSCREEN) : s_DefaultWindowedWidth;
+	screenHeight = sb_StartFullScreenState ? GetSystemMetrics(SM_CYSCREEN) : s_DefaultWindowedHeight;
 
-		// Set the position of the window to the top left corner.
-		posX = posY = 0;
-	}
-	else {
-		// Set to default windowed resolution.
-		screenWidth = s_DefaultWindowedWidth;
-		screenHeight = s_DefaultWindowedHeight;
+	// Place the window in the middle of the screen.
+	int posX = (GetSystemMetrics(SM_CXSCREEN) - screenWidth) / 2;
+	int posY = (GetSystemMetrics(SM_CYSCREEN) - screenHeight) / 2;
 
-		// Place the window in the middle of the screen.
-		posX = (GetSystemMetrics(SM_CXSCREEN) - screenWidth) / 2;
-		posY = (GetSystemMetrics(SM_CYSCREEN) - screenHeight) / 2;
-	}
+	DWORD windowStyle = WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_POPUP;
+
+	// NOTE: Border causes stretching of viewport, remove this for now
+	//if(!sb_IsFullScreen) windowStyle |= WS_CAPTION | WS_SYSMENU;
 
 	// Create the window with the screen settings and get the handle to it.
-	m_Hwnd = CreateWindowEx(WS_EX_APPWINDOW, m_ApplicationName, m_ApplicationName,
-		WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_POPUP, 
+	m_Hwnd = CreateWindowEx(WS_EX_APPWINDOW, m_ApplicationName, m_ApplicationName, windowStyle,
 		posX, posY, screenWidth, screenHeight, NULL, NULL, m_Hinstance, NULL);
 
 	// Bring the window up on the screen and set it as main focus.
@@ -243,7 +237,7 @@ void EngineSystem::Shutdown() {
 	ShowCursor(true);
 
 	// Fix the display settings if leaving full screen mode.
-	if(sb_IsFullScreen) {
+	if(sb_StartFullScreenState) {
 		ChangeDisplaySettings(NULL, 0);
 	}
 

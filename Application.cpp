@@ -23,7 +23,7 @@
 #include <iostream>
 #include <algorithm>
 
-bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, float nearZ, float farZ, int shadowMapResolution, float shadowMapNear, float shadowMapFar, HWND hwnd) {
+bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, int defaultWindowedWidth, int defaultWindowedHeight, float nearZ, float farZ, int shadowMapResolution, float shadowMapNear, float shadowMapFar, HWND hwnd) {
 	bool result;
 
 	m_Hwnd = hwnd;
@@ -31,10 +31,12 @@ bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int scr
 	m_StartTime = std::chrono::steady_clock::now();
 	m_ScreenNear = nearZ;
 	m_ScreenFar = farZ;
+	m_DefaultWindowedWidth = defaultWindowedWidth;
+	m_DefaultWindowedHeight = defaultWindowedHeight;
 
 	// Create and initialize the Direct3D object
 	m_D3DInstance = new D3DInstance();
-	result = m_D3DInstance->Initialize(screenWidth, screenHeight, b_IsVsyncEnabled, hwnd, b_IsFullScreen, nearZ, farZ);
+	result = m_D3DInstance->Initialize(screenWidth, screenHeight, b_IsVsyncEnabled, hwnd, nearZ, farZ);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize Direct3D", L"Error", MB_OK);
 		return false;
@@ -47,6 +49,9 @@ bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int scr
 	// Initialize stationary camera to view full screen quads
 	m_ScreenDisplayCamera->Update();
 
+	result = GenerateRenderQuads(screenWidth, screenHeight);
+	if(!result) return false;
+
 	/// Screen Render
 	// Create and initialize the screen render texture
 	m_ScreenRenderTexture = new RenderTexture();
@@ -55,43 +60,6 @@ bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int scr
 		MessageBox(hwnd, L"Could not initialize screen render texture.", L"Error", MB_OK);
 		return false;
 	}
-
-	// Create and initialize the screen display quad
-	// NOTE: not sure why we need to divide dimensions by 2.0f here
-	m_ScreenDisplayQuad = new QuadModel();
-	result = m_ScreenDisplayQuad->Initialize(m_D3DInstance->GetDevice(), screenWidth / 2.0f, screenHeight / 2.0f);
-	if(!result) {
-		MessageBox(hwnd, L"Could not initialize screen quad.", L"Error", MB_OK);
-		return false;
-	}
-
-	/// Create and initialize the debug displays
-	/// NOTE: unit quad can be reused with scaling instead of multiple quads
-	// Square aspect used for directional light shadow map
-	m_DebugDisplayQuad1 = new QuadModel();
-	result = m_DebugDisplayQuad1->Initialize(m_D3DInstance->GetDevice(), screenHeight / 6.0f, screenHeight / 6.0f);
-	if(!result) {
-		MessageBox(hwnd, L"Could not initialize debug quad.", L"Error", MB_OK);
-		return false;
-	}
-	// Bottom left
-	m_DebugQuadTranslationMatrix1 = XMMatrixTranslation(
-		-screenWidth  / 2.0f + screenHeight / 6.0f,
-		-screenHeight / 2.0f + screenHeight / 6.0f, 0
-	);
-
-	// Screen aspect used for bloom prefilter view
-	m_DebugDisplayQuad2 = new QuadModel();
-	result = m_DebugDisplayQuad2->Initialize(m_D3DInstance->GetDevice(), screenWidth / 6.0f, screenHeight / 6.0f);
-	if(!result) {
-		MessageBox(hwnd, L"Could not initialize debug quad.", L"Error", MB_OK);
-		return false;
-	}
-	// Bottom right
-	m_DebugQuadTranslationMatrix2 = XMMatrixTranslation(
-		screenWidth   / 2.0f - screenWidth  / 6.0f,
-		-screenHeight / 2.0f + screenHeight / 6.0f, 0
-	);
 
 	/// Screen shaders
 	// Shader for depth debug quad
@@ -175,26 +143,81 @@ bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int scr
 	return true;
 }
 
+/// NOTE: unit quad can be reused with scaling instead of multiple quads
+bool Application::GenerateRenderQuads(int screenWidth, int screenHeight) {
+	// Destroy quads if we are resizing
+	if(m_ScreenDisplayQuad != nullptr) {
+		m_ScreenDisplayQuad->Shutdown();
+		delete m_ScreenDisplayQuad;
+		m_DebugDisplayQuad1->Shutdown();
+		delete m_DebugDisplayQuad1;
+		m_DebugDisplayQuad2->Shutdown();
+		delete m_DebugDisplayQuad2;
+	}
+
+	// Create and initialize the screen display quad
+// NOTE: not sure why we need to divide dimensions by 2.0f here
+	m_ScreenDisplayQuad = new QuadModel();
+	bool result = m_ScreenDisplayQuad->Initialize(m_D3DInstance->GetDevice(), screenWidth / 2.0f, screenHeight / 2.0f);
+	if(!result) {
+		MessageBox(m_Hwnd, L"Could not initialize screen quad.", L"Error", MB_OK);
+		return false;
+	}
+
+	/// Create and initialize the debug displays
+	// Square aspect used for directional light shadow map
+	m_DebugDisplayQuad1 = new QuadModel();
+	result = m_DebugDisplayQuad1->Initialize(m_D3DInstance->GetDevice(), screenHeight / 6.0f, screenHeight / 6.0f);
+	if(!result) {
+		MessageBox(m_Hwnd, L"Could not initialize debug quad.", L"Error", MB_OK);
+		return false;
+	}
+	// Bottom left
+	m_DebugQuadTranslationMatrix1 = XMMatrixTranslation(
+		-screenWidth / 2.0f + screenHeight / 6.0f,
+		-screenHeight / 2.0f + screenHeight / 6.0f, 0
+	);
+
+	// Screen aspect used for bloom prefilter view
+	m_DebugDisplayQuad2 = new QuadModel();
+	result = m_DebugDisplayQuad2->Initialize(m_D3DInstance->GetDevice(), screenWidth / 6.0f, screenHeight / 6.0f);
+	if(!result) {
+		MessageBox(m_Hwnd, L"Could not initialize debug quad.", L"Error", MB_OK);
+		return false;
+	}
+	// Bottom right
+	m_DebugQuadTranslationMatrix2 = XMMatrixTranslation(
+		screenWidth / 2.0f - screenWidth / 6.0f,
+		-screenHeight / 2.0f + screenHeight / 6.0f, 0
+	);
+
+	return true;
+}
+
 bool Application::ToggleFullscreen() {
 	mb_IsFullScreen = !mb_IsFullScreen;
-	int newWidth = mb_IsFullScreen ? 1920 : 1280;
-	int newHeight = mb_IsFullScreen ? 1080 : 720;
-	m_D3DInstance->ResizeWindow(m_Hwnd, newWidth, newHeight, m_ScreenNear, m_ScreenFar);
+	int newWidth = mb_IsFullScreen ? GetSystemMetrics(SM_CXSCREEN) : m_DefaultWindowedWidth;
+	int newHeight = mb_IsFullScreen ? GetSystemMetrics(SM_CYSCREEN) : m_DefaultWindowedHeight;
 
-	// TODO: update, debug quads/translation matrices
-	m_ScreenRenderTexture->Shutdown();
-	delete m_ScreenRenderTexture;
-	m_ScreenRenderTexture = new RenderTexture();
-	bool result = m_ScreenRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), newWidth, newHeight, m_ScreenNear, m_ScreenFar, DXGI_FORMAT_R32G32B32A32_FLOAT);
-	if(!result) return false; 
-
-	m_ScreenDisplayQuad->Shutdown();
-	delete m_ScreenDisplayQuad;
-	m_ScreenDisplayQuad = new QuadModel();
-	result = m_ScreenDisplayQuad->Initialize(m_D3DInstance->GetDevice(), newWidth / 2.0f, newHeight / 2.0f);
+	// Update other screen size dependent systems
+	bool result {};
+	result = m_D3DInstance->ResizeWindow(m_Hwnd, newWidth, newHeight, m_ScreenNear, m_ScreenFar);
+	if(!result) return false;
+	result = m_DemoScene->ResizeWindow(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), newWidth, newHeight, m_ScreenNear, m_ScreenFar);
 	if(!result) return false;
 
 	m_FpsString->SetScreenDimensions(newWidth, newHeight);
+
+	// Recreate screen render texture
+	m_ScreenRenderTexture->Shutdown();
+	delete m_ScreenRenderTexture;
+	m_ScreenRenderTexture = new RenderTexture();
+	result = m_ScreenRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), newWidth, newHeight, m_ScreenNear, m_ScreenFar, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	if(!result) return false; 
+
+	// Recreate all render quads
+	result = GenerateRenderQuads(newWidth, newHeight);
+	if(!result) return false;
 
 	m_D3DInstance->SetToBackBufferRenderTargetAndViewPort();
 	m_D3DInstance->ClearBackBuffer(0, 0, 0, 1);
@@ -274,7 +297,10 @@ bool Application::Frame(Input* input) {
 	}
 
 	if(input->IsKeyDown(DIK_F)) {
-		ToggleFullscreen();
+		if(!ToggleFullscreen()) {
+			MessageBox(m_Hwnd, L"Could not resize window.", L"Error", MB_OK);
+			return false;
+		}
 	}
 
 	return true;
