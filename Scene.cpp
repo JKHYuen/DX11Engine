@@ -453,7 +453,6 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		}
 	}
 
-	// TODO: add shadow bias slider
 	/// Directional Light
 	if(ImGui::CollapsingHeader("Directional Light")) {
 		ImGui::Spacing();
@@ -490,7 +489,9 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 	}
 
 	/// Bloom Params
-	if(ImGui::CollapsingHeader("Bloom")) {
+	bool b_ShowBloomHeader = ImGui::CollapsingHeader("Bloom");
+	ImGuiHelpMarker("WARNING: Flickering may be caused by very bright pixels with near zero PBR material roughness. Use \"Minimum Roughness\" slider in Scene Objects header to alleviate the issue.", true, true);
+	if(b_ShowBloomHeader) {
 		ImGui::Spacing();
 		static float userBloomIntensity = m_BloomEffect->GetIntensity();
 		if(ImGui::DragFloat("Intensity", &userBloomIntensity, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
@@ -638,7 +639,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		if(ImGui::DragFloat("Minimum Roughness", &userMinRoughness, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
 			pSelectedGO->SetMinRoughness(userMinRoughness);
 		}
-		ImGuiHelpMarker("Minimum roughness allowed, used to combat flickering from bloom.", true, true);
+		ImGuiHelpMarker("Minimum roughness allowed, bandaid fix used to lower flickering from bloom.", true, true);
 
 		if(ImGui::DragFloat("Displacement Height", &userDisplacementHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
 			pSelectedGO->SetDisplacementMapHeightScale(userDisplacementHeight);
