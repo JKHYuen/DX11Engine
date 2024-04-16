@@ -279,10 +279,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
 
     MaterialParamBufferType* materialParamDataPtr;
 
-    ////////////////////////////////
-    /////// VS MARIX CBUFFER ///////
-    ////////////////////////////////
-
+    /// VS Marix cbuffer 
     // Transpose the matrices to prepare them for the shader.
     worldMatrix = XMMatrixTranspose(worldMatrix);
     viewMatrix = XMMatrixTranspose(viewMatrix);
@@ -321,10 +318,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     // Now set the constant buffer in the vertex shader with the updated values.
     deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_MatrixBuffer);
 
-    /////////////////////////////////
-    /////// VS CAMERA CBUFFER ///////
-    /////////////////////////////////
-
+    /// VS camera cbuffer
     // Lock the camera constant buffer so it can be written to.
     result = deviceContext->Map(m_CameraBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
@@ -347,10 +341,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     // Now set the camera constant buffer in the vertex shader with the updated values.
     deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_CameraBuffer);
 
-    /////////////////////////////////
-    ////// VS POINT LIGHT POS BUFFER //////
-    /////////////////////////////////
-
+    ///// VS point light pos buffer
     //// Lock the light position constant buffer so it can be written to.
     //result = deviceContext->Map(m_lightPositionBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     //if(FAILED(result)) {
@@ -375,16 +366,8 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     //// Finally set the constant buffer in the vertex shader with the updated values.
     //deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_lightPositionBuffer);
 
-    ////////////////////////////////
-    ////////// TEXTURES //////////
-    ////////////////////////////////
-
-    // Order of SRVs: 
-    // albedoMap, normalMap, metallicMap, roughnessMap, aoMap, heightMap
-
-    // Bind pixel shader textures.
-
-    // for PBR shading
+    /// Bind pixel shader textures
+    /// Order of PBR SRVs: albedoMap, normalMap, metallicMap, roughnessMap, aoMap, heightMap
     ID3D11ShaderResourceView* pTempSRV;
     for(int i = 0; i < 6; i++) {
         pTempSRV = materialTextures[i]->GetTextureSRV();
@@ -401,10 +384,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     pTempSRV = materialTextures[5]->GetTextureSRV(); // height map
     deviceContext->VSSetShaderResources(0, 1, &pTempSRV);
 
-    ////////////////////////////////
-    /////// PS LIGHT CBUFFER ///////
-    ////////////////////////////////
-
+    /// PS Light cbuffer
     // Lock the light constant buffer so it can be written to.
     result = deviceContext->Map(m_LightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
@@ -428,9 +408,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     // Finally set the light constant buffer in the pixel shader with the updated values.
     deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_LightBuffer);
 
-    /////////////////////////////////
-    /////// MATERIAL PARAM CBUFFER ///////
-    /////////////////////////////////
+    /// Material Param cbuffer
     result = deviceContext->Map(m_MaterialParamBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
         return false;
@@ -440,17 +418,20 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
 
     materialParamDataPtr->uvScale = gameObjectData.uvScale;
     materialParamDataPtr->parallaxHeightScale = gameObjectData.parallaxMapHeightScale;
+    materialParamDataPtr->minRoughness = gameObjectData.minRoughness;
     materialParamDataPtr->padding = {};
+
+    materialParamDataPtr->useParallaxShadow = gameObjectData.useParallaxShadow ? 1.0f : 0.0f;
+    materialParamDataPtr->minParallaxLayers = (float)gameObjectData.minParallaxLayers;
+    materialParamDataPtr->maxParallaxLayers = (float)gameObjectData.maxParallaxLayers;
+    materialParamDataPtr->shadowBias = light->GetShadowBias();
 
     deviceContext->Unmap(m_MaterialParamBuffer, 0);
 
     bufferNumber = 1;
     deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_MaterialParamBuffer);
 
-    /////////////////////////////////////////////
-    /////// PS POINT LIGHT COLOR BUFFER ///////
-    /////////////////////////////////////////////
-
+    ///// PS point light color buffer
     //// Lock the light color constant buffer so it can be written to.
     //result = deviceContext->Map(m_lightColorBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     //if(FAILED(result)) {
@@ -475,7 +456,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     //// Finally set the constant buffer in the pixel shader with the updated values.
     //deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_lightColorBuffer);
 
-    // Now render the prepared buffers with the shader.
+    /// Render
     deviceContext->IASetInputLayout(m_Layout);
 
     deviceContext->VSSetShader(m_VertexShader, NULL, 0);

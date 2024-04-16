@@ -28,10 +28,9 @@ public:
 		float vertexDisplacementMapScale = 0.1f;
 		float parallaxMapHeightScale = 0.0f;
 		float minRoughness = 0;
-		float useParallaxShadow = 1;
-		float minParallaxLayers = 8;
-		float maxParallaxLayers = 32;
-		float shadowBias = 0.001f;
+		bool useParallaxShadow = true;
+		int minParallaxLayers = 8;
+		int maxParallaxLayers = 32;
 	};
 
 public:
@@ -46,13 +45,21 @@ public:
 
 	void SetUVScale(float newScale) { m_GameObjectData.uvScale = newScale; }
 	float GetUVScale() const { return m_GameObjectData.uvScale; }
-
 	void SetDisplacementMapHeightScale(float newScale) { m_GameObjectData.vertexDisplacementMapScale = newScale; }
 	float GetDisplacementMapHeightScale() const { return m_GameObjectData.vertexDisplacementMapScale; }
 	void SetParallaxMapHeightScale(float newScale) { m_GameObjectData.parallaxMapHeightScale = newScale; }
 	float GetParallaxMapHeightScale() const { return m_GameObjectData.parallaxMapHeightScale; }
 	void SetYRotationSpeed(float newSpeed) { m_GameObjectData.yRotSpeed = newSpeed; }
 	float GetYRotationSpeed() const { return m_GameObjectData.yRotSpeed; }
+	void SetMinRoughness(float newValue) { m_GameObjectData.minRoughness = newValue; }
+	float GetMinRoughness() const { return m_GameObjectData.minRoughness; }
+
+	void SetUseParallaxShadow(bool newValue) { m_GameObjectData.useParallaxShadow = newValue; }
+	bool GetUseParallaxShadow() const { return m_GameObjectData.useParallaxShadow; }
+	void SetMinParallaxLayers(int newValue) { m_GameObjectData.minParallaxLayers = newValue; }
+	int GetMinParallaxLayers() const { return m_GameObjectData.minParallaxLayers; }
+	void SetMaxParallaxLayers(int newValue) { m_GameObjectData.maxParallaxLayers = newValue; }
+	int GetMaxParallaxLayers() const { return m_GameObjectData.maxParallaxLayers; }
 
 	// Implemented this way (i.e. not using XMFLOAT3) for convenience in IMGUI
 	void SetPosition(float x, float y, float z) { m_GameObjectData.position.x = x;	m_GameObjectData.position.y = y; m_GameObjectData.position.z = z; }
@@ -74,6 +81,7 @@ public:
 	std::string_view GetModelName() const { return m_GameObjectData.modelName; }
 
 private:
+	// Argument could be made that this should be a public variable
 	GameObjectData m_GameObjectData {};
 	bool mb_IsEnabled = true;
 

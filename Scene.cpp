@@ -45,6 +45,7 @@ namespace {
 	/// Demo Scene starting values
 	constexpr float s_StartingDirectionalLightDirX = 50.0f;
 	constexpr float s_StartingDirectionalLightDirY = 230.0f;
+	constexpr float s_StartingShadowBias = 0.001f;
 	// sunlight color: 9.0f, 5.0f, 2.0f 
 	//                 29.0f, 18.0f, 11.0f
 	constexpr XMFLOAT3 s_StartingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0f};
@@ -175,6 +176,7 @@ bool Scene::InitializeDemoScene(Application* appInstance, int shadowMapResolutio
 	m_DirectionalLight->SetColor(s_StartingDirectionalLightColor.x, s_StartingDirectionalLightColor.y, s_StartingDirectionalLightColor.z, 1.0f);
 	m_DirectionalLight->GenerateOrthoMatrix(shadowDistance, shadowMapNearZ, shadowMapFarZ);
 	m_DirectionalLight->SetDirection(XMConvertToRadians(s_StartingDirectionalLightDirX), XMConvertToRadians(s_StartingDirectionalLightDirY), 0.0f);
+	m_DirectionalLight->SetShadowBias(s_StartingShadowBias);
 
 	//// Set the number of lights we will use.
 	//m_numLights = 4;
@@ -437,7 +439,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 	}
 	
 	bool b_ShowSkyboxHeader = ImGui::CollapsingHeader("Skybox");
-	ImGuiHelpMarker("*Environment maps for IBL are generated in run time, might be slow on first selection of skybox. Results are cached.*", true, true);
+	ImGuiHelpMarker("Note: Environment maps for IBL are generated in run time, might be slow on first selection of skybox. Results are cached.", true, true);
 	if(b_ShowSkyboxHeader) {
 		if(ImGui::BeginTable("##skybox", 3, kTableFlags)) {
 			for(int i = 0; i < s_HDRSkyboxFileNames.size(); i++) {
@@ -480,10 +482,11 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 			m_DirectionalLight->SetColor(userDirLightCol[0], userDirLightCol[1], userDirLightCol[2], 1.0f);
 		}
 		ImGui::Spacing();
-		//static float userShadowBias = m_BloomEffect->GetIntensity();
-		//if(ImGui::DragFloat("Intensity", &userBloomIntensity, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
-		//	m_BloomEffect->SetIntensity(userBloomIntensity);
-		//}
+
+		static float userShadowBias = s_StartingShadowBias;
+		if(ImGui::DragFloat("Shadow Bias", &userShadowBias, 0.001f, -1.0f, 1.0f, "%.3f", kSliderFlags)) {
+			m_DirectionalLight->SetShadowBias(userShadowBias);
+		}
 	}
 
 	/// Bloom Params
@@ -507,7 +510,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 	}
 
 	/// Object Material Edit
-	/// NOTE: implementation could be simpler with use of GameObject::GameObjectData struct
+	/// NOTE: implementation could be simplified with use of GameObject::GameObjectData struct
 	bool b_ShowSceneObjectHeader = ImGui::CollapsingHeader("Scene Objects");
 	ImGuiHelpMarker("Select a scene object to edit its object and material parameters.");
 	if(b_ShowSceneObjectHeader) {
@@ -525,6 +528,11 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		static float userUVScale {};
 		static float userDisplacementHeight {};
 		static float userParallaxHeight {};
+		static float userMinRoughness {};
+
+		static bool b_UserParallaxShadowEnabled {};
+		static int userMinParallaxLayers {};
+		static int userMaxParallaxLayers {};
 
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if(ImGui::TreeNode("Scene Object Select")) {
@@ -570,6 +578,12 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 			userUVScale = pSelectedGO->GetUVScale();
 			userDisplacementHeight = pSelectedGO->GetDisplacementMapHeightScale();
 			userParallaxHeight = pSelectedGO->GetParallaxMapHeightScale();
+			userMinRoughness = pSelectedGO->GetMinRoughness();
+
+			b_UserParallaxShadowEnabled = pSelectedGO->GetUseParallaxShadow();
+			userMinParallaxLayers = pSelectedGO->GetMinParallaxLayers();
+			userMaxParallaxLayers = pSelectedGO->GetMaxParallaxLayers();
+
 			b_NewSceneObjectSelected = false;
 		}
 
@@ -609,10 +623,6 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		}
 		ImGui::Spacing();
 
-		// TODO: self shadow toggle
-		// TODO: minimum roughness
-		// TODO: parallax min/max layers
-
 		if(ImGui::DragFloat3("Position", userPosition, 0.001f, -1000.0f, 1000.0f, "%.3f", kSliderFlags)) {
 			pSelectedGO->SetPosition(userPosition[0], userPosition[1], userPosition[2]);
 		}
@@ -625,17 +635,34 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 			pSelectedGO->SetUVScale(userUVScale);
 		}
 
+		if(ImGui::DragFloat("Minimum Roughness", &userMinRoughness, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
+			pSelectedGO->SetMinRoughness(userMinRoughness);
+		}
+		ImGuiHelpMarker("Minimum roughness allowed, used to combat flickering from bloom.", true, true);
+
 		if(ImGui::DragFloat("Displacement Height", &userDisplacementHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
 			pSelectedGO->SetDisplacementMapHeightScale(userDisplacementHeight);
 		}
-		ImGuiHelpMarker("Vertex Displalcement Scale\n\n*Will not work properly for \"cube\" and \"plane\" models as there are not enough vertices.*", true, true);
-
-		if(ImGui::DragFloat("Parallax Height", &userParallaxHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
-			pSelectedGO->SetParallaxMapHeightScale(userParallaxHeight);
-		}
-		ImGuiHelpMarker("Parallax Occlusion Height Scale\n\n*WARNING: Only supported if using \"plane\" model.*", true, true);
+		ImGuiHelpMarker("Vertex Displacement Scale\n\nWARNING: Will not work properly for \"cube\" and \"plane\" models as there are not enough vertices.", true, true);
 
 		ImGui::Spacing();
+		ImGui::Text("Parallax Occlusion - PLEASE READ:");
+		ImGuiHelpMarker("Only supported if using \"plane\" model! Other models should set parallax height scale to zero.\n\nHigher min/max parallax layers will quickly increase GPU load.", true, true);
+		if(ImGui::DragFloat("Parallax Height Scale", &userParallaxHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
+			pSelectedGO->SetParallaxMapHeightScale(userParallaxHeight);
+		}
+
+		if(ImGui::DragInt("Parallax Min Layers", &userMinParallaxLayers, 1, 1, 256, "%d", kSliderFlags)) {
+			pSelectedGO->SetMinParallaxLayers(userMinParallaxLayers);
+		}
+
+		if(ImGui::DragInt("Parallax Max Layers", &userMaxParallaxLayers, 1, 1, 256, "%d", kSliderFlags)) {
+			pSelectedGO->SetMaxParallaxLayers(userMaxParallaxLayers);
+		}
+
+		if(ImGui::Checkbox("Enable Self Shadowing", &b_UserParallaxShadowEnabled)) {
+			pSelectedGO->SetUseParallaxShadow(b_UserParallaxShadowEnabled);
+		}
 	}
 
 	ImGui::End();
