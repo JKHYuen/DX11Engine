@@ -22,7 +22,7 @@
 #include <iostream>
 #include <algorithm>
 
-bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, int defaultWindowedWidth, int defaultWindowedHeight, float nearZ, float farZ, int shadowMapResolution, float shadowMapNear, float shadowMapFar, HWND hwnd) {
+bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, int defaultWindowedWidth, int defaultWindowedHeight, float nearZ, float farZ, int shadowMapResolution, float shadowMapNearZ, float shadowMapFarZ, float shadowDistance, HWND hwnd) {
 	bool result;
 
 	m_Hwnd = hwnd;
@@ -87,7 +87,7 @@ bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int scr
 	m_D3DInstance->GetOrthoMatrix(screenOrthoMatrix);
 
 	m_DemoScene = new Scene();
-	result = m_DemoScene->InitializeDemoScene(this, shadowMapResolution, shadowMapNear, shadowMapFar);
+	result = m_DemoScene->InitializeDemoScene(this, shadowMapResolution, shadowMapNearZ, shadowMapFarZ, shadowDistance);
 	if(!result) {
 		MessageBox(hwnd, L"Could not load scene.", L"Error", MB_OK);
 		return false;

@@ -18,8 +18,6 @@ using namespace DirectX;
 
 class GameObject {
 public:
-	// Currently only used to store intialization data, can be used to store data rather than have separate variables. 
-	// This will probably not happen for this project
 	struct GameObjectData {
 		std::string modelName {};
 		std::string materialName {};
@@ -29,6 +27,11 @@ public:
 		float uvScale = 1.0f;
 		float vertexDisplacementMapScale = 0.1f;
 		float parallaxMapHeightScale = 0.0f;
+		float minRoughness = 0;
+		float useParallaxShadow = 1;
+		float minParallaxLayers = 8;
+		float maxParallaxLayers = 32;
+		float shadowBias = 0.001f;
 	};
 
 public:
@@ -72,7 +75,6 @@ public:
 
 private:
 	GameObjectData m_GameObjectData {};
-	
 	bool mb_IsEnabled = true;
 
 	Model* m_ModelInstance {};

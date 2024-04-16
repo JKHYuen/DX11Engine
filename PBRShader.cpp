@@ -265,7 +265,7 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     return true;
 }
 
-bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, const std::vector<Texture*> materialTextures, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPosition, float time, float uvScale, float displacementHeightScale, float parallaxHeightScale) {
+bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, const std::vector<Texture*> materialTextures, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPosition, float time, const GameObject::GameObjectData& gameObjectData) {
     HRESULT result;
     D3D11_MAPPED_SUBRESOURCE mappedResource;
     unsigned int bufferNumber;
@@ -336,7 +336,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
 
     // Copy the camera position into the constant buffer.
     cameraDataPtr->cameraPosition = cameraPosition;
-    cameraDataPtr->displacementHeightScale = displacementHeightScale;
+    cameraDataPtr->displacementHeightScale = gameObjectData.vertexDisplacementMapScale;
 
     // Unlock the camera constant buffer.
     deviceContext->Unmap(m_CameraBuffer, 0);
@@ -438,8 +438,8 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
 
     materialParamDataPtr = (MaterialParamBufferType*)mappedResource.pData;
 
-    materialParamDataPtr->uvScale = uvScale;
-    materialParamDataPtr->parallaxHeightScale = parallaxHeightScale;
+    materialParamDataPtr->uvScale = gameObjectData.uvScale;
+    materialParamDataPtr->parallaxHeightScale = gameObjectData.parallaxMapHeightScale;
     materialParamDataPtr->padding = {};
 
     deviceContext->Unmap(m_MaterialParamBuffer, 0);

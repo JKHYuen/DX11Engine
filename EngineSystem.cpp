@@ -24,6 +24,7 @@ namespace {
 	constexpr int s_ShadowMapResolution = 2048;
 	constexpr float s_ShadowMapFar = 100.0f;
 	constexpr float s_ShadowMapNear = 1.0f;
+	constexpr float s_ShadowDistance = 40.0f;
 }
 
 bool EngineSystem::Initialize() {
@@ -43,7 +44,7 @@ bool EngineSystem::Initialize() {
 
 	// Create and initialize the application class object
 	m_Application = new Application();
-	result = m_Application->Initialize(sb_StartFullScreenState, sb_IsVsyncEnabled, screenWidth, screenHeight, s_DefaultWindowedWidth, s_DefaultWindowedHeight, s_NearZ, s_FarZ, s_ShadowMapResolution, s_ShadowMapNear, s_ShadowMapFar, m_Hwnd);
+	result = m_Application->Initialize(sb_StartFullScreenState, sb_IsVsyncEnabled, screenWidth, screenHeight, s_DefaultWindowedWidth, s_DefaultWindowedHeight, s_NearZ, s_FarZ, s_ShadowMapResolution, s_ShadowMapNear, s_ShadowMapFar, s_ShadowDistance, m_Hwnd);
 	if (!result) {
 		return false;
 	}

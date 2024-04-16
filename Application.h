@@ -36,7 +36,7 @@ public:
 	Application(const Application&) {}
 	~Application() {}
 
-	bool Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, int defaultWindowedWidth, int defaultWindowedHeight, float nearZ, float farZ, int shadowMapResolution, float shadowMapNear, float shadowMapFar, HWND hwnd);
+	bool Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int screenWidth, int screenHeight, int defaultWindowedWidth, int defaultWindowedHeight, float nearZ, float farZ, int shadowMapResolution, float shadowMapNearZ, float shadowMapFarZ, float shadowDistance, HWND hwnd);
 	void Shutdown();
 	bool Frame(Input* input);
 

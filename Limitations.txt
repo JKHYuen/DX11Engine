@@ -1,10 +1,13 @@
 - uses d3d feature level 11_0
 
 - Some outdated code practices to keep consistent with rastertek base 
-	- No smart pointers
+	- No smart pointers :(
 	- objects are initialized and cleaned up manually
 	- Constructors, destructors and copy constructors are disabled
 	- Some outdated DXGI (1.1) functions are used (e.g. using IDXGISwapChain::Present rather than IDXGISwapChain1::Present1)
+
+- no frustrum culling
+- no AA
 
 - bloom blur iterations hardcoded to log2(screen or window height)
 
@@ -16,9 +19,14 @@
 	- alt-enter does not work properly
 	- app can be toggled to windowed mode (hardcoded to 1280x720 resolution) or fullscreen windowed borderless
 
+- Only directional light source, no point lights, spotlights, etc.
+
 - Directional Light shadow map:
 	- No vertex displacement support
 	- shadow map resolution is hardcoded to 2048x2048
+	- simple 5x5 multisample PCF, no cascades
+	- shadow distance is hardcoded to 40 units
+	- shadow map rendering not follow world camera
 	
 - Environment cubemaps used for image based lighting are generated in runtime (not cached on disk)
 - Cubemap generation parameters are hardcoded to the following:
@@ -30,5 +38,3 @@
 	
 - Cursor not constrained to window
 - (QOL) Cursor does not loop when adjusting values in IMGUI
-
-- Only directional light source, no point lights, spotlights, etc.

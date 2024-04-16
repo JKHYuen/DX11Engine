@@ -32,7 +32,7 @@ public:
 	Scene(const Texture& other) {}
 	~Scene() {}
 
-	bool InitializeDemoScene(Application* appInstance, int shadowMapResolution, float shadowMapNear, float shadowMapFar);
+	bool InitializeDemoScene(Application* appInstance, int shadowMapResolution, float shadowMapNearZ, float shadowMapFarZ, float shadowDistance);
 	void Shutdown();
 	
 	// Render objects to scene quad

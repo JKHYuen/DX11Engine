@@ -50,7 +50,8 @@ namespace {
 	constexpr XMFLOAT3 s_StartingDirectionalLightColor = XMFLOAT3 {9.0f, 8.0f, 7.0f};
 }
 
-bool Scene::InitializeDemoScene(Application* appInstance, int shadowMapResolution, float shadowMapNear, float shadowMapFar) {
+bool Scene::InitializeDemoScene(Application* appInstance, int shadowMapResolution, float shadowMapNearZ, float shadowMapFarZ
+, float shadowDistance) {
 	bool result;
 
 	m_AppInstance = appInstance;
@@ -161,7 +162,7 @@ bool Scene::InitializeDemoScene(Application* appInstance, int shadowMapResolutio
 	/// Lighting
 	// Create and initialize the shadow map texture
 	m_DirectionalShadowMapRenderTexture = new RenderTexture();
-	result = m_DirectionalShadowMapRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), shadowMapResolution, shadowMapResolution, shadowMapNear, shadowMapFar, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	result = m_DirectionalShadowMapRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), shadowMapResolution, shadowMapResolution, shadowMapNearZ, shadowMapFarZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize shadow map texture.", L"Error", MB_OK);
 		return false;
@@ -172,7 +173,7 @@ bool Scene::InitializeDemoScene(Application* appInstance, int shadowMapResolutio
 
 	// Initialize Directional light
 	m_DirectionalLight->SetColor(s_StartingDirectionalLightColor.x, s_StartingDirectionalLightColor.y, s_StartingDirectionalLightColor.z, 1.0f);
-	m_DirectionalLight->GenerateOrthoMatrix(40.0f, shadowMapNear, shadowMapFar);
+	m_DirectionalLight->GenerateOrthoMatrix(shadowDistance, shadowMapNearZ, shadowMapFarZ);
 	m_DirectionalLight->SetDirection(XMConvertToRadians(s_StartingDirectionalLightDirX), XMConvertToRadians(s_StartingDirectionalLightDirY), 0.0f);
 
 	//// Set the number of lights we will use.
