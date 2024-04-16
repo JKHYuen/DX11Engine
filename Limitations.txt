@@ -6,10 +6,15 @@
 	- Constructors, destructors and copy constructors are disabled
 	- Some outdated DXGI (1.1) functions are used (e.g. using IDXGISwapChain::Present rather than IDXGISwapChain1::Present1)
 
-- bloom blur iterations hardcoded to log2(screen height)
+- bloom blur iterations hardcoded to log2(screen or window height)
+
+- parallax occlusion/self shadowing only supported for plane model
+
+- Models included are relatively low poly. Vertex displacement should only be used with sphere model
 
 - no exclusive fullscreen mode
-	- can be toggled to windowed mode (hardcoded to 1280x720 resolution) or fullscreen windowed borderless
+	- alt-enter does not work properly
+	- app can be toggled to windowed mode (hardcoded to 1280x720 resolution) or fullscreen windowed borderless
 
 - Directional Light shadow map:
 	- No vertex displacement support

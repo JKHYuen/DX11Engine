@@ -15,7 +15,6 @@
 #include "Font.h"
 #include "Text.h"
 #include "Sprite.h"
-#include "Timer.h"
 #include "FpsCounter.h"
 
 #include "imgui_impl_dx11.h"
@@ -94,15 +93,6 @@ bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int scr
 		return false;
 	}
 
-	/// Timer
-	// Create and initialize the timer object.
-	m_Timer = new Timer();
-	result = m_Timer->Initialize();
-	if(!result) {
-		MessageBox(hwnd, L"Could not initialize timer.", L"Error", MB_OK);
-		return false;
-	}
-
 	/// Text
 	// Create and initialize the font shader object.
 	m_FontShader = new FontShader();
@@ -156,7 +146,7 @@ bool Application::GenerateRenderQuads(int screenWidth, int screenHeight) {
 	}
 
 	// Create and initialize the screen display quad
-// NOTE: not sure why we need to divide dimensions by 2.0f here
+	// NOTE: not sure why we need to divide dimensions by 2.0f here
 	m_ScreenDisplayQuad = new QuadModel();
 	bool result = m_ScreenDisplayQuad->Initialize(m_D3DInstance->GetDevice(), screenWidth / 2.0f, screenHeight / 2.0f);
 	if(!result) {
@@ -235,14 +225,8 @@ bool Application::Frame(Input* input) {
 
 	m_Time = (currentFrameTimePoint - m_StartTime).count();
 
-	// Update the system stats.
-	m_Timer->Frame();
-
-	// Get the current frame time.
-	float frameTime = m_Timer->GetTime();
-
 	// Update the sprite object (animation) using the frame time.
-	//m_sprite->Update(frameTime);
+	//m_sprite->Update(m_DeltaTime);
 
     // Update the frames per second each frame.
     if(!UpdateFpsDisplay()) {
@@ -266,7 +250,7 @@ bool Application::Frame(Input* input) {
 
 	/// USER INPUT
 	// Exit app if escape key down or ImGui quit flag
-	if(input->IsKeyDown(DIK_ESCAPE) || mb_QuitApp) {
+	if(input->IsKeyDown(DIK_ESCAPE) || mb_QuitAppFlag) {
 		return false;
 	}
 
@@ -296,11 +280,12 @@ bool Application::Frame(Input* input) {
 		m_DemoScene->ProcessInput(input, m_DeltaTime);
 	}
 
-	if(input->IsKeyDown(DIK_F)) {
+	if(input->IsKeyDown(DIK_F) || mb_ToggleFullScreenFlag) {
 		if(!ToggleFullscreen()) {
 			MessageBox(m_Hwnd, L"Could not resize window.", L"Error", MB_OK);
 			return false;
 		}
+		mb_ToggleFullScreenFlag = false;
 	}
 
 	return true;
@@ -418,7 +403,7 @@ bool Application::RenderToBackBuffer() {
 
 	/// Render IMGUI
 	if(mb_ShowImGuiMenu) {
-		m_DemoScene->UpdateMainImGuiWindow(m_FpsCounter->GetCurrentFPS(), mb_IsWireFrameRender, mb_ShowImGuiMenu, mb_ShowScreenFPS, mb_QuitApp, mb_RenderDebugQuad1, mb_RenderDebugQuad2);
+		m_DemoScene->UpdateMainImGuiWindow(m_FpsCounter->GetCurrentFPS(), mb_IsWireFrameRender, mb_ShowImGuiMenu, mb_ShowScreenFPS, mb_QuitAppFlag, mb_RenderDebugQuad1, mb_RenderDebugQuad2, mb_ToggleFullScreenFlag);
 	}
 
 	ImGui::Render();
@@ -454,44 +439,33 @@ void Application::Shutdown() {
 		m_DebugDisplayQuad2 = nullptr;
 	}
 
-	// Release the render to texture object.
 	if(m_ScreenRenderTexture) {
 		m_ScreenRenderTexture->Shutdown();
 		delete m_ScreenRenderTexture;
 		m_ScreenRenderTexture = nullptr;
 	}
 
-	// Release the text object for the fps string.
 	if(m_FpsString) {
 		m_FpsString->Shutdown();
 		delete m_FpsString;
 		m_FpsString = nullptr;
 	}
 
-	// Release the fps object.
 	if(m_FpsCounter) {
 		delete m_FpsCounter;
 		m_FpsCounter = nullptr;
 	}
 
-	// Release the font object.
 	if(m_Font) {
 		m_Font->Shutdown();
 		delete m_Font;
 		m_Font = nullptr;
 	}
 
-	// Release the font shader object.
 	if(m_FontShader) {
 		m_FontShader->Shutdown();
 		delete m_FontShader;
 		m_FontShader = nullptr;
-	}
-
-	// Release the timer object.
-	if(m_Timer) {
-		delete m_Timer;
-		m_Timer = nullptr;
 	}
 
 	// Release the sprite object.
@@ -512,8 +486,6 @@ void Application::Shutdown() {
 		m_ScreenDisplayCamera = nullptr;
 	}
 
-
-	// Release the Direct3D object.
 	if(m_D3DInstance) {
 		m_D3DInstance->Shutdown();
 		delete m_D3DInstance;

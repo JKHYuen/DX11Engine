@@ -17,6 +17,8 @@ Texture2D   brdfLUT        : register(t9);
 SamplerState SamplerWrap   : register(s0);
 SamplerState SamplerBorder : register(s1);
 SamplerState SamplerClamp  : register(s2);
+
+// Can be used for hardware bilinear filltering on shadow
 //SamplerComparisonState SamplerBorder : register(s1);
 
 cbuffer LightBuffer : register(b0) {
@@ -28,8 +30,14 @@ cbuffer LightBuffer : register(b0) {
 cbuffer MaterialParamBuffer : register(b1) {
     float uvScale;
     float parallaxHeightScale;
-    // TODO: add min roughness, min/max parallax layers, shadow bias
-    float2 padding;
+    // TODO: add min roughness, self shadow toggle,min/max parallax layers, shadow bias
+    float minRoughness;
+    float padding;
+    
+    float useParallaxShadow;
+    float minParallaxLayers;
+    float maxParallaxLayers;
+    float shadowBias;
 };
 
 struct PixelInputType {
@@ -130,6 +138,7 @@ float2 ParallaxMapping(float2 texCoords, float3 viewDir) {
     float weight = afterDepth / (afterDepth - beforeDepth);
     float2 finalTexCoords = prevTexCoords * weight + currentTexCoords * (1.0 - weight);
     
+    // Note: could be used for shadow correction
     // currentParallaxLayer = currentLayerDepth + beforeDepth * weight + afterDepth * (1.0 - weight);
 
     return finalTexCoords;

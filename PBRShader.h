@@ -37,7 +37,13 @@ private:
     struct MaterialParamBufferType {
         float uvScale;
         float parallaxHeightScale;
-        XMFLOAT2 padding;
+        float minRoughness;
+        float padding;
+
+        float useParallaxShadow;
+        float minParallaxLayers;
+        float maxParallaxLayers;
+        float shadowBias;
     };
 
     struct LightBufferType {

@@ -363,7 +363,7 @@ bool Scene::LoadCubemapResource(const std::string& hdrFileName) {
 	return true;
 }
 
-void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitApp, bool& b_ShowDebugQuad1, bool& b_ShowDebugQuad2) {
+void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitAppFlag, bool& b_ShowDebugQuad1, bool& b_ShowDebugQuad2, bool& b_ToggleFullScreenFlag) {
 	static auto ImGuiHelpMarker = [](const char* desc, bool b_IsSameLine = true, bool b_IsWarning = false) {
 		if(b_IsSameLine) ImGui::SameLine();
 		if(b_IsWarning)  ImGui::TextDisabled("(!)"); else ImGui::TextDisabled("(?)");
@@ -403,7 +403,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ImColor::HSV(0.0f, 0.7f, 0.7f));
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ImColor::HSV(0.0f, 0.8f, 0.8f));
 	if(ImGui::Button("EXIT APP")) {
-		b_QuitApp = true;
+		b_QuitAppFlag = true;
 	}
 	ImGui::PopStyleColor(3);
 
@@ -420,6 +420,11 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 	ImGui::Spacing();
 
 	if(ImGui::CollapsingHeader("Display")) {
+		ImGui::Spacing();
+		if(ImGui::Button("Toggle Fullscreen/Windowed")) {
+			b_ToggleFullScreenFlag = true;
+		}
+		ImGuiHelpMarker("Keybind: F");
 		ImGui::Spacing();
 		ImGui::Checkbox("Show FPS on screen", &b_ShowScreenFPS); ImGuiHelpMarker("Keybind: F1");
 		ImGui::SameLine(200);
@@ -474,6 +479,10 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 			m_DirectionalLight->SetColor(userDirLightCol[0], userDirLightCol[1], userDirLightCol[2], 1.0f);
 		}
 		ImGui::Spacing();
+		//static float userShadowBias = m_BloomEffect->GetIntensity();
+		//if(ImGui::DragFloat("Intensity", &userBloomIntensity, 0.01f, 0.0f, 1000.0f, "%.2f", kSliderFlags)) {
+		//	m_BloomEffect->SetIntensity(userBloomIntensity);
+		//}
 	}
 
 	/// Bloom Params

@@ -29,8 +29,10 @@ private:
 
 	Input* m_Input {};
 	Application* m_Application {};
+
+	static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+	static inline EngineSystem* s_EngineSystemHandle {};
 };
 
-static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
-static EngineSystem* g_ApplicationHandle = nullptr;
+
 

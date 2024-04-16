@@ -445,18 +445,8 @@ bool D3DInstance::ResizeWindow(HWND hwnd, int newWidth, int newHeight, float scr
 }
 
 void D3DInstance::ClearBackBuffer(float red, float green, float blue, float alpha) {
-	float color[4];
-
-	// Setup the color to clear the buffer to.
-	color[0] = red;
-	color[1] = green;
-	color[2] = blue;
-	color[3] = alpha;
-
-	// Clear the back buffer.
+	float color[4] {red, green, blue, alpha};
 	m_DeviceContext->ClearRenderTargetView(m_RenderTargetView, color);
-
-	// Clear the depth buffer.
 	m_DeviceContext->ClearDepthStencilView(m_DepthStencilView, D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 

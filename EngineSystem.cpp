@@ -12,7 +12,7 @@
 
 // App params (hardcoded)
 namespace {
-	constexpr bool sb_StartFullScreenState = false;
+	constexpr bool sb_StartFullScreenState = true;
 	constexpr bool sb_IsVsyncEnabled = true;
 	constexpr int s_DefaultWindowedWidth = 1280;
 	constexpr int s_DefaultWindowedHeight = 720;
@@ -121,7 +121,7 @@ LRESULT CALLBACK EngineSystem::MessageHandler(HWND hwnd, UINT umsg, WPARAM wpara
 
 void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 	// Get an external pointer to this object.	
-	g_ApplicationHandle = this;
+	s_EngineSystemHandle = this;
 
 	// Get the instance of this application.
 	m_Hinstance = GetModuleHandle(NULL);
@@ -197,7 +197,7 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 }
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam) {
+LRESULT CALLBACK EngineSystem::WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam) {
 	if(ImGui_ImplWin32_WndProcHandler(hwnd, umessage, wparam, lparam))
 		return true;
 
@@ -214,7 +214,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT umessage, WPARAM wparam, LPARAM lparam)
 
 		// Pass all other messages
 		default:
-			return g_ApplicationHandle->MessageHandler(hwnd, umessage, wparam, lparam);
+			return s_EngineSystemHandle->MessageHandler(hwnd, umessage, wparam, lparam);
 	}
 }
 
@@ -233,7 +233,6 @@ void EngineSystem::Shutdown() {
 	}
 
 	/// Shutdown the window.
-	// Show the mouse cursor.
 	ShowCursor(true);
 
 	// Fix the display settings if leaving full screen mode.
@@ -250,7 +249,7 @@ void EngineSystem::Shutdown() {
 	m_Hinstance = NULL;
 
 	// Release the pointer to this class.
-	g_ApplicationHandle = NULL;
+	s_EngineSystemHandle = NULL;
 
 	/// Shutdown ImGui
 	ImGui_ImplDX11_Shutdown();

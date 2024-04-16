@@ -13,25 +13,22 @@
 using ChronoTimePoint = std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<float>>;
 
 class D3DInstance;
-class Input;
+struct ID3D11Device;
 
+class Input;
 class Camera;
 class TextureShader;
 class FontShader;
-class Sprite;
 class RenderTexture;
 class QuadModel;
 class Model;
 class Texture;
+class Scene;
 
 class Font;
 class Text;
 class Sprite;
-class Timer;
 class FpsCounter;
-
-struct ID3D11Device;
-class Scene;
 
 class Application {
 public:
@@ -60,7 +57,10 @@ private:
 
 private:
 	bool mb_IsFullScreen {};
-	bool mb_QuitApp {};
+
+	// For IMGUI
+	bool mb_QuitAppFlag {};
+	bool mb_ToggleFullScreenFlag {};
 
 	float m_ScreenNear {};
 	float m_ScreenFar {};
@@ -105,8 +105,4 @@ private:
 	float m_DeltaTime {};
 	// Time since App launch
 	float m_Time {};
-
-	// LEGACY
-	Timer* m_Timer {};
-
 };

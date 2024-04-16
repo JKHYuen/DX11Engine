@@ -5,25 +5,17 @@
 #include "Model.h"
 #include "DirectionalLight.h"
 
+#include <iostream>
+
 // Note: "instances" passed as parameters are cleaned up in scene class
-// Note: this can be simplified by storing a GameObjectData struct
 bool GameObject::Initialize(PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textureResources, Model* model, const GameObjectData& initialGameObjectData) {
 	m_MaterialTextures = textureResources;
 	m_ModelInstance = model;
-
-	m_PBRMaterialName = initialGameObjectData.materialName;
-	m_ModelName = initialGameObjectData.modelName;
-
-	m_Position = initialGameObjectData.position;
-	m_Scale = initialGameObjectData.scale;
-	m_RotationYSpeed = initialGameObjectData.yRotSpeed;
-	m_UVScale = initialGameObjectData.uvScale;
-	m_DisplacementHeightScale = initialGameObjectData.vertexDisplacementMapScale;
-	m_ParallaxHeightScale = initialGameObjectData.parallaxMapHeightScale;
-
 	m_PBRShaderInstance = pbrShaderInstance;
 	m_DepthShaderInstance = depthShaderInstance;
 
+	m_GameObjectData = initialGameObjectData;
+	
 	return true;
 }
 
@@ -33,9 +25,9 @@ bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLi
 	}
 
 	XMMATRIX srtMatrix = XMMatrixMultiply(XMMatrixMultiply(
-		XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z),
-		XMMatrixRotationY(time * m_RotationYSpeed)),
-		XMMatrixTranslation(m_Position.x, m_Position.y, m_Position.z)
+		XMMatrixScaling(m_GameObjectData.scale.x, m_GameObjectData.scale.y, m_GameObjectData.scale.z),
+		XMMatrixRotationY(time * m_GameObjectData.yRotSpeed)),
+		XMMatrixTranslation(m_GameObjectData.position.x, m_GameObjectData.position.y, m_GameObjectData.position.z)
 	);
 
 	m_ModelInstance->Render(deviceContext);
@@ -55,11 +47,11 @@ bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix,
 	}
 
 	XMMATRIX srtMatrix = XMMatrixMultiply(XMMatrixMultiply(
-		XMMatrixScaling(m_Scale.x, m_Scale.y, m_Scale.z),
-		XMMatrixRotationY(time * m_RotationYSpeed)),
-		XMMatrixTranslation(m_Position.x, m_Position.y, m_Position.z)
+		XMMatrixScaling(m_GameObjectData.scale.x, m_GameObjectData.scale.y, m_GameObjectData.scale.z),
+		XMMatrixRotationY(time * m_GameObjectData.yRotSpeed)),
+		XMMatrixTranslation(m_GameObjectData.position.x, m_GameObjectData.position.y, m_GameObjectData.position.z)
 	);
 
 	m_ModelInstance->Render(deviceContext);
-	return m_PBRShaderInstance->Render(deviceContext, m_ModelInstance->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_MaterialTextures, shadowMap, irradianceMap, prefilteredMap, BRDFLut, light, cameraPos, time, m_UVScale, m_DisplacementHeightScale, m_ParallaxHeightScale);
+	return m_PBRShaderInstance->Render(deviceContext, m_ModelInstance->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_MaterialTextures, shadowMap, irradianceMap, prefilteredMap, BRDFLut, light, cameraPos, time, m_GameObjectData.uvScale, m_GameObjectData.vertexDisplacementMapScale, m_GameObjectData.parallaxMapHeightScale);
 }

@@ -493,13 +493,11 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
 }
 
 void PBRShader::Shutdown() {
-    // Release the light constant buffer.
     if(m_LightBuffer) {
         m_LightBuffer->Release();
         m_LightBuffer = nullptr;
     }
 
-    // Release the camera constant buffer.
     if(m_CameraBuffer) {
         m_CameraBuffer->Release();
         m_CameraBuffer = nullptr;
@@ -510,7 +508,6 @@ void PBRShader::Shutdown() {
         m_MaterialParamBuffer = nullptr;
     }
 
-    // Release the light constant buffers.
     //if(m_lightColorBuffer) {
     //    m_lightColorBuffer->Release();
     //    m_lightColorBuffer = 0;
@@ -521,13 +518,11 @@ void PBRShader::Shutdown() {
     //    m_lightPositionBuffer = 0;
     //}
 
-    // Release the matrix constant buffer.
     if(m_MatrixBuffer) {
         m_MatrixBuffer->Release();
         m_MatrixBuffer = nullptr;
     }
 
-    // Release the sampler state.
     if(m_SampleStateWrap) {
         m_SampleStateWrap->Release();
         m_SampleStateWrap = nullptr;
@@ -543,19 +538,16 @@ void PBRShader::Shutdown() {
         m_SampleStateClamp = nullptr;
     }
 
-    // Release the layout.
     if(m_Layout) {
         m_Layout->Release();
         m_Layout = nullptr;
     }
 
-    // Release the pixel shader.
     if(m_PixelShader) {
         m_PixelShader->Release();
         m_PixelShader = nullptr;
     }
 
-    // Release the vertex shader.
     if(m_VertexShader) {
         m_VertexShader->Release();
         m_VertexShader = nullptr;

@@ -3,11 +3,11 @@ Texture2D sourceTexture  : register(t1);
 SamplerState wrapSampler : register(s0);
 
 cbuffer MaterialParamBuffer : register(b0) {
-    float4 _Filter;
-    float _BoxSampleDelta;
-    float _Intensity;
-    float _UsePrefilter;
-    float _UseFinalPass;
+    float4 filter;
+    float boxSampleDelta;
+    float intensity;
+    float usePrefilter;
+    float useFinalPass;
 };
 
 struct PixelInputType {
@@ -18,10 +18,10 @@ struct PixelInputType {
 float3 Prefilter(float3 c) {
     // brightness is max of color channels
     float brightness = max(c.r, max(c.g, c.b));
-    float soft = brightness - _Filter.y;
-    soft = clamp(soft, 0, _Filter.z);
-    soft = soft * soft * _Filter.w;
-    float contribution = max(soft, brightness - _Filter.x);
+    float soft = brightness - filter.y;
+    soft = clamp(soft, 0, filter.z);
+    soft = soft * soft * filter.w;
+    float contribution = max(soft, brightness - filter.x);
     contribution /= max(brightness, 0.00001);
     return c * contribution;
 }
@@ -40,20 +40,20 @@ float3 SampleBox(float2 uv, float delta) {
 float4 BloomPixelShader(PixelInputType i) : SV_TARGET {
     float3 color;
     
-    if(_UseFinalPass == 0) {
+    if(useFinalPass == 0) {
         // Prefilter + first downsample pass
-        if(_UsePrefilter != 0) {
+        if(usePrefilter != 0) {
             color = Prefilter(SampleBox(i.uv, 1));
         }
         // Upsample/downsample pass
         else {
-            color = SampleBox(i.uv, _BoxSampleDelta);
+            color = SampleBox(i.uv, boxSampleDelta);
         }
     }
     // Use final upsample + bloom addition pass
     else {
         color = sourceTexture.Sample(wrapSampler, i.uv).rgb;
-        color.rgb += _Intensity * SampleBox(i.uv, 0.5);
+        color.rgb += intensity * SampleBox(i.uv, 0.5);
     }
     
     return float4(color, 1.0);

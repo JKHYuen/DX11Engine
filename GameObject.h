@@ -18,6 +18,8 @@ using namespace DirectX;
 
 class GameObject {
 public:
+	// Currently only used to store intialization data, can be used to store data rather than have separate variables. 
+	// This will probably not happen for this project
 	struct GameObjectData {
 		std::string modelName {};
 		std::string materialName {};
@@ -39,47 +41,39 @@ public:
 	void SetEnabled(bool state) { mb_IsEnabled = state; }
 	bool GetEnabled() const { return mb_IsEnabled; }
 
-	void SetUVScale(float newScale) { m_UVScale = newScale; }
-	float GetUVScale() const { return m_UVScale; }
+	void SetUVScale(float newScale) { m_GameObjectData.uvScale = newScale; }
+	float GetUVScale() const { return m_GameObjectData.uvScale; }
 
-	void SetDisplacementMapHeightScale(float newScale) { m_DisplacementHeightScale = newScale; }
-	float GetDisplacementMapHeightScale() const { return m_DisplacementHeightScale; }
-	void SetParallaxMapHeightScale(float newScale) { m_ParallaxHeightScale = newScale; }
-	float GetParallaxMapHeightScale() const { return m_ParallaxHeightScale; }
-	void SetYRotationSpeed(float newSpeed) { m_RotationYSpeed = newSpeed; }
-	float GetYRotationSpeed() const { return m_RotationYSpeed; }
+	void SetDisplacementMapHeightScale(float newScale) { m_GameObjectData.vertexDisplacementMapScale = newScale; }
+	float GetDisplacementMapHeightScale() const { return m_GameObjectData.vertexDisplacementMapScale; }
+	void SetParallaxMapHeightScale(float newScale) { m_GameObjectData.parallaxMapHeightScale = newScale; }
+	float GetParallaxMapHeightScale() const { return m_GameObjectData.parallaxMapHeightScale; }
+	void SetYRotationSpeed(float newSpeed) { m_GameObjectData.yRotSpeed = newSpeed; }
+	float GetYRotationSpeed() const { return m_GameObjectData.yRotSpeed; }
 
 	// Implemented this way (i.e. not using XMFLOAT3) for convenience in IMGUI
-	void SetPosition(float x, float y, float z) { m_Position.x = x;	m_Position.y = y; m_Position.z = z; }
-	void GetPosition(float& x, float& y, float& z) const { x = m_Position.x; y = m_Position.y; z = m_Position.z; }
-	void SetScale(float x, float y, float z) { m_Scale.x = x; m_Scale.y = y; m_Scale.z = z; }
-	void GetScale(float& x, float& y, float& z) const { x = m_Scale.x; y = m_Scale.y; z = m_Scale.z; }
+	void SetPosition(float x, float y, float z) { m_GameObjectData.position.x = x;	m_GameObjectData.position.y = y; m_GameObjectData.position.z = z; }
+	void GetPosition(float& x, float& y, float& z) const { x = m_GameObjectData.position.x; y = m_GameObjectData.position.y; z = m_GameObjectData.position.z; }
+	void SetScale(float x, float y, float z) { m_GameObjectData.scale.x = x; m_GameObjectData.scale.y = y; m_GameObjectData.scale.z = z; }
+	void GetScale(float& x, float& y, float& z) const { x = m_GameObjectData.scale.x; y = m_GameObjectData.scale.y; z = m_GameObjectData.scale.z; }
 
 	// m_PBRMaterialName needed for IMGUI
 	void SetPBRMaterialTextures(std::string_view name, const std::vector<Texture*>& newTextures) { 
-		m_PBRMaterialName = name;
+		m_GameObjectData.materialName = name;
 		m_MaterialTextures = newTextures; 
 	}
-	std::string_view GetPBRMaterialName() const { return m_PBRMaterialName; }
+	std::string_view GetPBRMaterialName() const { return m_GameObjectData.materialName; }
 
 	void SetModel(std::string_view name, Model* newModel) {
-		m_ModelName = name;
+		m_GameObjectData.modelName = name;
 		m_ModelInstance = newModel;
 	}
-	std::string_view GetModelName() const { return m_ModelName; }
+	std::string_view GetModelName() const { return m_GameObjectData.modelName; }
 
 private:
+	GameObjectData m_GameObjectData {};
+	
 	bool mb_IsEnabled = true;
-	std::string m_PBRMaterialName {};
-	std::string m_ModelName {};
-
-	float m_RotationYSpeed {};
-	float m_UVScale {};
-	float m_DisplacementHeightScale {};
-	float m_ParallaxHeightScale {};
-
-	DirectX::XMFLOAT3 m_Position {};
-	DirectX::XMFLOAT3 m_Scale { 1.0f, 1.0f, 1.0f };
 
 	Model* m_ModelInstance {};
 	PBRShader* m_PBRShaderInstance {};
