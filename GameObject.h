@@ -31,7 +31,7 @@ public:
 		bool useParallaxShadow = true;
 		int minParallaxLayers = 8;
 		int maxParallaxLayers = 32;
-		int tessellationFactor = 1;
+		float tessellationFactor = 1;
 	};
 
 public:
@@ -62,8 +62,8 @@ public:
 	void SetMaxParallaxLayers(int newValue) { m_GameObjectData.maxParallaxLayers = newValue; }
 	int GetMaxParallaxLayers() const { return m_GameObjectData.maxParallaxLayers; }
 
-	void SetTessellationFactor(int newValue) { m_GameObjectData.tessellationFactor = newValue; }
-	int GetTesellationFactor() const { return m_GameObjectData.tessellationFactor; }
+	void SetTessellationFactor(float newValue) { m_GameObjectData.tessellationFactor = newValue; }
+	float GetTesellationFactor() const { return m_GameObjectData.tessellationFactor; }
 
 	// Implemented this way (i.e. not using XMFLOAT3) for convenience in IMGUI
 	void SetPosition(float x, float y, float z) { m_GameObjectData.position.x = x;	m_GameObjectData.position.y = y; m_GameObjectData.position.z = z; }
@@ -93,5 +93,6 @@ private:
 	PBRShader* m_PBRShaderInstance {};
 	DepthShader* m_DepthShaderInstance {};
 
+	// Order of materialTextures array: albedoMap, normalMap, metallicMap, roughnessMap, aoMap, heightMap
 	std::vector<Texture*> m_MaterialTextures {};
 };

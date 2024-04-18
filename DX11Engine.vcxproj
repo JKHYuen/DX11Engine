@@ -94,6 +94,8 @@
     <None Include="Shaders\ConvoluteCubeMap.vs" />
     <None Include="Shaders\CubeMap.ps" />
     <None Include="Shaders\CubeMap.vs" />
+    <None Include="Shaders\Depth.ds" />
+    <None Include="Shaders\Depth.hs" />
     <None Include="Shaders\Depth.ps" />
     <None Include="Shaders\Depth.vs" />
     <None Include="Shaders\Font.ps" />

@@ -56,6 +56,7 @@ PixelInputType PBRDomainShader(ConstantOutputType input, float3 uvwCoord : SV_Do
     // Patch Interpolation
     float4 vertexPosition = BARYCENTRIC_INTERPOLATE(position);
     vertexPosition.w = 1.0f;
+    o.position.w = 1.0f;
     float2 uv = BARYCENTRIC_INTERPOLATE(uv);
     float3 normal = BARYCENTRIC_INTERPOLATE(normal);
     normal = normalize(normal);

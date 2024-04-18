@@ -30,13 +30,13 @@ bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLi
 		XMMatrixTranslation(m_GameObjectData.position.x, m_GameObjectData.position.y, m_GameObjectData.position.z)
 	);
 
-	m_ModelInstance->Render(deviceContext, false);
+	m_ModelInstance->Render(deviceContext, true);
 
 	XMMATRIX lightView {};
 	XMMATRIX lightProjection {};
 	light->GetViewMatrix(lightView);
 	light->GetOrthoMatrix(lightProjection);
-	m_DepthShaderInstance->Render(deviceContext, m_ModelInstance->GetIndexCount(), srtMatrix, lightView, lightProjection);
+	m_DepthShaderInstance->Render(deviceContext, m_ModelInstance->GetIndexCount(), srtMatrix, lightView, lightProjection, m_MaterialTextures[5], m_GameObjectData);
 	return true;
 }
 

@@ -81,8 +81,8 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     result = device->CreateDomainShader(domainShaderBuffer->GetBufferPointer(), domainShaderBuffer->GetBufferSize(), NULL, &m_DomainShader);
     if(FAILED(result)) return false;
 
-    // Create the vertex input layout description.
-    // This setup needs to match the VertexType stucture in the ModelClass and in the shader.
+    // Create the vertex input layout description
+    // This setup needs to match the VertexType stucture in the Model class and in the shader
     D3D11_INPUT_ELEMENT_DESC polygonLayout[5] {};
     polygonLayout[0].SemanticName = "POSITION";
     polygonLayout[0].SemanticIndex = 0;
@@ -124,10 +124,9 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     polygonLayout[4].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
     polygonLayout[4].InstanceDataStepRate = 0;
 
-    // Get a count of the elements in the layout.
-    unsigned int numElements = sizeof(polygonLayout) / sizeof(polygonLayout[0]);
 
     // Create the vertex input layout.
+    unsigned int numElements = sizeof(polygonLayout) / sizeof(polygonLayout[0]);
     result =
         device->CreateInputLayout(
             polygonLayout, numElements, vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), &m_Layout
@@ -137,7 +136,6 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
         return false;
     }
 
-    // Release the vertex shader buffer and pixel shader buffer since they are no longer needed.
     vertexShaderBuffer->Release();
     vertexShaderBuffer = nullptr;
 
@@ -240,7 +238,7 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     //    return false;
     //}
 
-    // Setup the description of the camera dynamic constant buffer that is in the vertex shader.
+    // Setup the description of the camera buffer
     D3D11_BUFFER_DESC cameraBufferDesc {};
     cameraBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
     cameraBufferDesc.ByteWidth = sizeof(CameraBufferType);
@@ -249,14 +247,13 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     cameraBufferDesc.MiscFlags = 0;
     cameraBufferDesc.StructureByteStride = 0;
 
-    // Create the camera constant buffer pointer so we can access the vertex shader constant buffer from within this class.
+    // Create the camera constant buffer 
     result = device->CreateBuffer(&cameraBufferDesc, NULL, &m_CameraBuffer);
     if(FAILED(result)) {
         return false;
     }
 
-    // Setup the description of the light dynamic constant buffer that is in the pixel shader.
-    // Note that ByteWidth always needs to be a multiple of 16 if using D3D11_BIND_CONSTANT_BUFFER or CreateBuffer will fail.
+    /// Setup light buffer
     D3D11_BUFFER_DESC lightBufferDesc {};
     lightBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
     lightBufferDesc.ByteWidth = sizeof(LightBufferType);
@@ -265,12 +262,12 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     lightBufferDesc.MiscFlags = 0;
     lightBufferDesc.StructureByteStride = 0;
 
-    // Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
     result = device->CreateBuffer(&lightBufferDesc, NULL, &m_LightBuffer);
     if(FAILED(result)) {
         return false;
     }
 
+    /// Setup material param buffer
     D3D11_BUFFER_DESC materialParamBuffer {};
     materialParamBuffer.Usage = D3D11_USAGE_DYNAMIC;
     materialParamBuffer.ByteWidth = sizeof(MaterialParamBufferType);
@@ -279,13 +276,12 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     materialParamBuffer.MiscFlags = 0;
     materialParamBuffer.StructureByteStride = 0;
 
-    // Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
     result = device->CreateBuffer(&materialParamBuffer, NULL, &m_MaterialParamBuffer);
     if(FAILED(result)) {
         return false;
     }
 
-    // Setup the description of the dynamic tessellation constant buffer that is in the hull shader.
+    /// Setup tessellation buffers
     D3D11_BUFFER_DESC tessellationBufferDesc {};
     tessellationBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
     tessellationBufferDesc.ByteWidth = sizeof(TessellationBufferType);
@@ -294,7 +290,6 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     tessellationBufferDesc.MiscFlags = 0;
     tessellationBufferDesc.StructureByteStride = 0;
 
-    // Create the constant buffer pointer so we can access the hull shader constant buffer from within this class.
     result = device->CreateBuffer(&tessellationBufferDesc, NULL, &m_TessellationBuffer);
     if(FAILED(result)) {
         return false;
@@ -457,7 +452,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     //deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_lightPositionBuffer);
 
     /// Bind Pixel Shader textures
-    /// Order of PBR SRVs: albedoMap, normalMap, metallicMap, roughnessMap, aoMap, heightMap
+    /// Order of materialTextures array: albedoMap, normalMap, metallicMap, roughnessMap, aoMap, heightMap
     ID3D11ShaderResourceView* pTempSRV;
     for(int i = 0; i < 6; i++) {
         pTempSRV = materialTextures[i]->GetTextureSRV();
@@ -521,7 +516,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
 
     tessellationDataPtr = (TessellationBufferType*)mappedResource.pData;
 
-    tessellationDataPtr->tessellationFactor = (float)gameObjectData.tessellationFactor;
+    tessellationDataPtr->tessellationFactor = gameObjectData.tessellationFactor;
     tessellationDataPtr->padding = {};
 
     deviceContext->Unmap(m_TessellationBuffer, 0);

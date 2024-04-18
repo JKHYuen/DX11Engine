@@ -313,6 +313,8 @@
     <None Include="Shaders\PBR.hs">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="Shaders\Depth.hs" />
+    <None Include="Shaders\Depth.ds" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Include\imgui\imgui.natvis" />

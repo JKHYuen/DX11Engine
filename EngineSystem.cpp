@@ -21,10 +21,10 @@ namespace {
 	constexpr float s_NearZ = 0.1f;
 	constexpr float s_FarZ = 1000.0f;
 
-	constexpr int s_ShadowMapResolution = 2048;
-	constexpr float s_ShadowMapFar = 100.0f;
+	constexpr int s_ShadowMapResolution = 4096;
+	constexpr float s_ShadowMapFar = 150.0f;
 	constexpr float s_ShadowMapNear = 1.0f;
-	constexpr float s_ShadowDistance = 40.0f;
+	constexpr float s_ShadowDistance = 100.0f;
 }
 
 bool EngineSystem::Initialize() {

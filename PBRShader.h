@@ -35,7 +35,6 @@ private:
         XMFLOAT3 padding;
     };
 
-
     struct CameraBufferType {
         XMFLOAT3 cameraPosition;
         float displacementHeightScale;

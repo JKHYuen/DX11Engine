@@ -538,7 +538,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		static bool b_UserParallaxShadowEnabled {};
 		static int userMinParallaxLayers {};
 		static int userMaxParallaxLayers {};
-		static int userTessellationFactor {};
+		static float userTessellationFactor {};
 
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if(ImGui::TreeNode("Scene Object Select")) {
@@ -648,11 +648,6 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		}
 		ImGuiHelpMarker("Minimum roughness allowed, bandaid fix used to lower flickering from bloom.", true, true);
 
-		if(ImGui::DragFloat("Displacement Height", &userDisplacementHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
-			pSelectedGO->SetDisplacementMapHeightScale(userDisplacementHeight);
-		}
-		ImGuiHelpMarker("Vertex Displacement Scale\n\nWARNING: Will not work properly for \"cube\" and \"plane\" models as there are not enough vertices.", true, true);
-
 		ImGui::Spacing();
 		ImGui::Text("Parallax Occlusion - PLEASE READ:");
 		ImGuiHelpMarker("Only supported if using \"plane\" model! Other models should set parallax height scale to zero.\n\nHigher min/max parallax layers will quickly increase GPU load.", true, true);
@@ -673,9 +668,15 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		}
 
 		ImGui::Spacing();
-		if(ImGui::DragInt("Tesellation Factor", &userTessellationFactor, 0.05f, 1, 64, "%d", kSliderFlags)) {
+		ImGui::Text("Tessellation");
+		if(ImGui::DragFloat("Tesellation Factor", &userTessellationFactor, 0.1f, 1, 64, "%.1f", kSliderFlags)) {
 			pSelectedGO->SetTessellationFactor(userTessellationFactor);
 		}
+
+		if(ImGui::DragFloat("Displacement Height", &userDisplacementHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
+			pSelectedGO->SetDisplacementMapHeightScale(userDisplacementHeight);
+		}
+		ImGuiHelpMarker("Vertex Displacement Scale\n\nWARNING: Will not work properly for \"cube\" and \"plane\" models as there are not enough vertices.", true, true);
 	}
 
 	ImGui::End();

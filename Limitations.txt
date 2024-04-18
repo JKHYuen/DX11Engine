@@ -11,8 +11,6 @@
 
 - bloom blur iterations hardcoded to log2(screen or window height)
 
-- parallax occlusion/self shadowing only supported for plane model
-
 - Models included are relatively low poly. Vertex displacement should only be used with sphere model
 
 - no exclusive fullscreen mode
@@ -22,7 +20,6 @@
 - Only directional light source, no point lights, spotlights, etc.
 
 - Directional Light shadow map:
-	- No vertex displacement support
 	- shadow map resolution is hardcoded to 2048x2048
 	- simple 5x5 multisample PCF, no cascades
 	- shadow distance is hardcoded to 40 units

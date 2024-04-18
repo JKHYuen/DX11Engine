@@ -1,0 +1,62 @@
+Texture2D heightMap : register(t0);
+SamplerState Sampler : register(s0);
+
+cbuffer MatrixBuffer {
+    matrix modelMatrix;
+    matrix viewMatrix;
+    matrix projectionMatrix;
+};
+
+cbuffer DepthMaterialBuffer {
+    float heightMapScale;
+    float uvScale;
+    float2 padding;
+};
+
+struct PixelInputType {
+    float4 position : SV_POSITION;
+    float4 depthPosition : TEXTURE0;
+};
+
+struct ConstantOutputType {
+    float edges[3] : SV_TessFactor;
+    float inside : SV_InsideTessFactor;
+};
+
+struct HullOutputType {
+    float4 position : POSITION;
+    float2 uv : TEXCOORD0;
+    float3 normal : NORMAL;
+};
+
+#define BARYCENTRIC_INTERPOLATE(fieldName) o.fieldName = \
+	patch[0].fieldName * uvwCoord.x + \
+	patch[1].fieldName * uvwCoord.y + \
+	patch[2].fieldName * uvwCoord.z;
+
+[domain("tri")]
+PixelInputType DepthDomainShader(ConstantOutputType input, float3 uvwCoord : SV_DomainLocation, const OutputPatch<HullOutputType, 3> patch) {
+    PixelInputType o;
+    
+    // Patch Interpolation
+    float4 vertexPosition = BARYCENTRIC_INTERPOLATE(position);
+    o.position.w = 1.0f;
+    
+    float2 uv = patch[0].uv * uvwCoord.x + patch[1].uv * uvwCoord.y + patch[2].uv * uvwCoord.z;
+    uv = uv * uvScale;
+    float3 normal = patch[0].normal * uvwCoord.x + patch[1].normal * uvwCoord.y + patch[2].normal * uvwCoord.z;
+    
+    // Vertex displacement
+    if(heightMapScale != 0) {
+        float displacement = heightMap.SampleLevel(Sampler, uv, 0).r;
+        o.position.xyz += normal * (displacement - 0.5) * heightMapScale;
+    }
+    
+    o.position = mul(o.position, modelMatrix);
+    o.position = mul(o.position, viewMatrix);
+    o.position = mul(o.position, projectionMatrix);
+    
+    o.depthPosition = o.position;
+
+    return o;
+}
