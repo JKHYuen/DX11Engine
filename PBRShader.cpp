@@ -5,64 +5,81 @@
 #include "Texture.h"
 
 bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
-    wchar_t vsFilename[128] {};
-    wchar_t psFilename[128] {};
-    int error {};
-
-    // Set the filename of the vertex shader.
-    error = wcscpy_s(vsFilename, 128, L"../DX11Engine/Shaders/PBR.vs");
-    if(error != 0) {
-        return false;
-    }
-
-    // Set the filename of the pixel shader.
-    error = wcscpy_s(psFilename, 128, L"../DX11Engine/Shaders/PBR.ps");
-    if(error != 0) {
-        return false;
-    }
+    const std::wstring vsFileName = L"../DX11Engine/Shaders/PBR.vs";
+    const std::wstring psFileName = L"../DX11Engine/Shaders/PBR.ps";
+    const std::wstring hsFileName = L"../DX11Engine/Shaders/PBR.hs";
+    const std::wstring dsFileName = L"../DX11Engine/Shaders/PBR.ds";
 
     HRESULT result {};
     ID3D10Blob* errorMessage {};
     ID3D10Blob* vertexShaderBuffer {};
     ID3D10Blob* pixelShaderBuffer {};
+    ID3D10Blob* hullShaderBuffer {};
+    ID3D10Blob* domainShaderBuffer {};
 
-    // Compile the vertex shader code.
-    result = D3DCompileFromFile(vsFilename, NULL, NULL, "PBRVertexShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &vertexShaderBuffer, &errorMessage);
+    // Compile vertex shader code
+    result = D3DCompileFromFile(vsFileName.c_str(), NULL, NULL, "PBRVertexShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &vertexShaderBuffer, &errorMessage);
     if(FAILED(result)) {
         if(errorMessage) {
-            OutputShaderErrorMessage(errorMessage, hwnd, vsFilename);
+            OutputShaderErrorMessage(errorMessage, hwnd, vsFileName.c_str());
         }
         else {
-            MessageBox(hwnd, vsFilename, L"Missing Shader File", MB_OK);
+            MessageBox(hwnd, vsFileName.c_str(), L"Missing Shader File", MB_OK);
         }
-
         return false;
     }
 
-    // Compile the pixel shader code.
-    result = D3DCompileFromFile(psFilename, NULL, NULL, "PBRPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pixelShaderBuffer, &errorMessage);
+    // Compile pixel shader code
+    result = D3DCompileFromFile(psFileName.c_str(), NULL, NULL, "PBRPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &pixelShaderBuffer, &errorMessage);
     if(FAILED(result)) {
         if(errorMessage) {
-            OutputShaderErrorMessage(errorMessage, hwnd, psFilename);
+            OutputShaderErrorMessage(errorMessage, hwnd, psFileName.c_str());
         }
         else {
-            MessageBox(hwnd, psFilename, L"Missing Shader File", MB_OK);
+            MessageBox(hwnd, psFileName.c_str(), L"Missing Shader File", MB_OK);
         }
-
         return false;
     }
 
-    // Create the vertex shader from the buffer.
+    // Compile hull shader code
+    result = D3DCompileFromFile(hsFileName.c_str(), NULL, NULL, "PBRHullShader", "hs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &hullShaderBuffer, &errorMessage);
+    if(FAILED(result)) {
+        if(errorMessage) {
+            OutputShaderErrorMessage(errorMessage, hwnd, hsFileName.c_str());
+        }
+        else {
+            MessageBox(hwnd, hsFileName.c_str(), L"Missing Shader File", MB_OK);
+        }
+        return false;
+    }
+
+    // Compile domain shader code
+    result = D3DCompileFromFile(dsFileName.c_str(), NULL, NULL, "PBRDomainShader", "ds_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &domainShaderBuffer, &errorMessage);
+    if(FAILED(result)) {
+        if(errorMessage) {
+            OutputShaderErrorMessage(errorMessage, hwnd, dsFileName.c_str());
+        }
+        else {
+            MessageBox(hwnd, dsFileName.c_str(), L"Missing Shader File", MB_OK);
+        }
+        return false;
+    }
+
+    // Create vertex shader
     result = device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, &m_VertexShader);
-    if(FAILED(result)) {
-        return false;
-    }
+    if(FAILED(result)) return false;
 
-    // Create the pixel shader from the buffer.
+    // Create pixel shader
     result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_PixelShader);
-    if(FAILED(result)) {
-        return false;
-    }
+    if(FAILED(result)) return false;
+
+    // Create hull shader
+    result = device->CreateHullShader(hullShaderBuffer->GetBufferPointer(), hullShaderBuffer->GetBufferSize(), NULL, &m_HullShader);
+    if(FAILED(result)) return false;
+
+    // Create domain shader
+    result = device->CreateDomainShader(domainShaderBuffer->GetBufferPointer(), domainShaderBuffer->GetBufferSize(), NULL, &m_DomainShader);
+    if(FAILED(result)) return false;
 
     // Create the vertex input layout description.
     // This setup needs to match the VertexType stucture in the ModelClass and in the shader.
@@ -126,6 +143,12 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
 
     pixelShaderBuffer->Release();
     pixelShaderBuffer = nullptr;
+
+    hullShaderBuffer->Release();
+    hullShaderBuffer = nullptr;
+
+    domainShaderBuffer->Release();
+    domainShaderBuffer = nullptr;
 
     /// Create the texture sampler states
     D3D11_SAMPLER_DESC samplerDesc {};
@@ -262,15 +285,26 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
         return false;
     }
 
+    // Setup the description of the dynamic tessellation constant buffer that is in the hull shader.
+    D3D11_BUFFER_DESC tessellationBufferDesc {};
+    tessellationBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+    tessellationBufferDesc.ByteWidth = sizeof(TessellationBufferType);
+    tessellationBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    tessellationBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    tessellationBufferDesc.MiscFlags = 0;
+    tessellationBufferDesc.StructureByteStride = 0;
+
+    // Create the constant buffer pointer so we can access the hull shader constant buffer from within this class.
+    result = device->CreateBuffer(&tessellationBufferDesc, NULL, &m_TessellationBuffer);
+    if(FAILED(result)) {
+        return false;
+    }
+
     return true;
 }
 
 bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, const std::vector<Texture*> materialTextures, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPosition, float time, const GameObject::GameObjectData& gameObjectData) {
     HRESULT result;
-    D3D11_MAPPED_SUBRESOURCE mappedResource;
-    unsigned int bufferNumber;
-    MatrixBufferType* matrixDataPtr;
-
     //LightPositionBufferType* dataPtr2;
     //LightColorBufferType* dataPtr3;
 
@@ -278,8 +312,67 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     CameraBufferType* cameraDataPtr;
 
     MaterialParamBufferType* materialParamDataPtr;
+    TessellationBufferType* tessellationDataPtr;
 
-    /// VS Marix cbuffer 
+    ///// Vertex Shader Marix cbuffer 
+    //// Transpose the matrices to prepare them for the shader.
+    //worldMatrix = XMMatrixTranspose(worldMatrix);
+    //viewMatrix = XMMatrixTranspose(viewMatrix);
+    //projectionMatrix = XMMatrixTranspose(projectionMatrix);
+
+    //XMMATRIX lightViewMatrix {};
+    //XMMATRIX lightOrthoMatrix {};
+    //light->GetViewMatrix(lightViewMatrix);
+    //light->GetOrthoMatrix(lightOrthoMatrix);
+
+    //lightViewMatrix = XMMatrixTranspose(lightViewMatrix);
+    //lightOrthoMatrix = XMMatrixTranspose(lightOrthoMatrix);
+
+    //// Lock the constant buffer so it can be written to.
+    //D3D11_MAPPED_SUBRESOURCE mappedResource {};
+    //result = deviceContext->Map(m_MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    //if(FAILED(result)) {
+    //    return false;
+    //}
+
+    //// Get a pointer to the data in the constant buffer.
+    //MatrixBufferType* matrixDataPtr = (MatrixBufferType*)mappedResource.pData;
+
+    //// Copy the matrices into the constant buffer.
+    //matrixDataPtr->world = worldMatrix;
+    //matrixDataPtr->view = viewMatrix;
+    //matrixDataPtr->projection = projectionMatrix;
+    //matrixDataPtr->lightView = lightViewMatrix;
+    //matrixDataPtr->lightProjection = lightOrthoMatrix;
+
+    //// Unlock the constant buffer.
+    //deviceContext->Unmap(m_MatrixBuffer, 0);
+
+    //// Now set the constant buffer in the vertex shader with the updated values.
+    //deviceContext->VSSetConstantBuffers(0, 1, &m_MatrixBuffer);
+
+    ///// Vertex Shader camera cbuffer
+    //// Lock the camera constant buffer so it can be written to.
+    //result = deviceContext->Map(m_CameraBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    //if(FAILED(result)) {
+    //    return false;
+    //}
+
+    //// Get a pointer to the data in the constant buffer.
+    //cameraDataPtr = (CameraBufferType*)mappedResource.pData;
+
+    //// Copy the camera position into the constant buffer.
+    //cameraDataPtr->cameraPosition = cameraPosition;
+    //cameraDataPtr->displacementHeightScale = gameObjectData.vertexDisplacementMapScale;
+
+    //// Unlock the camera constant buffer.
+    //deviceContext->Unmap(m_CameraBuffer, 0);
+
+    //// Now set the camera constant buffer in the vertex shader with the updated values.
+    //deviceContext->VSSetConstantBuffers(1, 1, &m_CameraBuffer);
+
+
+    /// Domain Shader Marix cbuffer 
     // Transpose the matrices to prepare them for the shader.
     worldMatrix = XMMatrixTranspose(worldMatrix);
     viewMatrix = XMMatrixTranspose(viewMatrix);
@@ -294,13 +387,14 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     lightOrthoMatrix = XMMatrixTranspose(lightOrthoMatrix);
 
     // Lock the constant buffer so it can be written to.
+    D3D11_MAPPED_SUBRESOURCE mappedResource {};
     result = deviceContext->Map(m_MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
         return false;
     }
 
     // Get a pointer to the data in the constant buffer.
-    matrixDataPtr = (MatrixBufferType*)mappedResource.pData;
+    MatrixBufferType* matrixDataPtr = (MatrixBufferType*)mappedResource.pData;
 
     // Copy the matrices into the constant buffer.
     matrixDataPtr->world = worldMatrix;
@@ -312,13 +406,10 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     // Unlock the constant buffer.
     deviceContext->Unmap(m_MatrixBuffer, 0);
 
-    // Set the position of the constant buffer in the vertex shader.
-    bufferNumber = 0;
-
     // Now set the constant buffer in the vertex shader with the updated values.
-    deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_MatrixBuffer);
+    deviceContext->DSSetConstantBuffers(0, 1, &m_MatrixBuffer);
 
-    /// VS camera cbuffer
+    /// Domain Shader camera cbuffer
     // Lock the camera constant buffer so it can be written to.
     result = deviceContext->Map(m_CameraBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
@@ -331,15 +422,14 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     // Copy the camera position into the constant buffer.
     cameraDataPtr->cameraPosition = cameraPosition;
     cameraDataPtr->displacementHeightScale = gameObjectData.vertexDisplacementMapScale;
+    cameraDataPtr->uvScale = gameObjectData.uvScale;
+    cameraDataPtr->padding = {};
 
     // Unlock the camera constant buffer.
     deviceContext->Unmap(m_CameraBuffer, 0);
 
-    // Set the position of the camera constant buffer in the vertex shader.
-    bufferNumber = 1;
-
     // Now set the camera constant buffer in the vertex shader with the updated values.
-    deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_CameraBuffer);
+    deviceContext->DSSetConstantBuffers(1, 1, &m_CameraBuffer);
 
     ///// VS point light pos buffer
     //// Lock the light position constant buffer so it can be written to.
@@ -366,7 +456,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     //// Finally set the constant buffer in the vertex shader with the updated values.
     //deviceContext->VSSetConstantBuffers(bufferNumber, 1, &m_lightPositionBuffer);
 
-    /// Bind pixel shader textures
+    /// Bind Pixel Shader textures
     /// Order of PBR SRVs: albedoMap, normalMap, metallicMap, roughnessMap, aoMap, heightMap
     ID3D11ShaderResourceView* pTempSRV;
     for(int i = 0; i < 6; i++) {
@@ -380,11 +470,11 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     deviceContext->PSSetShaderResources(8, 1, &prefilteredMap);
     deviceContext->PSSetShaderResources(9, 1, &BRDFLut);
 
-    // Bind vertex shader textures.
+    /// Bind Domain Shader Textures
     pTempSRV = materialTextures[5]->GetTextureSRV(); // height map
-    deviceContext->VSSetShaderResources(0, 1, &pTempSRV);
+    deviceContext->DSSetShaderResources(0, 1, &pTempSRV);
 
-    /// PS Light cbuffer
+    /// Pixel Shader Light cbuffer
     // Lock the light constant buffer so it can be written to.
     result = deviceContext->Map(m_LightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
@@ -401,14 +491,9 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
 
     // Unlock the constant buffer.
     deviceContext->Unmap(m_LightBuffer, 0);
+    deviceContext->PSSetConstantBuffers(0, 1, &m_LightBuffer);
 
-    // Set the position of the light constant buffer in the pixel shader.
-    bufferNumber = 0;
-
-    // Finally set the light constant buffer in the pixel shader with the updated values.
-    deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_LightBuffer);
-
-    /// Material Param cbuffer
+    /// Pixel Shader Material Param cbuffer
     result = deviceContext->Map(m_MaterialParamBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
         return false;
@@ -416,7 +501,6 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
 
     materialParamDataPtr = (MaterialParamBufferType*)mappedResource.pData;
 
-    materialParamDataPtr->uvScale = gameObjectData.uvScale;
     materialParamDataPtr->parallaxHeightScale = gameObjectData.parallaxMapHeightScale;
     materialParamDataPtr->minRoughness = gameObjectData.minRoughness;
     materialParamDataPtr->padding = {};
@@ -427,9 +511,21 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     materialParamDataPtr->shadowBias = light->GetShadowBias();
 
     deviceContext->Unmap(m_MaterialParamBuffer, 0);
+    deviceContext->PSSetConstantBuffers(1, 1, &m_MaterialParamBuffer);
 
-    bufferNumber = 1;
-    deviceContext->PSSetConstantBuffers(bufferNumber, 1, &m_MaterialParamBuffer);
+    /// Hull Shader cbuffer
+    result = deviceContext->Map(m_TessellationBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
+    if(FAILED(result)) {
+        return false;
+    }
+
+    tessellationDataPtr = (TessellationBufferType*)mappedResource.pData;
+
+    tessellationDataPtr->tessellationFactor = (float)gameObjectData.tessellationFactor;
+    tessellationDataPtr->padding = {};
+
+    deviceContext->Unmap(m_TessellationBuffer, 0);
+    deviceContext->HSSetConstantBuffers(0, 1, &m_TessellationBuffer);
 
     ///// PS point light color buffer
     //// Lock the light color constant buffer so it can be written to.
@@ -460,13 +556,16 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     deviceContext->IASetInputLayout(m_Layout);
 
     deviceContext->VSSetShader(m_VertexShader, NULL, 0);
+    deviceContext->HSSetShader(m_HullShader, NULL, 0);
+    deviceContext->DSSetShader(m_DomainShader, NULL, 0);
     deviceContext->PSSetShader(m_PixelShader, NULL, 0);
 
     deviceContext->PSSetSamplers(0, 1, &m_SampleStateWrap);
     deviceContext->PSSetSamplers(1, 1, &m_SampleStateBorder);
     deviceContext->PSSetSamplers(2, 1, &m_SampleStateClamp);
 
-    deviceContext->VSSetSamplers(0, 1, &m_SampleStateWrap);
+    //deviceContext->VSSetSamplers(0, 1, &m_SampleStateWrap);
+    deviceContext->DSSetSamplers(0, 1, &m_SampleStateWrap);
 
     deviceContext->DrawIndexed(indexCount, 0, 0);
 
@@ -504,6 +603,11 @@ void PBRShader::Shutdown() {
         m_MatrixBuffer = nullptr;
     }
 
+    if(m_TessellationBuffer) {
+        m_TessellationBuffer->Release();
+        m_TessellationBuffer = nullptr;
+    }
+
     if(m_SampleStateWrap) {
         m_SampleStateWrap->Release();
         m_SampleStateWrap = nullptr;
@@ -532,5 +636,15 @@ void PBRShader::Shutdown() {
     if(m_VertexShader) {
         m_VertexShader->Release();
         m_VertexShader = nullptr;
+    }
+
+    if(m_HullShader) {
+        m_HullShader->Release();
+        m_HullShader = nullptr;
+    }
+
+    if(m_DomainShader) {
+        m_DomainShader->Release();
+        m_DomainShader = nullptr;
     }
 }

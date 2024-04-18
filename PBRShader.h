@@ -30,16 +30,24 @@ private:
     //    XMFLOAT4 lightPosition[g_numLights];
     //};
 
+    struct TessellationBufferType {
+        float tessellationFactor;
+        XMFLOAT3 padding;
+    };
+
+
     struct CameraBufferType {
         XMFLOAT3 cameraPosition;
         float displacementHeightScale;
+
+        float uvScale;
+        XMFLOAT3 padding;
     };
 
     struct MaterialParamBufferType {
-        float uvScale;
         float parallaxHeightScale;
         float minRoughness;
-        float padding;
+        XMFLOAT2 padding;
 
         float useParallaxShadow;
         float minParallaxLayers;
@@ -65,6 +73,9 @@ public:
 private:
     ID3D11VertexShader* m_VertexShader {};
     ID3D11PixelShader*  m_PixelShader {};
+    ID3D11HullShader*   m_HullShader {};
+    ID3D11DomainShader* m_DomainShader {};
+
     ID3D11InputLayout*  m_Layout {};
     ID3D11SamplerState* m_SampleStateWrap {};
     ID3D11SamplerState* m_SampleStateBorder {};
@@ -74,7 +85,8 @@ private:
     ID3D11Buffer* m_CameraBuffer {};
     ID3D11Buffer* m_MaterialParamBuffer {};
     ID3D11Buffer* m_LightBuffer {};
+    ID3D11Buffer* m_TessellationBuffer {};
 
-    ID3D11Buffer* m_LightColorBuffer {};
-    ID3D11Buffer* m_LightPositionBuffer {};
+    //ID3D11Buffer* m_LightColorBuffer {};
+    //ID3D11Buffer* m_LightPositionBuffer {};
 };

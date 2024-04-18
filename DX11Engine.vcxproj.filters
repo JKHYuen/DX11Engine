@@ -307,6 +307,12 @@
     <None Include="Shaders\Bloom.ps">
       <Filter>Source Files\Shaders</Filter>
     </None>
+    <None Include="Shaders\PBR.ds">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\PBR.hs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Include\imgui\imgui.natvis" />

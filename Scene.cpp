@@ -126,7 +126,6 @@ bool Scene::InitializeDemoScene(Application* appInstance, int shadowMapResolutio
 	/// Load default skybox cubemap
 	m_CurrentCubemapIndex = s_DefaultSkyboxIndex;
 	LoadCubemapResource(s_HDRSkyboxFileNames[m_CurrentCubemapIndex]);
-	//m_CubeMapObject = m_LoadedCubemapResources[s_DefaultSkyboxName];
 
 	//struct GameObjectData {
 	//	std::string modelName {};
@@ -137,6 +136,11 @@ bool Scene::InitializeDemoScene(Application* appInstance, int shadowMapResolutio
 	//	float uvScale = 1.0f;
 	//	float vertexDisplacementMapScale = 0.1f;
 	//	float parallaxMapHeightScale = 0.0f;
+	//	float minRoughness = 0;
+	//	bool useParallaxShadow = true;
+	//	int minParallaxLayers = 8;
+	//	int maxParallaxLayers = 32;
+	//	int tesselationFactor = 1;
 	//};
 
 	/// Load scene
@@ -518,7 +522,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		// Note: Ground object is selected by default
 		static int userSelectedGameObjectIndex = (int)m_GameObjects.size() - 1;
 		// Note: Start true to intialize variables below
-		static bool b_NewSceneObjectSelected = true;
+		static bool b_NewSceneObjectSelectedFlag = true;
 		static bool b_UserObjectIsPlane {};
 
 		static bool b_UserObjectEnabled = true;
@@ -534,6 +538,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		static bool b_UserParallaxShadowEnabled {};
 		static int userMinParallaxLayers {};
 		static int userMaxParallaxLayers {};
+		static int userTessellationFactor {};
 
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if(ImGui::TreeNode("Scene Object Select")) {
@@ -551,7 +556,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 
 					if(ImGui::Selectable(label, userSelectedGameObjectIndex == i)) {
 						userSelectedGameObjectIndex = i;
-						b_NewSceneObjectSelected = true;
+						b_NewSceneObjectSelectedFlag = true;
 					}
 				}
 				ImGui::EndTable();
@@ -569,7 +574,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		}
 
 		// Update parameters for new selected object if needed
-		if(b_NewSceneObjectSelected) {
+		if(b_NewSceneObjectSelectedFlag) {
 			b_UserObjectEnabled = pSelectedGO->GetEnabled();
 			userSelectedMaterialIndex = FindPBRMaterialIndex(pSelectedGO->GetPBRMaterialName());
 			userSelectedModelIndex = FindModelIndex(pSelectedGO->GetModelName());
@@ -585,7 +590,9 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 			userMinParallaxLayers = pSelectedGO->GetMinParallaxLayers();
 			userMaxParallaxLayers = pSelectedGO->GetMaxParallaxLayers();
 
-			b_NewSceneObjectSelected = false;
+			userTessellationFactor = pSelectedGO->GetTesellationFactor();
+
+			b_NewSceneObjectSelectedFlag = false;
 		}
 
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
@@ -663,6 +670,11 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 
 		if(ImGui::Checkbox("Enable Self Shadowing", &b_UserParallaxShadowEnabled)) {
 			pSelectedGO->SetUseParallaxShadow(b_UserParallaxShadowEnabled);
+		}
+
+		ImGui::Spacing();
+		if(ImGui::DragInt("Tesellation Factor", &userTessellationFactor, 0.05f, 1, 64, "%d", kSliderFlags)) {
+			pSelectedGO->SetTessellationFactor(userTessellationFactor);
 		}
 	}
 

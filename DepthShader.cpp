@@ -159,6 +159,8 @@ bool DepthShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMM
 	// Set the vertex and pixel shaders that will be used to render this triangle.
 	deviceContext->VSSetShader(m_VertexShader, NULL, 0);
 	deviceContext->PSSetShader(m_PixelShader, NULL, 0);
+	deviceContext->HSSetShader(NULL, NULL, 0);
+	deviceContext->DSSetShader(NULL, NULL, 0);
 
 	// Render the triangle.
 	deviceContext->DrawIndexed(indexCount, 0, 0);

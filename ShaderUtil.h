@@ -30,5 +30,5 @@ static void OutputShaderErrorMessage(ID3D10Blob* errorMessage, HWND hwnd, const 
 	errorMessage = nullptr;
 
 	// Pop a message up on the screen to notify the user to check the text file for compile errors.
-	MessageBox(hwnd, L"Error compiling shader.  Check shader-error.txt for message.", shaderFilename, MB_OK);
+	//MessageBox(hwnd, L"Error compiling shader.  Check shader-error.txt for message.", shaderFilename, MB_OK);
 }

@@ -231,8 +231,11 @@ bool Bloom::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX 
 	deviceContext->IASetInputLayout(m_screenShaderLayoutInstance);
 
 	deviceContext->VSSetShader(m_ScreenVertexShaderInstance, NULL, 0);
-
 	deviceContext->PSSetShader(m_PixelShader, NULL, 0);
+
+	deviceContext->HSSetShader(NULL, NULL, 0);
+	deviceContext->DSSetShader(NULL, NULL, 0);
+
 	deviceContext->PSSetSamplers(0, 1, &m_SampleState);
 
 	deviceContext->DrawIndexed(indexCount, 0, 0);

@@ -1,0 +1,94 @@
+Texture2D heightMap : register(t0);
+SamplerState Sampler : register(s0);
+
+cbuffer MatrixBuffer {
+    matrix modelMatrix;
+    matrix viewMatrix;
+    matrix projectionMatrix;
+    matrix lightViewMatrix;
+    matrix lightProjectionMatrix;
+};
+
+cbuffer CameraBuffer {
+    float3 cameraPosition;
+    float heightMapScale;
+    
+    float uvScale;
+    float3 padding;
+};
+
+struct PixelInputType {
+    float4 position : SV_POSITION;
+    float2 uv : TEXCOORD0;
+    float3 cameraPosition : TEXCOORD1;
+    float4 lightViewPosition : TEXCOORD2;
+    float4 worldPosition : TEXCOORD3;
+    
+    float3 tangentViewDirection : TEXCOORD4;
+    
+    float3 normal : NORMAL;
+    float3 tangent : TANGENT;
+    float3 binormal : BINORMAL;
+};
+
+struct ConstantOutputType {
+    float edges[3] : SV_TessFactor;
+    float inside : SV_InsideTessFactor;
+};
+
+struct HullOutputType {
+    float4 position : POSITION;
+    float2 uv : TEXCOORD0;
+    float3 normal : NORMAL;
+    float3 tangent : TANGENT;
+    float3 binormal : BINORMAL;
+};
+
+#define BARYCENTRIC_INTERPOLATE(fieldName) o.fieldName = \
+	patch[0].fieldName * uvwCoord.x + \
+	patch[1].fieldName * uvwCoord.y + \
+	patch[2].fieldName * uvwCoord.z;
+
+[domain("tri")]
+PixelInputType PBRDomainShader(ConstantOutputType input, float3 uvwCoord : SV_DomainLocation, const OutputPatch<HullOutputType, 3> patch) {
+    PixelInputType o;
+    
+    // Patch Interpolation
+    float4 vertexPosition = BARYCENTRIC_INTERPOLATE(position);
+    vertexPosition.w = 1.0f;
+    float2 uv = BARYCENTRIC_INTERPOLATE(uv);
+    float3 normal = BARYCENTRIC_INTERPOLATE(normal);
+    normal = normalize(normal);
+    float3 tangent = BARYCENTRIC_INTERPOLATE(tangent);
+    float3 binormal = BARYCENTRIC_INTERPOLATE(binormal);
+    
+    o.uv = uv * uvScale;
+    
+    // Vertex displacement
+    if(heightMapScale != 0) {
+        float displacement = heightMap.SampleLevel(Sampler, o.uv, 0).r;
+        vertexPosition.xyz += normal * (displacement - 0.5) * heightMapScale;
+    }
+    
+    o.position = mul(vertexPosition, modelMatrix);
+    o.position = mul(o.position, viewMatrix);
+    o.position = mul(o.position, projectionMatrix);
+    
+    o.worldPosition = mul(vertexPosition, modelMatrix);
+    o.cameraPosition = cameraPosition;
+    
+    // TBN
+    o.tangent = normalize(mul(tangent, (float3x3) modelMatrix));
+    o.binormal = normalize(mul(binormal, (float3x3) modelMatrix));
+    o.normal = normalize(mul(normal, (float3x3) modelMatrix));
+    
+    float3x3 TBN = float3x3(o.tangent, o.binormal, o.normal);
+    o.tangentViewDirection = mul(TBN, cameraPosition - o.worldPosition.xyz);
+    
+    // Shadow Mapping
+    o.lightViewPosition = mul(vertexPosition, modelMatrix);
+    o.lightViewPosition = mul(o.lightViewPosition, lightViewMatrix);
+    o.lightViewPosition = mul(o.lightViewPosition, lightProjectionMatrix);
+
+    return o;
+}

@@ -44,9 +44,9 @@ public:
 
 	bool Initialize(ID3D11Device*, const std::string& modelFilePath);
 	void Shutdown();
-	void Render(ID3D11DeviceContext*);
+	void Render(ID3D11DeviceContext* deviceContext, bool isPatchList);
 
-	int GetIndexCount();
+	int GetIndexCount() const { return m_IndexCount; }
 
 private:
 	bool InitializeBuffers(ID3D11Device*);

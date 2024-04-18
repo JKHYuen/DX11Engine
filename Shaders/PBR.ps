@@ -28,10 +28,9 @@ cbuffer LightBuffer : register(b0) {
 };
 
 cbuffer MaterialParamBuffer : register(b1) {
-    float uvScale;
     float parallaxHeightScale;
     float minRoughness;
-    float padding;
+    float2 padding;
     
     float useParallaxShadow;
     float minParallaxLayers;
@@ -192,8 +191,6 @@ float CalcParallaxSoftShadowMultiplier(float3 lightDir, float2 initialTexCoords,
 }
 
 float4 PBRPixelShader(PixelInputType i) : SV_TARGET {
-    i.uv *= uvScale;
-    
 //////////////////////////
 /// Parallax Occlusion ///
 //////////////////////////

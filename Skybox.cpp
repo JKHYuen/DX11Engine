@@ -338,7 +338,6 @@ bool SkyBox::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shad
 	}
 
 	// Create the vertex input layout description.
-	// This setup needs to match the VertexType stucture in the ModelClass and in the shader.
 	D3D11_INPUT_ELEMENT_DESC polygonLayout[2] {};
 	polygonLayout[0].SemanticName = "POSITION";
 	polygonLayout[0].SemanticIndex = 0;
@@ -486,6 +485,9 @@ bool SkyBox::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMM
 		default:
 			return false;
 	}
+
+	deviceContext->HSSetShader(NULL, NULL, 0);
+	deviceContext->DSSetShader(NULL, NULL, 0);
 
 	deviceContext->IASetInputLayout(m_Layout);
 	deviceContext->PSSetSamplers(0, 1, &m_ClampSampleState);

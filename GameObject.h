@@ -31,6 +31,7 @@ public:
 		bool useParallaxShadow = true;
 		int minParallaxLayers = 8;
 		int maxParallaxLayers = 32;
+		int tessellationFactor = 1;
 	};
 
 public:
@@ -60,6 +61,9 @@ public:
 	int GetMinParallaxLayers() const { return m_GameObjectData.minParallaxLayers; }
 	void SetMaxParallaxLayers(int newValue) { m_GameObjectData.maxParallaxLayers = newValue; }
 	int GetMaxParallaxLayers() const { return m_GameObjectData.maxParallaxLayers; }
+
+	void SetTessellationFactor(int newValue) { m_GameObjectData.tessellationFactor = newValue; }
+	int GetTesellationFactor() const { return m_GameObjectData.tessellationFactor; }
 
 	// Implemented this way (i.e. not using XMFLOAT3) for convenience in IMGUI
 	void SetPosition(float x, float y, float z) { m_GameObjectData.position.x = x;	m_GameObjectData.position.y = y; m_GameObjectData.position.z = z; }

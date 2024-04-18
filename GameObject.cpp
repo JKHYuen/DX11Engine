@@ -30,7 +30,7 @@ bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLi
 		XMMatrixTranslation(m_GameObjectData.position.x, m_GameObjectData.position.y, m_GameObjectData.position.z)
 	);
 
-	m_ModelInstance->Render(deviceContext);
+	m_ModelInstance->Render(deviceContext, false);
 
 	XMMATRIX lightView {};
 	XMMATRIX lightProjection {};
@@ -52,6 +52,6 @@ bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix,
 		XMMatrixTranslation(m_GameObjectData.position.x, m_GameObjectData.position.y, m_GameObjectData.position.z)
 	);
 
-	m_ModelInstance->Render(deviceContext);
+	m_ModelInstance->Render(deviceContext, true);
 	return m_PBRShaderInstance->Render(deviceContext, m_ModelInstance->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_MaterialTextures, shadowMap, irradianceMap, prefilteredMap, BRDFLut, light, cameraPos, time, m_GameObjectData);
 }

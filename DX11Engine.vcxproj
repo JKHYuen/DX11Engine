@@ -108,6 +108,8 @@
     <None Include="Shaders\MultiTexture.vs" />
     <None Include="Shaders\normalmap.ps" />
     <None Include="Shaders\normalmap.vs" />
+    <None Include="Shaders\PBR.ds" />
+    <None Include="Shaders\PBR.hs" />
     <None Include="Shaders\PBR.ps" />
     <None Include="Shaders\PBR.vs" />
     <None Include="Shaders\PointLight.ps" />

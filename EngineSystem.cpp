@@ -12,7 +12,7 @@
 
 // App params (hardcoded)
 namespace {
-	constexpr bool sb_StartFullScreenState = true;
+	constexpr bool sb_StartFullScreenState = false;
 	constexpr bool sb_IsVsyncEnabled = true;
 	constexpr int s_DefaultWindowedWidth = 1280;
 	constexpr int s_DefaultWindowedHeight = 720;

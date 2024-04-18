@@ -19,7 +19,7 @@ bool Model::Initialize(ID3D11Device* device, const std::string& modelFilePath) {
 	return true;
 }
 
-void Model::Render(ID3D11DeviceContext* deviceContext) {
+void Model::Render(ID3D11DeviceContext* deviceContext, bool isPatchList) {
 	// Put the vertex and index buffers on the graphics pipeline to prepare them for drawing.
 	// Set vertex buffer stride and offset.
 	unsigned int stride {sizeof(VertexType)};
@@ -31,39 +31,37 @@ void Model::Render(ID3D11DeviceContext* deviceContext) {
 	// Set the index buffer to active in the input assembler so it can be rendered.
 	deviceContext->IASetIndexBuffer(m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 
-	// Set the type of primitive that should be rendered from this vertex buffer, in this case triangles.
-	deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-}
-
-int Model::GetIndexCount() {
-	return m_IndexCount;
+	// Using patch list topology (Tessellation) is hard coded to triangles only
+	if(isPatchList) {
+		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+	}
+	else {
+		deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	}
 }
 
 bool Model::InitializeBuffers(ID3D11Device* device) {
-	VertexType* vertices;
-	unsigned long* indices;
-	D3D11_BUFFER_DESC vertexBufferDesc, indexBufferDesc;
-	D3D11_SUBRESOURCE_DATA vertexData, indexData;
 	HRESULT result;
 
 	// Create the vertex array.
-	vertices = new VertexType[m_VertexCount];
+	VertexType* vertices = new VertexType[m_VertexCount];
 
 	// Create the index array.
-	indices = new unsigned long[m_IndexCount];
+	unsigned long* indices = new unsigned long[m_IndexCount];
 
 	// Load the vertex array and index array with data.
 	for(int i = 0; i < m_VertexCount; i++) {
 		vertices[i].position = XMFLOAT3(m_Model[i].x, m_Model[i].y, m_Model[i].z);
-		vertices[i].texture = XMFLOAT2(m_Model[i].tu, m_Model[i].tv);
-		vertices[i].normal = XMFLOAT3(m_Model[i].nx, m_Model[i].ny, m_Model[i].nz);
-		vertices[i].tangent = XMFLOAT3(m_Model[i].tx, m_Model[i].ty, m_Model[i].tz);
+		vertices[i].texture  = XMFLOAT2(m_Model[i].tu, m_Model[i].tv);
+		vertices[i].normal   = XMFLOAT3(m_Model[i].nx, m_Model[i].ny, m_Model[i].nz);
+		vertices[i].tangent  = XMFLOAT3(m_Model[i].tx, m_Model[i].ty, m_Model[i].tz);
 		vertices[i].binormal = XMFLOAT3(m_Model[i].bx, m_Model[i].by, m_Model[i].bz);
 		
 		indices[i] = i;
 	}
 
 	// Set up the description of the static vertex buffer.
+	D3D11_BUFFER_DESC vertexBufferDesc {};
 	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	vertexBufferDesc.ByteWidth = sizeof(VertexType) * m_VertexCount;
 	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -72,6 +70,7 @@ bool Model::InitializeBuffers(ID3D11Device* device) {
 	vertexBufferDesc.StructureByteStride = 0;
 
 	// Give the subresource structure a pointer to the vertex data.
+	D3D11_SUBRESOURCE_DATA vertexData {};
 	vertexData.pSysMem = vertices;
 	vertexData.SysMemPitch = 0;
 	vertexData.SysMemSlicePitch = 0;
@@ -83,6 +82,7 @@ bool Model::InitializeBuffers(ID3D11Device* device) {
 	}
 
 	// Set up the description of the static index buffer.
+	D3D11_BUFFER_DESC indexBufferDesc {};
 	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	indexBufferDesc.ByteWidth = sizeof(unsigned long) * m_IndexCount;
 	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -91,6 +91,7 @@ bool Model::InitializeBuffers(ID3D11Device* device) {
 	indexBufferDesc.StructureByteStride = 0;
 
 	// Give the subresource structure a pointer to the index data.
+	D3D11_SUBRESOURCE_DATA indexData {};
 	indexData.pSysMem = indices;
 	indexData.SysMemPitch = 0;
 	indexData.SysMemSlicePitch = 0;
@@ -113,8 +114,6 @@ bool Model::InitializeBuffers(ID3D11Device* device) {
 
 bool Model::LoadModel(std::string filename) {
 	std::ifstream fin {};
-	char input {};
-	int i {};
 
 	// Open the model file.
 	fin.open(filename);
@@ -125,6 +124,7 @@ bool Model::LoadModel(std::string filename) {
 	}
 
 	// Read up to the value of vertex count.
+	char input {};
 	while(input != ':') {
 		fin.get(input);
 	}
@@ -145,7 +145,7 @@ bool Model::LoadModel(std::string filename) {
 	}
 
 	// Read in the vertex data.
-	for(i = 0; i < m_VertexCount; i++) {
+	for(int i = 0; i < m_VertexCount; i++) {
 		fin >> m_Model[i].x  >> m_Model[i].y  >> m_Model[i].z;
 		fin >> m_Model[i].tu >> m_Model[i].tv;
 		fin >> m_Model[i].nx >> m_Model[i].ny >> m_Model[i].nz;
@@ -158,18 +158,17 @@ bool Model::LoadModel(std::string filename) {
 }
 
 void Model::CalculateModelVectors() {
-	int faceCount, i, index;
-	TempVertexType vertex1, vertex2, vertex3;
-	VectorType tangent, binormal;
+	TempVertexType vertex1 {}, vertex2 {}, vertex3 {};
+	VectorType tangent {}, binormal {};
 
 	// Calculate the number of faces in the model.
-	faceCount = m_VertexCount / 3;
+	int faceCount = m_VertexCount / 3;
 
 	// Initialize the index to the model data.
-	index = 0;
+	int index = 0;
 
 	// Go through all the faces and calculate the the tangent and binormal vectors.
-	for(i = 0; i < faceCount; i++) {
+	for(int i = 0; i < faceCount; i++) {
 		// Get the three vertices for this face from the model.
 		vertex1.x = m_Model[index].x;
 		vertex1.y = m_Model[index].y;
