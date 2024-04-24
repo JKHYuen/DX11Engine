@@ -222,6 +222,7 @@ bool Scene::LoadPBRShader(ID3D11Device* device, HWND hwnd) {
 
 bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
 	m_Camera->Update();
+	m_Camera->UpdateFrustrum(projectionMatrix, m_AppInstance->GetScreenFar());
 
 	XMMATRIX viewMatrix {}, orthoMatrix {};
 	m_Camera->GetViewMatrix(viewMatrix);
@@ -236,7 +237,7 @@ bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
 
 	SkyBox* currentCubemap = m_LoadedCubemapResources[s_HDRSkyboxFileNames[m_CurrentCubemapIndex]];
 	for(size_t i = 0; i < m_GameObjects.size(); i++) {
-		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), currentCubemap->GetIrradianceMapSRV(), currentCubemap->GetPrefilteredMapSRV(), currentCubemap->GetPrecomputedBRDFSRV(), m_DirectionalLight, m_Camera->GetPosition(), time)) {
+		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), currentCubemap->GetIrradianceMapSRV(), currentCubemap->GetPrefilteredMapSRV(), currentCubemap->GetPrecomputedBRDFSRV(), m_DirectionalLight, m_Camera, time)) {
 			return false;
 		}
 	}

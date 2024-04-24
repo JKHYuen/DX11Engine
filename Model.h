@@ -7,6 +7,19 @@
 using namespace DirectX;
 
 class Model {
+public:
+	Model() {}
+	Model(const Model&) {}
+	~Model() {}
+
+	bool Initialize(ID3D11Device*, const std::string& modelFilePath);
+	void Shutdown();
+	void Render(ID3D11DeviceContext* deviceContext, bool isPatchList);
+
+	int GetIndexCount() const { return m_IndexCount; }
+
+	XMFLOAT3 GetExtents() const { return m_Extents; }
+
 private:
 	struct VertexType {
 		XMFLOAT3 position;
@@ -37,18 +50,6 @@ private:
 	void CalculateModelVectors();
 	void CalculateTangentBinormal(TempVertexType, TempVertexType, TempVertexType, VectorType&, VectorType&);
 
-public:
-	Model() {}
-	Model(const Model&) {}
-	~Model() {}
-
-	bool Initialize(ID3D11Device*, const std::string& modelFilePath);
-	void Shutdown();
-	void Render(ID3D11DeviceContext* deviceContext, bool isPatchList);
-
-	int GetIndexCount() const { return m_IndexCount; }
-
-private:
 	bool InitializeBuffers(ID3D11Device*);
 	bool LoadModel(std::string);
 
@@ -57,6 +58,8 @@ private:
 	ID3D11Buffer* m_IndexBuffer  {};
 	int m_VertexCount {};
 	int m_IndexCount  {};
+
+	XMFLOAT3 m_Extents;
 
 	ModelType* m_Model {};
 };

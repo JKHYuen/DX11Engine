@@ -13,13 +13,14 @@ bool DepthShader::Initialize(ID3D11Device* device, HWND hwnd) {
 	const std::wstring dsFileName = L"../DX11Engine/Shaders/Depth.ds";
 
 	HRESULT result {};
+
+	/// Compile and create shaders
 	ID3D10Blob* errorMessage {};
 	ID3D10Blob* vertexShaderBuffer {};
 	ID3D10Blob* pixelShaderBuffer {};
 	ID3D10Blob* hullShaderBuffer {};
 	ID3D10Blob* domainShaderBuffer {};
 
-	// Compile the vertex shader code.
 	result = D3DCompileFromFile(vsFileName.c_str(), NULL, NULL, "DepthVertexShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&vertexShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
@@ -34,8 +35,6 @@ bool DepthShader::Initialize(ID3D11Device* device, HWND hwnd) {
 
 		return false;
 	}
-
-	// Compile the pixel shader code.
 	result = D3DCompileFromFile(psFileName.c_str(), NULL, NULL, "DepthPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&pixelShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
@@ -50,8 +49,6 @@ bool DepthShader::Initialize(ID3D11Device* device, HWND hwnd) {
 
 		return false;
 	}
-
-	// Compile hull shader code
 	result = D3DCompileFromFile(hsFileName.c_str(), NULL, NULL, "DepthHullShader", "hs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &hullShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
 		if(errorMessage) {
@@ -62,8 +59,6 @@ bool DepthShader::Initialize(ID3D11Device* device, HWND hwnd) {
 		}
 		return false;
 	}
-
-	// Compile domain shader code
 	result = D3DCompileFromFile(dsFileName.c_str(), NULL, NULL, "DepthDomainShader", "ds_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &domainShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
 		if(errorMessage) {
@@ -75,19 +70,12 @@ bool DepthShader::Initialize(ID3D11Device* device, HWND hwnd) {
 		return false;
 	}
 
-	// Create the vertex shader from the buffer.
 	result = device->CreateVertexShader(vertexShaderBuffer->GetBufferPointer(), vertexShaderBuffer->GetBufferSize(), NULL, &m_VertexShader);
 	if(FAILED(result)) return false;
-
-	// Create the pixel shader from the buffer.
 	result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_PixelShader);
 	if(FAILED(result)) return false;
-
-	// Create hull shader
 	result = device->CreateHullShader(hullShaderBuffer->GetBufferPointer(), hullShaderBuffer->GetBufferSize(), NULL, &m_HullShader);
 	if(FAILED(result)) return false;
-
-	// Create domain shader
 	result = device->CreateDomainShader(domainShaderBuffer->GetBufferPointer(), domainShaderBuffer->GetBufferSize(), NULL, &m_DomainShader);
 	if(FAILED(result)) return false;
 

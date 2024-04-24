@@ -10,8 +10,7 @@ bool QuadModel::Initialize(ID3D11Device* device, float width, float height) {
     VertexType* vertices = new VertexType[m_VertexCount];
     unsigned long* indices = new unsigned long[m_IndexCount];
 
-    // Load the vertex array with data.
-    // First triangle.
+    // First triangle
     vertices[0].position = XMFLOAT3(-width, height, 0.0f);  // Top left.
     vertices[0].texture = XMFLOAT2(0.0f, 0.0f);
 
@@ -21,7 +20,7 @@ bool QuadModel::Initialize(ID3D11Device* device, float width, float height) {
     vertices[2].position = XMFLOAT3(-width, -height, 0.0f);  // Bottom left.
     vertices[2].texture = XMFLOAT2(0.0f, 1.0f);
 
-    // Second triangle.
+    // Second triangle
     vertices[3].position = XMFLOAT3(-width, height, 0.0f);  // Top left.
     vertices[3].texture = XMFLOAT2(0.0f, 0.0f);
 
@@ -92,13 +91,8 @@ void QuadModel::Render(ID3D11DeviceContext* deviceContext) const {
     unsigned int stride = sizeof(VertexType);
     unsigned int offset = 0;
 
-    // Set the vertex buffer to active in the input assembler so it can be rendered.
     deviceContext->IASetVertexBuffers(0, 1, &m_VertexBuffer, &stride, &offset);
-
-    // Set the index buffer to active in the input assembler so it can be rendered.
     deviceContext->IASetIndexBuffer(m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-    // Set the type of primitive that should be rendered from this vertex buffer, in this case triangles.
     deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 

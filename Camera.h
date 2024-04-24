@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+
 #include <DirectXMath.h>
 using namespace DirectX;
 
@@ -28,6 +30,9 @@ public:
 
 	void Update();
 
+	void UpdateFrustrum(XMMATRIX projectionMatrix, float screenDepth);
+	bool CheckRectangleInFrustrum(float xCenter, float yCenter, float zCenter, float xSize, float ySize, float zSize);
+
 private:
 	float m_PositionX {}, m_PositionY {}, m_PositionZ {};
 	float m_RotationX {}, m_RotationY {}, m_RotationZ {};
@@ -35,4 +40,6 @@ private:
 	XMFLOAT3 m_LookAtDir {};
 	XMFLOAT3 m_RightDir {};
 	XMMATRIX m_ViewMatrix {};
+
+	std::array<XMFLOAT4, 6> m_Planes {};
 };

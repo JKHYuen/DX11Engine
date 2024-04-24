@@ -68,7 +68,9 @@ PixelInputType PBRDomainShader(ConstantOutputType input, float3 uvwCoord : SV_Do
     // Vertex displacement
     if(heightMapScale != 0) {
         float displacement = heightMap.SampleLevel(Sampler, o.uv, 0).r;
-        vertexPosition.xyz += normal * (displacement - 0.5) * heightMapScale;
+        // should substract "displacement" by 0.5 so vertices can be displaced both directions
+        // omitted this here to be consistent with parallax occulsion mapping
+        vertexPosition.xyz += normal * displacement * heightMapScale;
     }
     
     o.position = mul(vertexPosition, modelMatrix);

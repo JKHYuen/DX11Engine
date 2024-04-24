@@ -149,6 +149,16 @@ bool Model::LoadModel(std::string filename) {
 		fin >> m_Model[i].x  >> m_Model[i].y  >> m_Model[i].z;
 		fin >> m_Model[i].tu >> m_Model[i].tv;
 		fin >> m_Model[i].nx >> m_Model[i].ny >> m_Model[i].nz;
+		
+		if(m_Model[i].x > m_Extents.x) {
+			m_Extents.x = m_Model[i].x;
+		}
+		if(m_Model[i].y > m_Extents.y) {
+			m_Extents.y = m_Model[i].y;
+		}
+		if(m_Model[i].z > m_Extents.z) {
+			m_Extents.z = m_Model[i].z;
+		}
 	}
 
 	// Close the model file.

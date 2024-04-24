@@ -5,11 +5,19 @@
 	- objects are initialized and cleaned up manually
 	- Constructors, destructors and copy constructors are disabled
 	- Some outdated DXGI (1.1) functions are used (e.g. using IDXGISwapChain::Present rather than IDXGISwapChain1::Present1)
+	
+- no dynamic shader loader
 
-- no frustrum culling
+- Object Frustrum culling
+	- does not take vertex displacement map into account
+	- does not take rotation into account
+
 - no AA
 
 - bloom blur iterations hardcoded to log2(screen or window height)
+
+- bloom flickering
+	- no adaptive exposure
 
 - Models included are relatively low poly. Vertex displacement should only be used with sphere model
 

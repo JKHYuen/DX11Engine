@@ -47,6 +47,9 @@ public:
 	RenderTexture* GetScreenRenderTexture() const { return m_ScreenRenderTexture; }
 	Camera* GetScreenDisplayCamera() const { return m_ScreenDisplayCamera; }
 
+	float GetScreenNear() const { return m_ScreenNear; }
+	float GetScreenFar() const { return m_ScreenFar; }
+
 private:
 	bool RenderToBackBuffer();
 	bool RenderSceneToScreenTexture();
