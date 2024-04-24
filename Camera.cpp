@@ -151,61 +151,61 @@ void Camera::UpdateFrustrum(XMMATRIX projectionMatrix, float screenDepth) {
     m_Planes[5].w /= t;
 }
 
-bool Camera::CheckRectangleInFrustrum(float xCenter, float yCenter, float zCenter, float xSize, float ySize, float zSize) {
+bool Camera::CheckRectangleInFrustrum(float xCenter, float yCenter, float zCenter, float xSize, float ySize, float zSize, float bias) {
     // Check if any of the 6 planes of the rectangle are inside the view frustum.
     for(int i = 0; i < 6; i++) {
         if(m_Planes[i].x * (xCenter - xSize) +
             m_Planes[i].y * (yCenter - ySize) +
-            m_Planes[i].z * (zCenter - zSize) + m_Planes[i].w >= 0.0f)
+            m_Planes[i].z * (zCenter - zSize) + m_Planes[i].w >= bias)
         {
             continue;
         }
 
         if(m_Planes[i].x * (xCenter + xSize) +
             m_Planes[i].y * (yCenter - ySize) +
-            m_Planes[i].z * (zCenter - zSize) + m_Planes[i].w >= 0.0f)
+            m_Planes[i].z * (zCenter - zSize) + m_Planes[i].w >= bias)
         {
             continue;
         }
 
         if(m_Planes[i].x * (xCenter - xSize) +
             m_Planes[i].y * (yCenter + ySize) +
-            m_Planes[i].z * (zCenter - zSize) + m_Planes[i].w >= 0.0f)
+            m_Planes[i].z * (zCenter - zSize) + m_Planes[i].w >= bias)
         {
             continue;
         }
 
         if(m_Planes[i].x * (xCenter - xSize) +
             m_Planes[i].y * (yCenter - ySize) +
-            m_Planes[i].z * (zCenter + zSize) + m_Planes[i].w >= 0.0f)
+            m_Planes[i].z * (zCenter + zSize) + m_Planes[i].w >= bias)
         {
             continue;
         }
 
         if(m_Planes[i].x * (xCenter + xSize) +
             m_Planes[i].y * (yCenter + ySize) +
-            m_Planes[i].z * (zCenter - zSize) + m_Planes[i].w >= 0.0f)
+            m_Planes[i].z * (zCenter - zSize) + m_Planes[i].w >= bias)
         {
             continue;
         }
 
         if(m_Planes[i].x * (xCenter + xSize) +
             m_Planes[i].y * (yCenter - ySize) +
-            m_Planes[i].z * (zCenter + zSize) + m_Planes[i].w >= 0.0f)
+            m_Planes[i].z * (zCenter + zSize) + m_Planes[i].w >= bias)
         {
             continue;
         }
 
         if(m_Planes[i].x * (xCenter - xSize) +
             m_Planes[i].y * (yCenter + ySize) +
-            m_Planes[i].z * (zCenter + zSize) + m_Planes[i].w >= 0.0f)
+            m_Planes[i].z * (zCenter + zSize) + m_Planes[i].w >= bias)
         {
             continue;
         }
 
         if(m_Planes[i].x * (xCenter + xSize) +
             m_Planes[i].y * (yCenter + ySize) +
-            m_Planes[i].z * (zCenter + zSize) + m_Planes[i].w >= 0.0f)
+            m_Planes[i].z * (zCenter + zSize) + m_Planes[i].w >= bias)
         {
             continue;
         }

@@ -54,7 +54,8 @@ bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix,
 	modelExtents.y *= m_GameObjectData.scale.y;
 	modelExtents.z *= m_GameObjectData.scale.z;
 
-	if(!camera->CheckRectangleInFrustrum(m_GameObjectData.position.x, m_GameObjectData.position.y, m_GameObjectData.position.z, modelExtents.x, modelExtents.y, modelExtents.z)) {
+	// NOTE: make sure vertexDisplacementMapScale use matches shader (i.e. not shifted 0.5 or something)
+	if(!camera->CheckRectangleInFrustrum(m_GameObjectData.position.x, m_GameObjectData.position.y, m_GameObjectData.position.z, modelExtents.x, modelExtents.y, modelExtents.z, -m_GameObjectData.vertexDisplacementMapScale)) {
 		return true;
 	}
 

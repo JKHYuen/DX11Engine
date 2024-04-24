@@ -9,7 +9,6 @@
 - no dynamic shader loader
 
 - Object Frustrum culling
-	- does not take vertex displacement map into account
 	- does not take rotation into account
 
 - no AA
