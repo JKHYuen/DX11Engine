@@ -143,6 +143,7 @@ bool RenderTexture::Initialize(ID3D11Device* device, ID3D11DeviceContext* device
     m_Viewport.TopLeftX = 0;
     m_Viewport.TopLeftY = 0;
 
+    // Note: projection matrix generation could be optional
     // Setup the projection matrix.
     m_ProjectionMatrix = XMMatrixPerspectiveFovLH(perspectiveFOV, ((float)textureWidth / (float)textureHeight), nearZ, farZ);
 

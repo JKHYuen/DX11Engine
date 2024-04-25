@@ -30,8 +30,10 @@ public:
 
 	void Update();
 
-	void UpdateFrustrum(XMMATRIX projectionMatrix, float screenDepth);
-	bool CheckRectangleInFrustrum(float xCenter, float yCenter, float zCenter, float xSize, float ySize, float zSize, float bias);
+	void UpdateFrustum(XMMATRIX projectionMatrix, float screenDepth);
+
+	// Bias is for vertex displacement factor
+	bool CheckRectangleInFrustum(float xCenter, float yCenter, float zCenter, float xSize, float ySize, float zSize, float bias);
 
 private:
 	float m_PositionX {}, m_PositionY {}, m_PositionZ {};

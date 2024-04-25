@@ -1,6 +1,7 @@
 #include "Camera.h"
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 void Camera::SetPosition(float x, float y, float z) {
 	m_PositionX = x;
@@ -53,7 +54,7 @@ void Camera::Update() {
 	m_ViewMatrix = XMMatrixLookAtLH(positionVector, lookAtVector, upVector);
 }
 
-void Camera::UpdateFrustrum(XMMATRIX projectionMatrix, float screenDepth) {
+void Camera::UpdateFrustum(XMMATRIX projectionMatrix, float screenDepth) {
     // Load the projection matrix into a XMFLOAT4X4 structure.
     XMFLOAT4X4 projMatrix {};
     XMStoreFloat4x4(&projMatrix, projectionMatrix);
@@ -151,8 +152,7 @@ void Camera::UpdateFrustrum(XMMATRIX projectionMatrix, float screenDepth) {
     m_Planes[5].w /= t;
 }
 
-bool Camera::CheckRectangleInFrustrum(float xCenter, float yCenter, float zCenter, float xSize, float ySize, float zSize, float bias) {
-    // Check if any of the 6 planes of the rectangle are inside the view frustum.
+bool Camera::CheckRectangleInFrustum(float xCenter, float yCenter, float zCenter, float xSize, float ySize, float zSize, float bias) {
     for(int i = 0; i < 6; i++) {
         if(m_Planes[i].x * (xCenter - xSize) +
             m_Planes[i].y * (yCenter - ySize) +

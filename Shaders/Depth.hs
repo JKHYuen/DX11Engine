@@ -1,6 +1,6 @@
 cbuffer TessellationBuffer {
     float tessellationAmount;
-    float3 padding;
+    float3 cameraPosition;
 };
 
 struct HullInputType {
@@ -22,7 +22,7 @@ struct HullOutputType {
 
 ConstantOutputType DepthPatchConstantFunction(InputPatch<HullInputType, 3> inputPatch, uint patchId : SV_PrimitiveID) {
     ConstantOutputType output;
-
+    
     // Set the tessellation factors for the three edges of the triangle.
     output.edges[0] = tessellationAmount;
     output.edges[1] = tessellationAmount;

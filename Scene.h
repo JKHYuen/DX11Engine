@@ -37,6 +37,7 @@ public:
 	
 	// Render objects to scene quad
 	bool RenderScene(XMMATRIX projectionMatrix, float time);
+	bool RenderSceneWithCullDebugCamera(XMMATRIX projectionMatrix, Camera* camera, float time);
 	// Render final output with post processing
 	bool RenderPostProcess(int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX orthoMatrix, ID3D11ShaderResourceView* textureSRV);
 
@@ -46,7 +47,7 @@ public:
 	bool ResizeWindow(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int screenWidth, int screenHeight, float nearZ, float farZ);
 	
 	// Note: Implemented here for convenience, probably doesn't belong in this class
-	void UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitAppFlag, bool& b_ShowDebugQuad1, bool& b_ShowDebugQuad2, bool& b_ToggleFullScreenFlag);
+	void UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitAppFlag, bool& b_ShowDebugQuad1, bool& b_ShowDebugQuad2, bool& b_ShowDebugQuad3, bool& b_ToggleFullScreenFlag);
 
 	RenderTexture* GetDirectionalShadowMapRenderTexture() const { return m_DirectionalShadowMapRenderTexture; }
 	RenderTexture* GetDebugBloomOutput() const;
@@ -60,7 +61,7 @@ private:
 private:
 	Application* m_AppInstance {};
 	D3DInstance* m_D3DInstance {};
-	Camera* m_Camera {};
+	Camera* m_WorldCamera {};
 
 	PBRShader* m_PBRShaderInstance {};
 	DepthShader* m_DepthShaderInstance {};

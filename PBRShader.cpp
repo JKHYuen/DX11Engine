@@ -309,64 +309,6 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     MaterialParamBufferType* materialParamDataPtr;
     TessellationBufferType* tessellationDataPtr;
 
-    ///// Vertex Shader Marix cbuffer 
-    //// Transpose the matrices to prepare them for the shader.
-    //worldMatrix = XMMatrixTranspose(worldMatrix);
-    //viewMatrix = XMMatrixTranspose(viewMatrix);
-    //projectionMatrix = XMMatrixTranspose(projectionMatrix);
-
-    //XMMATRIX lightViewMatrix {};
-    //XMMATRIX lightOrthoMatrix {};
-    //light->GetViewMatrix(lightViewMatrix);
-    //light->GetOrthoMatrix(lightOrthoMatrix);
-
-    //lightViewMatrix = XMMatrixTranspose(lightViewMatrix);
-    //lightOrthoMatrix = XMMatrixTranspose(lightOrthoMatrix);
-
-    //// Lock the constant buffer so it can be written to.
-    //D3D11_MAPPED_SUBRESOURCE mappedResource {};
-    //result = deviceContext->Map(m_MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-    //if(FAILED(result)) {
-    //    return false;
-    //}
-
-    //// Get a pointer to the data in the constant buffer.
-    //MatrixBufferType* matrixDataPtr = (MatrixBufferType*)mappedResource.pData;
-
-    //// Copy the matrices into the constant buffer.
-    //matrixDataPtr->world = worldMatrix;
-    //matrixDataPtr->view = viewMatrix;
-    //matrixDataPtr->projection = projectionMatrix;
-    //matrixDataPtr->lightView = lightViewMatrix;
-    //matrixDataPtr->lightProjection = lightOrthoMatrix;
-
-    //// Unlock the constant buffer.
-    //deviceContext->Unmap(m_MatrixBuffer, 0);
-
-    //// Now set the constant buffer in the vertex shader with the updated values.
-    //deviceContext->VSSetConstantBuffers(0, 1, &m_MatrixBuffer);
-
-    ///// Vertex Shader camera cbuffer
-    //// Lock the camera constant buffer so it can be written to.
-    //result = deviceContext->Map(m_CameraBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
-    //if(FAILED(result)) {
-    //    return false;
-    //}
-
-    //// Get a pointer to the data in the constant buffer.
-    //cameraDataPtr = (CameraBufferType*)mappedResource.pData;
-
-    //// Copy the camera position into the constant buffer.
-    //cameraDataPtr->cameraPosition = cameraPosition;
-    //cameraDataPtr->displacementHeightScale = gameObjectData.vertexDisplacementMapScale;
-
-    //// Unlock the camera constant buffer.
-    //deviceContext->Unmap(m_CameraBuffer, 0);
-
-    //// Now set the camera constant buffer in the vertex shader with the updated values.
-    //deviceContext->VSSetConstantBuffers(1, 1, &m_CameraBuffer);
-
-
     /// Domain Shader Marix cbuffer 
     // Transpose the matrices to prepare them for the shader.
     worldMatrix = XMMatrixTranspose(worldMatrix);
@@ -517,7 +459,8 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     tessellationDataPtr = (TessellationBufferType*)mappedResource.pData;
 
     tessellationDataPtr->tessellationFactor = gameObjectData.tessellationFactor;
-    tessellationDataPtr->padding = {};
+    tessellationDataPtr->cameraPosition = cameraPosition;
+    tessellationDataPtr->world = worldMatrix;
 
     deviceContext->Unmap(m_TessellationBuffer, 0);
     deviceContext->HSSetConstantBuffers(0, 1, &m_TessellationBuffer);

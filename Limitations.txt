@@ -6,17 +6,18 @@
 	- Constructors, destructors and copy constructors are disabled
 	- Some outdated DXGI (1.1) functions are used (e.g. using IDXGISwapChain::Present rather than IDXGISwapChain1::Present1)
 	
-- no dynamic shader loader
+- no dynamic shader linkage
 
-- Object Frustrum culling
+- Object Frustum culling
 	- does not take rotation into account
 
 - no AA
 
+- no shadow culling
+
 - bloom blur iterations hardcoded to log2(screen or window height)
 
 - bloom flickering
-	- no adaptive exposure
 
 - Models included are relatively low poly. Vertex displacement should only be used with sphere model
 
@@ -27,10 +28,11 @@
 - Only directional light source, no point lights, spotlights, etc.
 
 - Directional Light shadow map:
-	- shadow map resolution is hardcoded to 2048x2048
-	- simple 5x5 multisample PCF, no cascades
-	- shadow distance is hardcoded to 40 units
-	- shadow map rendering not follow world camera
+	- shadow map resolution is hardcoded to 4096x4096
+	- simple 5x5 multisample PCF, no hardware filtering - causes flickering with finer detail shadows
+	- no cascades
+	- shadow distance is hardcoded to 100 units
+	- shadow map rendering does not follow world camera
 	
 - Environment cubemaps used for image based lighting are generated in runtime (not cached on disk)
 - Cubemap generation parameters are hardcoded to the following:

@@ -32,7 +32,12 @@ private:
 
     struct TessellationBufferType {
         float tessellationFactor;
-        XMFLOAT3 padding;
+        XMFLOAT3 cameraPosition;
+        XMMATRIX world;
+        XMFLOAT4 leftCullPlane;
+        XMFLOAT4 rightCullPlane;
+        XMFLOAT4 bottomCullPlane;
+        XMFLOAT4 topCullPlane;
     };
 
     struct CameraBufferType {

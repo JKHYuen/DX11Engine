@@ -73,6 +73,7 @@ private:
 	D3DInstance* m_D3DInstance {};
 	HWND m_Hwnd {};
 	Camera* m_ScreenDisplayCamera {};
+	Camera* m_DebugCamera {};
 
 	Scene* m_DemoScene {};
 
@@ -87,13 +88,18 @@ private:
 	//SpriteClass* m_sprite {};
 
 	/// Debug
+	RenderTexture* m_DebugCameraRenderTexture {};
+
 	QuadModel* m_DebugDisplayQuad1 {};
 	QuadModel* m_DebugDisplayQuad2 {};
+	QuadModel* m_DebugDisplayQuad3 {};
 	bool mb_RenderDebugQuad1 {};
 	bool mb_RenderDebugQuad2 {};
+	bool mb_RenderDebugQuad3 {};
 	// for hardcoded debug quad placement
 	XMMATRIX m_DebugQuadTranslationMatrix1 {};
 	XMMATRIX m_DebugQuadTranslationMatrix2 {};
+	XMMATRIX m_DebugQuadTranslationMatrix3 {};
 
 	bool mb_ShowImGuiMenu {};
 	bool mb_IsWireFrameRender {};

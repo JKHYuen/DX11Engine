@@ -21,9 +21,9 @@ namespace {
 	constexpr float s_NearZ = 0.1f;
 	constexpr float s_FarZ = 1000.0f;
 
-	constexpr int s_ShadowMapResolution = 4096;
+	constexpr int s_ShadowMapResolution = 2048;
 	constexpr float s_ShadowMapFar = 150.0f;
-	constexpr float s_ShadowMapNear = 1.0f;
+	constexpr float s_ShadowMapNear = 0.1f;
 	constexpr float s_ShadowDistance = 100.0f;
 }
 
@@ -52,8 +52,8 @@ bool EngineSystem::Initialize() {
 	/// Initialize DearImGui
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); 
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	//ImGuiIO& io = ImGui::GetIO(); 
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;         // IF using Docking Branch
 
@@ -237,9 +237,9 @@ void EngineSystem::Shutdown() {
 	ShowCursor(true);
 
 	// Fix the display settings if leaving full screen mode.
-	if(sb_StartFullScreenState) {
-		ChangeDisplaySettings(NULL, 0);
-	}
+	//if(sb_StartFullScreenState) {
+	//	ChangeDisplaySettings(NULL, 0);
+	//}
 
 	// Remove the window.
 	DestroyWindow(m_Hwnd);

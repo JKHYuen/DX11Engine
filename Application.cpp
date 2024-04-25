@@ -41,6 +41,7 @@ bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int scr
 		return false;
 	}
 
+	/// Cameras
 	// Create camera to view screen render texture
 	m_ScreenDisplayCamera = new Camera();
 	// Display Camera is orthographic
@@ -48,15 +49,25 @@ bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int scr
 	// Initialize stationary camera to view full screen quads
 	m_ScreenDisplayCamera->Update();
 
+	m_DebugCamera = new Camera();
+	m_DebugCamera->SetPosition(0.0f, 4.0f, -10.0f);
+	m_DebugCamera->Update();
+
 	result = GenerateRenderQuads(screenWidth, screenHeight);
 	if(!result) return false;
 
 	/// Screen Render
-	// Create and initialize the screen render texture
 	m_ScreenRenderTexture = new RenderTexture();
 	result = m_ScreenRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), screenWidth, screenHeight, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
 	if(!result) {
 		MessageBox(hwnd, L"Could not initialize screen render texture.", L"Error", MB_OK);
+		return false;
+	}
+
+	m_DebugCameraRenderTexture = new RenderTexture();
+	result = m_DebugCameraRenderTexture->Initialize(m_D3DInstance->GetDevice(), m_D3DInstance->GetDeviceContext(), screenWidth, screenHeight, nearZ, farZ, DXGI_FORMAT_R32G32B32A32_FLOAT);
+	if(!result) {
+		MessageBox(hwnd, L"Could not initialize debug camera render texture.", L"Error", MB_OK);
 		return false;
 	}
 
@@ -143,6 +154,8 @@ bool Application::GenerateRenderQuads(int screenWidth, int screenHeight) {
 		delete m_DebugDisplayQuad1;
 		m_DebugDisplayQuad2->Shutdown();
 		delete m_DebugDisplayQuad2;
+		m_DebugDisplayQuad3->Shutdown();
+		delete m_DebugDisplayQuad3;
 	}
 
 	// Create and initialize the screen display quad
@@ -179,6 +192,19 @@ bool Application::GenerateRenderQuads(int screenWidth, int screenHeight) {
 	m_DebugQuadTranslationMatrix2 = XMMatrixTranslation(
 		screenWidth / 2.0f - screenWidth / 6.0f,
 		-screenHeight / 2.0f + screenHeight / 6.0f, 0
+	);
+
+	// 2nd world view for cull debugging
+	m_DebugDisplayQuad3 = new QuadModel();
+	result = m_DebugDisplayQuad3->Initialize(m_D3DInstance->GetDevice(), screenWidth / 6.0f, screenHeight / 6.0f);
+	if(!result) {
+		MessageBox(m_Hwnd, L"Could not initialize debug quad.", L"Error", MB_OK);
+		return false;
+	}
+	// top right
+	m_DebugQuadTranslationMatrix3 = XMMatrixTranslation(
+		screenWidth / 2.0f - screenWidth / 6.0f,
+		screenHeight / 2.0f - screenHeight / 6.0f, 0
 	);
 
 	return true;
@@ -267,6 +293,10 @@ bool Application::Frame(Input* input) {
 		mb_RenderDebugQuad2 = !mb_RenderDebugQuad2;
 	}
 
+	if(input->IsKeyDown(DIK_C)) {
+		mb_RenderDebugQuad3 = !mb_RenderDebugQuad3;
+	}
+
 	if(input->IsKeyDown(DIK_F1)) {
 		mb_ShowScreenFPS = !mb_ShowScreenFPS;
 	}
@@ -353,6 +383,17 @@ bool Application::RenderSceneToScreenTexture() {
 
 	m_DemoScene->RenderScene(projectionMatrix, m_Time);
 
+	if(mb_RenderDebugQuad3) {
+		m_DebugCameraRenderTexture->SetRenderTargetAndViewPort();
+		m_DebugCameraRenderTexture->ClearRenderTarget(0.01f, 0.01f, 0.015f, 1.0f);
+		
+		if(mb_IsWireFrameRender) {
+			m_D3DInstance->SetToWireBackCullRasterState();
+		}
+
+		m_DemoScene->RenderSceneWithCullDebugCamera(projectionMatrix, m_DebugCamera, m_Time);
+	}
+
 	return true;
 }
 
@@ -401,9 +442,16 @@ bool Application::RenderToBackBuffer() {
 		}
 	}
 
+	if(mb_RenderDebugQuad3) {
+		m_DebugDisplayQuad3->Render(m_D3DInstance->GetDeviceContext());
+		if(!m_PassThroughShader->Render(m_D3DInstance->GetDeviceContext(), m_DebugDisplayQuad3->GetIndexCount(), m_DebugQuadTranslationMatrix3, viewMatrix, orthoMatrix, m_DebugCameraRenderTexture->GetTextureSRV())) {
+			return false;
+		}
+	}
+
 	/// Render IMGUI
 	if(mb_ShowImGuiMenu) {
-		m_DemoScene->UpdateMainImGuiWindow(m_FpsCounter->GetCurrentFPS(), mb_IsWireFrameRender, mb_ShowImGuiMenu, mb_ShowScreenFPS, mb_QuitAppFlag, mb_RenderDebugQuad1, mb_RenderDebugQuad2, mb_ToggleFullScreenFlag);
+		m_DemoScene->UpdateMainImGuiWindow(m_FpsCounter->GetCurrentFPS(), mb_IsWireFrameRender, mb_ShowImGuiMenu, mb_ShowScreenFPS, mb_QuitAppFlag, mb_RenderDebugQuad1, mb_RenderDebugQuad2, mb_RenderDebugQuad3, mb_ToggleFullScreenFlag);
 	}
 
 	ImGui::Render();
@@ -437,6 +485,12 @@ void Application::Shutdown() {
 		m_DebugDisplayQuad2->Shutdown();
 		delete m_DebugDisplayQuad2;
 		m_DebugDisplayQuad2 = nullptr;
+	}
+
+	if(m_DebugDisplayQuad3) {
+		m_DebugDisplayQuad3->Shutdown();
+		delete m_DebugDisplayQuad3;
+		m_DebugDisplayQuad3 = nullptr;
 	}
 
 	if(m_ScreenRenderTexture) {

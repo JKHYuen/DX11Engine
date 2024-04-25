@@ -49,7 +49,7 @@ PixelInputType DepthDomainShader(ConstantOutputType input, float3 uvwCoord : SV_
     // Vertex displacement
     if(heightMapScale != 0) {
         float displacement = heightMap.SampleLevel(Sampler, uv, 0).r;
-        o.position.xyz += normal * (displacement - 0.5) * heightMapScale;
+        o.position.xyz += normal * displacement * heightMapScale;
     }
     
     o.position = mul(o.position, modelMatrix);

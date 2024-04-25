@@ -15,8 +15,6 @@ public:
     // Updates m_Position and calls GenerateViewMatrix
     void SetQuaternionDirection(XMVECTOR rotationQuaternion);
 
-    void SetLightDistance(float newDistance) { m_LightDistance = newDistance; }
-
     void GenerateOrthoMatrix(float width, float nearPlane, float depthPlane);
     void GenerateViewMatrix();
 
@@ -35,7 +33,8 @@ public:
     void GetViewMatrix(XMMATRIX& viewMatrix) const { viewMatrix = m_ViewMatrix; }
 
 private:
-    float m_LightDistance = -15.0f;
+    // hardcoded, not sure if this needs to scale with "s_ShadowDistance" engine parameter (see EngineSystem.cpp)
+    float m_LightDistance = -100.0f;
     XMFLOAT4 m_DirectionalColor {};
 
     // normalized 3d free vector representing direction of light

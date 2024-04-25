@@ -103,7 +103,7 @@ bool SkyBox::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& 
 	);
 
 	// Same projection matrix for all cubemap captures (90 degree FOV)
-	XMMATRIX cubemapCapturecaptureProjectionMatrix{};
+	XMMATRIX cubemapCapturecaptureProjectionMatrix {};
 	m_CubeMapTex->GetProjectionMatrix(cubemapCapturecaptureProjectionMatrix);
 	
 	// Render HDR texture to 6 cubemap textures using equirectangular coords

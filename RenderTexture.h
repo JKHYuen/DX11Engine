@@ -22,10 +22,10 @@ public:
     void GetProjectionMatrix(XMMATRIX& projectionMatrix) const { projectionMatrix = m_ProjectionMatrix; }
     void GetOrthoMatrix(XMMATRIX& orthoMatrix) const { orthoMatrix = m_OrthoMatrix; }
 
-    int GetTextureWidth() const { return m_TextureWidth; };
-    int GetTextureHeight() const { return m_TextureHeight; };
-    float GetNearZ() const { return m_NearZ; };
-    float GetFarZ() const { return m_FarZ; };
+    int GetTextureWidth() const { return m_TextureWidth; }
+    int GetTextureHeight() const { return m_TextureHeight; }
+    float GetNearZ() const { return m_NearZ; }
+    float GetFarZ() const { return m_FarZ; }
 
 private:
     ID3D11DeviceContext* m_DeviceContext {};

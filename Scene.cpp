@@ -94,8 +94,8 @@ bool Scene::InitializeDemoScene(Application* appInstance, int shadowMapResolutio
 	}
 
 	/// Create the 3D world camera
-	m_Camera = new Camera();
-	m_Camera->SetPosition(0.0f, 4.0f, -10.0f);
+	m_WorldCamera = new Camera();
+	m_WorldCamera->SetPosition(0.0f, 4.0f, -10.0f);
 
 	/// Preload 3D resources
 	/// Note: this should be programmatic in a real scene system
@@ -221,23 +221,22 @@ bool Scene::LoadPBRShader(ID3D11Device* device, HWND hwnd) {
 }
 
 bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
-	m_Camera->Update();
-	m_Camera->UpdateFrustrum(projectionMatrix, m_AppInstance->GetScreenFar());
-
-	XMMATRIX viewMatrix {}, orthoMatrix {};
-	m_Camera->GetViewMatrix(viewMatrix);
+	m_WorldCamera->Update();
+	m_WorldCamera->UpdateFrustum(projectionMatrix, m_AppInstance->GetScreenFar());
+	
+	XMMATRIX viewMatrix {};
+	m_WorldCamera->GetViewMatrix(viewMatrix);
 
 	if(mb_AnimateDirectionalLight) {
 		float animatedDir = std::sin(time * 0.5f) * 0.5f + 0.5f;
 		static XMVECTOR quat1 = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(170.0f), XMConvertToRadians(30.0f), 0.0f);
 		static XMVECTOR quat2 = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(8.0f), XMConvertToRadians(30.0f), 0.0f);
 		m_DirectionalLight->SetQuaternionDirection(XMQuaternionSlerp(quat1, quat2, animatedDir));
-
 	}
 
 	SkyBox* currentCubemap = m_LoadedCubemapResources[s_HDRSkyboxFileNames[m_CurrentCubemapIndex]];
 	for(size_t i = 0; i < m_GameObjects.size(); i++) {
-		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), currentCubemap->GetIrradianceMapSRV(), currentCubemap->GetPrefilteredMapSRV(), currentCubemap->GetPrecomputedBRDFSRV(), m_DirectionalLight, m_Camera, time)) {
+		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), currentCubemap->GetIrradianceMapSRV(), currentCubemap->GetPrefilteredMapSRV(), currentCubemap->GetPrecomputedBRDFSRV(), m_DirectionalLight, m_WorldCamera, m_WorldCamera, time)) {
 			return false;
 		}
 	}
@@ -260,6 +259,38 @@ bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
 
 	return true;
 }
+
+bool Scene::RenderSceneWithCullDebugCamera(XMMATRIX projectionMatrix, Camera* camera, float time) {
+	XMMATRIX viewMatrix {};
+	camera->GetViewMatrix(viewMatrix);
+
+	SkyBox* currentCubemap = m_LoadedCubemapResources[s_HDRSkyboxFileNames[m_CurrentCubemapIndex]];
+	for(size_t i = 0; i < m_GameObjects.size(); i++) {
+		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), currentCubemap->GetIrradianceMapSRV(), currentCubemap->GetPrefilteredMapSRV(), currentCubemap->GetPrecomputedBRDFSRV(), m_DirectionalLight, camera, m_WorldCamera, time)) {
+			return false;
+		}
+	}
+
+	static ID3D11ShaderResourceView* nullSRV[10] = {nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+	m_D3DInstance->GetDeviceContext()->PSSetShaderResources(0, 10, nullSRV);
+
+	// Render skybox
+	m_D3DInstance->SetToFrontCullRasterState();
+	currentCubemap->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, SkyBox::kSkyBoxRender);
+	m_D3DInstance->SetToBackCullRasterState();
+
+	//m_ScreenRenderTexture->TurnZBufferOff();
+	//m_ScreenRenderTexture->EnableAlphaBlending();
+
+	// TODO: Transparent Objects
+
+	//m_ScreenRenderTexture->TurnZBufferOn();
+	//m_ScreenRenderTexture->DisableAlphaBlending();
+
+	return true;
+}
+
+
 
 bool Scene::RenderPostProcess(int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX orthoMatrix, ID3D11ShaderResourceView* textureSRV) {
 	// Note: bloom and post process shader (tonemapping) are separated to keep shaders more readable in this demo
@@ -371,7 +402,7 @@ bool Scene::LoadCubemapResource(const std::string& hdrFileName) {
 	return true;
 }
 
-void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitAppFlag, bool& b_ShowDebugQuad1, bool& b_ShowDebugQuad2, bool& b_ToggleFullScreenFlag) {
+void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, bool& b_ShowImGuiMenu, bool& b_ShowScreenFPS, bool& b_QuitAppFlag, bool& b_ShowDebugQuad1, bool& b_ShowDebugQuad2, bool& b_ShowDebugQuad3, bool& b_ToggleFullScreenFlag) {
 	static auto ImGuiHelpMarker = [](const char* desc, bool b_IsSameLine = true, bool b_IsWarning = false) {
 		if(b_IsSameLine) ImGui::SameLine();
 		if(b_IsWarning)  ImGui::TextDisabled("(!)"); else ImGui::TextDisabled("(?)");
@@ -440,6 +471,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		ImGui::Checkbox("Shadow Map View", &b_ShowDebugQuad1); ImGuiHelpMarker("Directional light shadow map.\nKeybing: Z");
 		ImGui::SameLine(200);
 		ImGui::Checkbox("Bloom Filter View", &b_ShowDebugQuad2); ImGuiHelpMarker("Bloom intensity not included.\nKeybing: X");
+		ImGui::Checkbox("Debug Camera", &b_ShowDebugQuad3); ImGuiHelpMarker("To debug culling.\nKeybing: C");
 		ImGui::Spacing();
 	}
 	
@@ -632,26 +664,26 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		}
 		ImGui::Spacing();
 
-		if(ImGui::DragFloat3("Position", userPosition, 0.001f, -1000.0f, 1000.0f, "%.3f", kSliderFlags)) {
+		if(ImGui::DragFloat3("Position", userPosition, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
 			pSelectedGO->SetPosition(userPosition[0], userPosition[1], userPosition[2]);
 		}
 
-		if(ImGui::DragFloat3("Scale", userScale, 0.001f, -1000.0f, 1000.0f, "%.3f", kSliderFlags)) {
+		if(ImGui::DragFloat3("Scale", userScale, 0.01f, -1000.0f, 1000.0f, "%.2f", kSliderFlags)) {
 			pSelectedGO->SetScale(userScale[0], userScale[1], userScale[2]);
 		}
 
-		if(ImGui::DragFloat("UV Scale", &userUVScale, 0.001f, 1.0f, 1000.0f, "%.3f", kSliderFlags)) {
+		if(ImGui::DragFloat("UV Scale", &userUVScale, 0.01f, 1.0f, 1000.0f, "%.2f", kSliderFlags)) {
 			pSelectedGO->SetUVScale(userUVScale);
 		}
 
 		if(ImGui::DragFloat("Minimum Roughness", &userMinRoughness, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
 			pSelectedGO->SetMinRoughness(userMinRoughness);
 		}
-		ImGuiHelpMarker("Minimum roughness allowed, bandaid fix used to lower flickering from bloom.", true, true);
+		ImGuiHelpMarker("Minimum roughness allowed on PBR shader, this is a bandaid fix used to lower flickering from bloom.", true, true);
 
 		ImGui::Spacing();
-		ImGui::Text("Parallax Occlusion - PLEASE READ:");
-		ImGuiHelpMarker("Only supported if using \"plane\" model! Other models should set parallax height scale to zero.\n\nHigher min/max parallax layers will quickly increase GPU load.", true, true);
+		ImGui::Text("Parallax Occlusion - READ ME:");
+		ImGuiHelpMarker("Only supported if using \"plane\" model! Other models should set \"Parallax Height Scale\" to zero.\n\nHigher min / max parallax layers will quickly increase GPU load.\n\nShould not be used with tessellation.", true, true);
 		if(ImGui::DragFloat("Parallax Height Scale", &userParallaxHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
 			pSelectedGO->SetParallaxMapHeightScale(userParallaxHeight);
 		}
@@ -664,20 +696,21 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 			pSelectedGO->SetMaxParallaxLayers(userMaxParallaxLayers);
 		}
 
-		if(ImGui::Checkbox("Enable Self Shadowing", &b_UserParallaxShadowEnabled)) {
+		if(ImGui::Checkbox("Enable Parallax Self Shadowing", &b_UserParallaxShadowEnabled)) {
 			pSelectedGO->SetUseParallaxShadow(b_UserParallaxShadowEnabled);
 		}
 
 		ImGui::Spacing();
-		ImGui::Text("Tessellation");
-		if(ImGui::DragFloat("Tesellation Factor", &userTessellationFactor, 0.1f, 1, 64, "%.1f", kSliderFlags)) {
+		ImGui::Text("Tessellation - READ ME:");
+		ImGuiHelpMarker("Should not be used with parallax occlusion, set \"Parallax Height Scale\" to zero to disable.\n\nSelf shadowing enabled by default, may have flickering due to the simple PCF algorithm.", true, true);
+		if(ImGui::DragFloat("Tesellation Factor", &userTessellationFactor, 0.1f, 5, 1000, "%.1f", kSliderFlags)) {
 			pSelectedGO->SetTessellationFactor(userTessellationFactor);
 		}
 
-		if(ImGui::DragFloat("Displacement Height", &userDisplacementHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
+		if(ImGui::DragFloat("Displacement Height", &userDisplacementHeight, 0.01f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
 			pSelectedGO->SetDisplacementMapHeightScale(userDisplacementHeight);
 		}
-		ImGuiHelpMarker("Vertex Displacement Scale\n\nWARNING: Will not work properly for \"cube\" and \"plane\" models as there are not enough vertices.", true, true);
+		ImGuiHelpMarker("Vertex Displacement Scale\n\nNeeds sufficient amount of vertices, use \"Tessellation Factor\" to create more triangles. Press \"F2\" to toggle wireframe view.", true, true);
 	}
 
 	ImGui::End();
@@ -704,14 +737,14 @@ void Scene::ProcessInput(Input* input, float deltaTime) {
 
 	// Camera Rotation
 	float mouseSensitivity = 10.0f * deltaTime;
-	m_Camera->SetRotation(m_Camera->GetRotationX() + input->GetMouseAxisHorizontal() * mouseSensitivity, m_Camera->GetRotationY() + input->GetMouseAxisVertical() * mouseSensitivity, m_Camera->GetRotationZ());
+	m_WorldCamera->SetRotation(m_WorldCamera->GetRotationX() + input->GetMouseAxisHorizontal() * mouseSensitivity, m_WorldCamera->GetRotationY() + input->GetMouseAxisVertical() * mouseSensitivity, m_WorldCamera->GetRotationZ());
 
 	// Camera Translation
-	XMFLOAT3 currLookAtDir = m_Camera->GetLookAtDir();
-	XMFLOAT3 currRightDir = m_Camera->GetRightDir();
+	XMFLOAT3 currLookAtDir = m_WorldCamera->GetLookAtDir();
+	XMFLOAT3 currRightDir = m_WorldCamera->GetRightDir();
 	XMVECTOR camMoveVector = XMVector3Normalize(XMVectorAdd(XMLoadFloat3(&currLookAtDir) * input->GetMoveAxisVertical(), XMLoadFloat3(&currRightDir) * input->GetMoveAxisHorizontal())) * deltaTime * (b_EnableFastMove ? 15.0f : 5.0f);
 
-	m_Camera->SetPosition(m_Camera->GetPositionX() + XMVectorGetX(camMoveVector), m_Camera->GetPositionY() + XMVectorGetY(camMoveVector), m_Camera->GetPositionZ() + XMVectorGetZ(camMoveVector));
+	m_WorldCamera->SetPosition(m_WorldCamera->GetPositionX() + XMVectorGetX(camMoveVector), m_WorldCamera->GetPositionY() + XMVectorGetY(camMoveVector), m_WorldCamera->GetPositionZ() + XMVectorGetZ(camMoveVector));
 }
 
 bool Scene::ResizeWindow(ID3D11Device* device, ID3D11DeviceContext* deviceContext, int screenWidth, int screenHeight, float nearZ, float farZ) {
@@ -787,9 +820,9 @@ void Scene::Shutdown() {
 		m_GameObjects[i] = nullptr;
 	}
 
-	if(m_Camera) {
-		delete m_Camera;
-		m_Camera = nullptr;
+	if(m_WorldCamera) {
+		delete m_WorldCamera;
+		m_WorldCamera = nullptr;
 	}
 }
 

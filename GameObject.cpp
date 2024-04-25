@@ -42,12 +42,12 @@ bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLi
 }
 
 // TODO: use CubeMapObject as parameter?
-bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, Camera* camera, float time) {
+bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, Camera* camera, Camera* cullFrustumCamera, float time) {
 	if(!mb_IsEnabled) {
 		return true;
 	}
 
-	/// Frustrum visibililty check
+	/// Frustum visibililty check
 	/// WARNING: extents (bounding box) currently don't take rotation into account
 	XMFLOAT3 modelExtents = m_ModelInstance->GetExtents();
 	modelExtents.x *= m_GameObjectData.scale.x;
@@ -55,7 +55,7 @@ bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix,
 	modelExtents.z *= m_GameObjectData.scale.z;
 
 	// NOTE: make sure vertexDisplacementMapScale use matches shader (i.e. not shifted 0.5 or something)
-	if(!camera->CheckRectangleInFrustrum(m_GameObjectData.position.x, m_GameObjectData.position.y, m_GameObjectData.position.z, modelExtents.x, modelExtents.y, modelExtents.z, -m_GameObjectData.vertexDisplacementMapScale)) {
+	if(!cullFrustumCamera->CheckRectangleInFrustum(m_GameObjectData.position.x, m_GameObjectData.position.y, m_GameObjectData.position.z, modelExtents.x, modelExtents.y, modelExtents.z, -m_GameObjectData.vertexDisplacementMapScale)) {
 		return true;
 	}
 
