@@ -33,7 +33,6 @@
     <ClCompile Include="QuadModel.cpp" />
     <ClCompile Include="Font.cpp" />
     <ClCompile Include="FontShader.cpp" />
-    <ClCompile Include="FullScreenTest.cpp" />
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="RenderTexture.cpp" />
     <ClCompile Include="Scene.cpp" />

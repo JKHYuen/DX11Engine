@@ -10,16 +10,16 @@ bool TextureShader::Initialize(ID3D11Device* device, HWND hwnd, bool isPostProce
 
 	// Set the filename of the vertex shader.
 	error = isPostProcessShader ?
-		wcscpy_s(vsFilename, 128, L"../DX11Engine/Shaders/PostProcess.vs") :
-		wcscpy_s(vsFilename, 128, L"../DX11Engine/Shaders/Texture.vs");
+		wcscpy_s(vsFilename, 128, L"../DX11Engine/shaders/PostProcess.vs") :
+		wcscpy_s(vsFilename, 128, L"../DX11Engine/shaders/Texture.vs");
 	if(error != 0) {
 		return false;
 	}
 
 	// Set the filename of the pixel shader.
 	error = isPostProcessShader ? 
-		wcscpy_s(psFilename, 128, L"../DX11Engine/Shaders/PostProcess.ps") :
-		wcscpy_s(psFilename, 128, L"../DX11Engine/Shaders/Texture.ps");
+		wcscpy_s(psFilename, 128, L"../DX11Engine/shaders/PostProcess.ps") :
+		wcscpy_s(psFilename, 128, L"../DX11Engine/shaders/Texture.ps");
 	if(error != 0) {
 		return false;
 	}
@@ -94,11 +94,9 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsF
 	result = D3DCompileFromFile(vsFilename, NULL, NULL, "TextureVertexShader", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&vertexShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
-		// If the shader failed to compile it should have writen something to the error message.
 		if(errorMessage) {
 			OutputShaderErrorMessage(errorMessage, hwnd, vsFilename);
 		}
-		// If there was  nothing in the error message then it simply could not find the shader file itself.
 		else {
 			MessageBox(hwnd, vsFilename, L"Missing Shader File", MB_OK);
 		}
@@ -110,11 +108,9 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsF
 	result = D3DCompileFromFile(psFilename, NULL, NULL, "TexturePixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&pixelShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
-		// If the shader failed to compile it should have writen something to the error message.
 		if(errorMessage) {
 			OutputShaderErrorMessage(errorMessage, hwnd, psFilename);
 		}
-		// If there was nothing in the error message then it simply could not find the file itself.
 		else {
 			MessageBox(hwnd, psFilename, L"Missing Shader File", MB_OK);
 		}
@@ -153,10 +149,8 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsF
 	polygonLayout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	polygonLayout[1].InstanceDataStepRate = 0;
 
-	// Get a count of the elements in the layout.
-	unsigned int numElements = sizeof(polygonLayout) / sizeof(polygonLayout[0]);
-
 	// Create the vertex input layout.
+	unsigned int numElements = sizeof(polygonLayout) / sizeof(polygonLayout[0]);
 	result = device->CreateInputLayout(polygonLayout, numElements, vertexShaderBuffer->GetBufferPointer(),
 		vertexShaderBuffer->GetBufferSize(), &m_Layout);
 
@@ -164,7 +158,6 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsF
 		return false;
 	}
 
-	// Release the vertex shader buffer and pixel shader buffer since they are no longer needed.
 	vertexShaderBuffer->Release();
 	vertexShaderBuffer = nullptr;
 
@@ -180,7 +173,6 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsF
 	matrixBufferDesc.MiscFlags = 0;
 	matrixBufferDesc.StructureByteStride = 0;
 
-	// Create the constant buffer pointer so we can access the vertex shader constant buffer from within this class.
 	result = device->CreateBuffer(&matrixBufferDesc, NULL, &m_MatrixBuffer);
 	if(FAILED(result)) {
 		return false;
@@ -212,31 +204,26 @@ bool TextureShader::InitializeShader(ID3D11Device* device, HWND hwnd, WCHAR* vsF
 }
 
 void TextureShader::Shutdown() {
-	// Release the sampler state.
 	if(m_SampleState) {
 		m_SampleState->Release();
 		m_SampleState = nullptr;
 	}
 
-	// Release the matrix constant buffer.
 	if(m_MatrixBuffer) {
 		m_MatrixBuffer->Release();
 		m_MatrixBuffer = nullptr;
 	}
 
-	// Release the layout.
 	if(m_Layout) {
 		m_Layout->Release();
 		m_Layout = nullptr;
 	}
 
-	// Release the pixel shader.
 	if(m_PixelShader) {
 		m_PixelShader->Release();
 		m_PixelShader = nullptr;
 	}
 
-	// Release the vertex shader.
 	if(m_VertexShader) {
 		m_VertexShader->Release();
 		m_VertexShader = nullptr;

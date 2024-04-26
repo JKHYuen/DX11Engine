@@ -7,10 +7,10 @@ DepthShader::DepthShader(const DepthShader&) {};
 DepthShader::~DepthShader() {};
 
 bool DepthShader::Initialize(ID3D11Device* device, HWND hwnd) {
-	const std::wstring vsFileName = L"../DX11Engine/Shaders/Depth.vs";
-	const std::wstring psFileName = L"../DX11Engine/Shaders/Depth.ps";
-	const std::wstring hsFileName = L"../DX11Engine/Shaders/Depth.hs";
-	const std::wstring dsFileName = L"../DX11Engine/Shaders/Depth.ds";
+	const std::wstring vsFileName = L"../DX11Engine/shaders/Depth.vs";
+	const std::wstring psFileName = L"../DX11Engine/shaders/Depth.ps";
+	const std::wstring hsFileName = L"../DX11Engine/shaders/Depth.hs";
+	const std::wstring dsFileName = L"../DX11Engine/shaders/Depth.ds";
 
 	HRESULT result {};
 

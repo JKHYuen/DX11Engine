@@ -30,8 +30,8 @@
 namespace {
 	std::mutex s_DeviceContextMutex {};
 
-	// Resource names (included in demo build) - used for IMGUI, can be built programmatically from files
-	const std::vector<std::string> s_PBRMaterialFileNames {"bog", "brick", "dented", "dirt", "marble", "metal_grid", "rust", "stonewall"};
+	// Resource names (included in demo build) - used for IMGUI, could be built programmatically from files
+	const std::vector<std::string> s_PBRMaterialFileNames {"bog", "brick", "dented", "dirt", "marble", "metal_grid", "rust", "stonewall", "waterworn", "windswept", "oak", "mud", "asphalt", "blocks"};
 	const std::vector<std::string> s_ModelFileNames {"cube", "plane", "sphere"};
 	const std::vector<std::string> s_HDRSkyboxFileNames {"rural_landscape_4k", "industrial_sunset_puresky_4k", "kloppenheim_03_4k", "schachen_forest_4k", "abandoned_tiled_room_4k"};
 
@@ -675,6 +675,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		if(ImGui::DragFloat("UV Scale", &userUVScale, 0.01f, 1.0f, 1000.0f, "%.2f", kSliderFlags)) {
 			pSelectedGO->SetUVScale(userUVScale);
 		}
+		ImGuiHelpMarker("Tip: Some materials look better with higher uv scales (e.g. asphalt, oak, and blocks).");
 
 		if(ImGui::DragFloat("Minimum Roughness", &userMinRoughness, 0.001f, 0.0f, 1.0f, "%.3f", kSliderFlags)) {
 			pSelectedGO->SetMinRoughness(userMinRoughness);

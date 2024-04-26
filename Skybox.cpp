@@ -292,8 +292,8 @@ bool Skybox::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shad
 	ID3D10Blob* vertexShaderBuffer {};
 	ID3D10Blob* pixelShaderBuffer {};
 
-	const std::wstring vsFileName = L"../DX11Engine/Shaders/" + shaderName + L".vs";
-	const std::wstring psFileName = L"../DX11Engine/Shaders/" + shaderName + L".ps";
+	const std::wstring vsFileName = L"../DX11Engine/shaders/" + shaderName + L".vs";
+	const std::wstring psFileName = L"../DX11Engine/shaders/" + shaderName + L".ps";
 
 	// Compile the vertex shader code
 	result = D3DCompileFromFile(vsFileName.c_str(), NULL, NULL, "Vert", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,

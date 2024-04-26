@@ -8,10 +8,10 @@
 
 bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     /// Compile and initiailze shader objects
-    const std::wstring vsFileName = L"../DX11Engine/Shaders/PBR.vs";
-    const std::wstring psFileName = L"../DX11Engine/Shaders/PBR.ps";
-    const std::wstring hsFileName = L"../DX11Engine/Shaders/PBR.hs";
-    const std::wstring dsFileName = L"../DX11Engine/Shaders/PBR.ds";
+    const std::wstring vsFileName = L"../DX11Engine/shaders/PBR.vs";
+    const std::wstring psFileName = L"../DX11Engine/shaders/PBR.ps";
+    const std::wstring hsFileName = L"../DX11Engine/shaders/PBR.hs";
+    const std::wstring dsFileName = L"../DX11Engine/shaders/PBR.ds";
 
     HRESULT result {};
     ID3D10Blob* errorMessage {};

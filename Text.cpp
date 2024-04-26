@@ -171,19 +171,10 @@ bool Text::UpdateText(ID3D11DeviceContext* deviceContext, Font* Font, char* text
 }
 
 void Text::RenderBuffers(ID3D11DeviceContext* deviceContext) {
-    unsigned int stride, offset;
-
-    // Set vertex buffer stride and offset.
-    stride = sizeof(VertexType);
-    offset = 0;
-
-    // Set the vertex buffer to active in the input assembler so it can be rendered.
+    unsigned int stride = sizeof(VertexType);
+    unsigned int offset = 0;
     deviceContext->IASetVertexBuffers(0, 1, &m_VertexBuffer, &stride, &offset);
-
-    // Set the index buffer to active in the input assembler so it can be rendered.
     deviceContext->IASetIndexBuffer(m_IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-
-    // Set the type of primitive that should be rendered from this vertex buffer, in this case triangles.
     deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 
