@@ -4,8 +4,6 @@
 #include <iostream>
 #include <vector>
 
-//#include "PBRShader.h"
-
 class DirectionalLight;
 class Model;
 class DepthShader;
@@ -25,6 +23,7 @@ public:
 	struct GameObjectData {
 		std::string modelName {};
 		std::string materialName {};
+
 		XMFLOAT3 position {};
 		XMFLOAT3 scale {1.0f, 1.0f, 1.0f};
 		float yRotSpeed {};
@@ -32,12 +31,16 @@ public:
 		float vertexDisplacementMapScale = 0.1f;
 		float parallaxMapHeightScale = 0.0f;
 		float minRoughness = 0;
+
 		bool useParallaxShadow = true;
 		int minParallaxLayers = 8;
 		int maxParallaxLayers = 32;
-		// See PBRShader::TesselationModes
+
+		// See PBRShader::TessellationModes
+		// kDisabledTess = 0, kUniformTess = 1, kEdgeTess = 2,
 		int tessellationMode = 0;
-		float tessellationFactor = 50.0f;
+		float uniformTessellationFactor = 1.0f;
+		float edgeTessellationLength = 50.0f;
 	};
 
 public:
@@ -68,11 +71,12 @@ public:
 	void SetMaxParallaxLayers(int newValue) { m_GameObjectData.maxParallaxLayers = newValue; }
 	int GetMaxParallaxLayers() const { return m_GameObjectData.maxParallaxLayers; }
 
-	void SetTessellationFactor(float newValue) { m_GameObjectData.tessellationFactor = newValue; }
-	float GetTesellationFactor() const { return m_GameObjectData.tessellationFactor; }
-
+	void SetUniformTessellationFactor(float newValue) { m_GameObjectData.uniformTessellationFactor = newValue; }
+	float GetUniformTesellationFactor() const { return m_GameObjectData.uniformTessellationFactor; }
+	void SetEdgeTessellationLength(float newValue) { m_GameObjectData.edgeTessellationLength = newValue; }
+	float GetEdgeTessellationLength() const { return m_GameObjectData.edgeTessellationLength; }
 	void SetTessellationMode(int newValue) { m_GameObjectData.tessellationMode = newValue; }
-	int GetTesellationMode() const { return m_GameObjectData.tessellationMode; }
+	int GetTessellationMode() const { return m_GameObjectData.tessellationMode; }
 
 	// Implemented this way (i.e. not using XMFLOAT3) for convenience in IMGUI
 	void SetPosition(float x, float y, float z) { m_GameObjectData.position.x = x;	m_GameObjectData.position.y = y; m_GameObjectData.position.z = z; }
@@ -80,13 +84,14 @@ public:
 	void SetScale(float x, float y, float z) { m_GameObjectData.scale.x = x; m_GameObjectData.scale.y = y; m_GameObjectData.scale.z = z; }
 	void GetScale(float& x, float& y, float& z) const { x = m_GameObjectData.scale.x; y = m_GameObjectData.scale.y; z = m_GameObjectData.scale.z; }
 
-	// m_PBRMaterialName needed for IMGUI
+	// Material Name needed for IMGUI
 	void SetPBRMaterialTextures(std::string_view name, const std::vector<Texture*>& newTextures) { 
 		m_GameObjectData.materialName = name;
 		m_MaterialTextures = newTextures; 
 	}
 	std::string_view GetPBRMaterialName() const { return m_GameObjectData.materialName; }
 
+	// Model Name needed for IMGUI
 	void SetModel(std::string_view name, Model* newModel) {
 		m_GameObjectData.modelName = name;
 		m_ModelInstance = newModel;

@@ -54,7 +54,7 @@ namespace {
 	constexpr XMFLOAT3 float3_000  {0.0f,   0.0f,  0.0f};
 	constexpr XMFLOAT3 float3_100  {1.0f,   0.0f,  0.0f};
 	constexpr XMFLOAT3 float3_010  {0.0f,   1.0f,  0.0f};
-	constexpr XMFLOAT3 float3_n100 {-1.0f,   0.0f,  0.0f};
+	constexpr XMFLOAT3 float3_n100 {-1.0f,  0.0f,  0.0f};
 	constexpr XMFLOAT3 float3_00n1 {0.0f,   0.0f, -1.0f};
 	constexpr XMFLOAT3 float3_0n10 {0.0f,  -1.0f,  0.0f};
 	constexpr XMFLOAT3 float3_001  {0.0f,   0.0f,  1.0f};
@@ -190,7 +190,6 @@ bool Skybox::InitializeStaticResources(D3DInstance* d3dInstance, HWND hwnd, int 
 	}
 
 	/// Initialize the vertex and pixel shaders
-	/// Note: only needs to be done once, change this if loading more than one cubemap
 	bool result = InitializeShader(device, hwnd, s_HDRCubeMapShaderName, &m_HDREquiVertexShader, &m_HDREquiPixelShader);
 	if(!result) return false;
 
@@ -236,7 +235,7 @@ bool Skybox::InitializeUnitCubeBuffers(ID3D11Device* device) {
 		indices[i] = i;
 	}
 
-	// Set up the description of the static vertex buffer.
+	// Set up the description of the static vertex buffer
 	D3D11_BUFFER_DESC vertexBufferDesc {};
 	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	vertexBufferDesc.ByteWidth = sizeof(VertexType) * s_UnitCubeVertexCount;
@@ -245,7 +244,7 @@ bool Skybox::InitializeUnitCubeBuffers(ID3D11Device* device) {
 	vertexBufferDesc.MiscFlags = 0;
 	vertexBufferDesc.StructureByteStride = 0;
 
-	// Give the subresource structure a pointer to the vertex data.
+	// Give the subresource structure a pointer to the vertex data
 	D3D11_SUBRESOURCE_DATA vertexData {};
 	vertexData.pSysMem = vertices;
 	vertexData.SysMemPitch = 0;
@@ -257,7 +256,7 @@ bool Skybox::InitializeUnitCubeBuffers(ID3D11Device* device) {
 		return false;
 	}
 
-	// Set up the description of the static index buffer.
+	// Set up the description of the static index buffer
 	D3D11_BUFFER_DESC indexBufferDesc {};
 	indexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 	indexBufferDesc.ByteWidth = sizeof(unsigned long) * s_UnitCubeIndexCount;
@@ -266,19 +265,18 @@ bool Skybox::InitializeUnitCubeBuffers(ID3D11Device* device) {
 	indexBufferDesc.MiscFlags = 0;
 	indexBufferDesc.StructureByteStride = 0;
 
-	// Give the subresource structure a pointer to the index data.
+	// Give the subresource structure a pointer to the index data
 	D3D11_SUBRESOURCE_DATA indexData {};
 	indexData.pSysMem = indices;
 	indexData.SysMemPitch = 0;
 	indexData.SysMemSlicePitch = 0;
 
-	// Create the index buffer.
+	// Create the index buffer
 	result = device->CreateBuffer(&indexBufferDesc, &indexData, &m_CubeIndexBuffer);
 	if(FAILED(result)) {
 		return false;
 	}
 
-	// Release the arrays now that the vertex and index buffers have been created and loaded.
 	delete[] vertices;
 	vertices = nullptr;
 
@@ -297,7 +295,7 @@ bool Skybox::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shad
 	const std::wstring vsFileName = L"../DX11Engine/Shaders/" + shaderName + L".vs";
 	const std::wstring psFileName = L"../DX11Engine/Shaders/" + shaderName + L".ps";
 
-	// Compile the vertex shader code.
+	// Compile the vertex shader code
 	result = D3DCompileFromFile(vsFileName.c_str(), NULL, NULL, "Vert", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&vertexShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
@@ -311,7 +309,7 @@ bool Skybox::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shad
 		return false;
 	}
 
-	// Compile the pixel shader code.
+	// Compile the pixel shader code
 	result = D3DCompileFromFile(psFileName.c_str(), NULL, NULL, "Frag", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&pixelShaderBuffer, &errorMessage);
 	if(FAILED(result)) {
@@ -355,17 +353,15 @@ bool Skybox::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shad
 	polygonLayout[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
 	polygonLayout[1].InstanceDataStepRate = 0;
 
-	// Get a count of the elements in the layout.
-	unsigned int numElements = sizeof(polygonLayout) / sizeof(polygonLayout[0]);
 
 	// Create the vertex input layout.
+	unsigned int numElements = sizeof(polygonLayout) / sizeof(polygonLayout[0]);
 	result = device->CreateInputLayout(polygonLayout, numElements, vertexShaderBuffer->GetBufferPointer(),
 		vertexShaderBuffer->GetBufferSize(), &m_Layout);
 	if(FAILED(result)) {
 		return false;
 	}
 
-	// Release the vertex shader buffer and pixel shader buffer since they are no longer needed.
 	vertexShaderBuffer->Release();
 	vertexShaderBuffer = nullptr;
 

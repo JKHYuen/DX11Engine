@@ -54,6 +54,7 @@ void Camera::Update() {
 	m_ViewMatrix = XMMatrixLookAtLH(positionVector, lookAtVector, upVector);
 }
 
+// From https://rastertek.com/dx11win10tut23.html
 void Camera::UpdateFrustum(XMMATRIX projectionMatrix, float screenDepth) {
     // Load the projection matrix into a XMFLOAT4X4 structure.
     XMFLOAT4X4 projMatrix {};

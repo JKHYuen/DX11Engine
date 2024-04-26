@@ -80,7 +80,6 @@ bool DepthShader::Initialize(ID3D11Device* device, HWND hwnd) {
 	if(FAILED(result)) return false;
 
 	// Create the vertex input layout description.
-	// This setup needs to match the VertexType stucture in the Model class and in the shader
 	D3D11_INPUT_ELEMENT_DESC polygonLayout[3] {};
 	polygonLayout[0].SemanticName = "POSITION";
 	polygonLayout[0].SemanticIndex = 0;
@@ -246,7 +245,7 @@ bool DepthShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMM
 	TessellationBufferType* tessellationDataPtr {};
 	tessellationDataPtr = (TessellationBufferType*)mappedResource.pData;
 
-	tessellationDataPtr->tessellationFactor = gameObjectData.tessellationFactor;
+	tessellationDataPtr->tessellationFactor = gameObjectData.uniformTessellationFactor;
 	tessellationDataPtr->padding = {};
 
 	deviceContext->Unmap(m_TessellationBuffer, 0);

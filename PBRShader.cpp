@@ -7,6 +7,7 @@
 #include "Camera.h"
 
 bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
+    /// Compile and initiailze shader objects
     const std::wstring vsFileName = L"../DX11Engine/Shaders/PBR.vs";
     const std::wstring psFileName = L"../DX11Engine/Shaders/PBR.ps";
     const std::wstring hsFileName = L"../DX11Engine/Shaders/PBR.hs";
@@ -66,12 +67,42 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     result = device->CreateDomainShader(domainShaderBuffer->GetBufferPointer(), domainShaderBuffer->GetBufferSize(), NULL, &m_DomainShader);
     if(FAILED(result)) return false;
 
+    // Note: vertexShaderBuffer still needed for layout creation below
+    pixelShaderBuffer->Release();
+    pixelShaderBuffer = nullptr;
+
+    domainShaderBuffer->Release();
+    domainShaderBuffer = nullptr;
+
     // Initialize all hull shader variants
-    if(!InitializeHullShaders(device, hsFileName, hwnd)) 
-        return false;
+    D3D_SHADER_MACRO hullMacros[2] {{NULL, NULL}, {NULL, NULL}};
+    for(int i = 0; i < TessellationMode::Num_TessellationModes; i++) {
+        ID3D10Blob* hullShaderBuffer {};
+
+        char buffer[3] {};
+        sprintf_s(buffer, "%d", i);
+        hullMacros[0] = {"TESS_MODE", buffer};
+
+        result = D3DCompileFromFile(hsFileName.c_str(), hullMacros, NULL, "PBRHullShader", "hs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &hullShaderBuffer, &errorMessage);
+        if(FAILED(result)) {
+            if(errorMessage) {
+                OutputShaderErrorMessage(errorMessage, hwnd, hsFileName.c_str());
+            }
+            else {
+                MessageBox(hwnd, hsFileName.c_str(), L"Missing Shader File", MB_OK);
+            }
+            return false;
+        }
+
+        result = device->CreateHullShader(hullShaderBuffer->GetBufferPointer(), hullShaderBuffer->GetBufferSize(), NULL, &m_HullShaders[i]);
+        if(FAILED(result)) return false;
+
+        hullShaderBuffer->Release();
+        hullShaderBuffer = nullptr;
+    }
 
     // Create the vertex input layout description
-    // This setup needs to match the VertexType stucture in the Model class and in the shader
+    // Needs to match the VertexType stucture in the Model class and in shader
     D3D11_INPUT_ELEMENT_DESC polygonLayout[5] {};
     polygonLayout[0].SemanticName = "POSITION";
     polygonLayout[0].SemanticIndex = 0;
@@ -113,7 +144,6 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     polygonLayout[4].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
     polygonLayout[4].InstanceDataStepRate = 0;
 
-    // Create the vertex input layout.
     unsigned int numElements = sizeof(polygonLayout) / sizeof(polygonLayout[0]);
     result =
         device->CreateInputLayout(
@@ -126,12 +156,6 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
 
     vertexShaderBuffer->Release();
     vertexShaderBuffer = nullptr;
-
-    pixelShaderBuffer->Release();
-    pixelShaderBuffer = nullptr;
-
-    domainShaderBuffer->Release();
-    domainShaderBuffer = nullptr;
 
     /// Create the texture sampler states
     D3D11_SAMPLER_DESC samplerDesc {};
@@ -178,7 +202,7 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
         return false;
     }
 
-    /// Setup constant buffers
+    /// Setup matrix buffer
     D3D11_BUFFER_DESC matrixBufferDesc {};
     matrixBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
     matrixBufferDesc.ByteWidth = sizeof(MatrixBufferType);
@@ -222,8 +246,8 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     //if(FAILED(result)) {
     //    return false;
     //}
-
-    // Setup the description of the camera buffer
+    
+    /// Setup camera buffer
     D3D11_BUFFER_DESC cameraBufferDesc {};
     cameraBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
     cameraBufferDesc.ByteWidth = sizeof(CameraBufferType);
@@ -286,13 +310,15 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
 bool PBRShader::InitializeHullShaders(ID3D11Device* device, const std::wstring& hsFileName, HWND hwnd) {
     HRESULT result {};
     ID3D10Blob* errorMessage {};
-    ID3D10Blob* hullShaderBuffers[3] {};
     D3D_SHADER_MACRO hullMacros[2] {{NULL, NULL}, {NULL, NULL}};
-    for(int i = 0; i < Num_TessellationModes; i++) {
+    for(int i = 0; i < TessellationMode::Num_TessellationModes; i++) {
+        ID3D10Blob* hullShaderBuffer {};
+
         char buffer[3] {};
-        _itoa_s(i, buffer, _countof(buffer), 10);
+        sprintf_s(buffer, "%d", i);
         hullMacros[0] = {"TESS_MODE", buffer};
-        result = D3DCompileFromFile(hsFileName.c_str(), hullMacros, NULL, "PBRHullShader", "hs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &hullShaderBuffers[i], &errorMessage);
+
+        result = D3DCompileFromFile(hsFileName.c_str(), hullMacros, NULL, "PBRHullShader", "hs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &hullShaderBuffer, &errorMessage);
         if(FAILED(result)) {
             if(errorMessage) {
                 OutputShaderErrorMessage(errorMessage, hwnd, hsFileName.c_str());
@@ -303,11 +329,11 @@ bool PBRShader::InitializeHullShaders(ID3D11Device* device, const std::wstring& 
             return false;
         }
 
-        result = device->CreateHullShader(hullShaderBuffers[i]->GetBufferPointer(), hullShaderBuffers[i]->GetBufferSize(), NULL, &m_HullShaders[i]);
+        result = device->CreateHullShader(hullShaderBuffer->GetBufferPointer(), hullShaderBuffer->GetBufferSize(), NULL, &m_HullShaders[i]);
         if(FAILED(result)) return false;
 
-        hullShaderBuffers[i]->Release();
-        hullShaderBuffers[i] = nullptr;
+        hullShaderBuffer->Release();
+        hullShaderBuffer = nullptr;
     }
     return true;
 }
@@ -327,7 +353,6 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     TessellationBufferType* tessellationDataPtr;
 
     /// Domain Shader Marix cbuffer 
-    // Transpose the matrices to prepare them for the shader.
     worldMatrix = XMMatrixTranspose(worldMatrix);
     viewMatrix = XMMatrixTranspose(viewMatrix);
     projectionMatrix = XMMatrixTranspose(projectionMatrix);
@@ -340,49 +365,37 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     lightViewMatrix = XMMatrixTranspose(lightViewMatrix);
     lightOrthoMatrix = XMMatrixTranspose(lightOrthoMatrix);
 
-    // Lock the constant buffer so it can be written to.
     D3D11_MAPPED_SUBRESOURCE mappedResource {};
     result = deviceContext->Map(m_MatrixBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
         return false;
     }
 
-    // Get a pointer to the data in the constant buffer.
     MatrixBufferType* matrixDataPtr = (MatrixBufferType*)mappedResource.pData;
 
-    // Copy the matrices into the constant buffer.
     matrixDataPtr->world = worldMatrix;
     matrixDataPtr->view = viewMatrix;
     matrixDataPtr->projection = projectionMatrix;
     matrixDataPtr->lightView = lightViewMatrix;
     matrixDataPtr->lightProjection = lightOrthoMatrix;
 
-    // Unlock the constant buffer.
     deviceContext->Unmap(m_MatrixBuffer, 0);
-
-    // Now set the constant buffer in the vertex shader with the updated values.
     deviceContext->DSSetConstantBuffers(0, 1, &m_MatrixBuffer);
 
     /// Domain Shader camera cbuffer
-    // Lock the camera constant buffer so it can be written to.
     result = deviceContext->Map(m_CameraBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
         return false;
     }
 
-    // Get a pointer to the data in the constant buffer.
     cameraDataPtr = (CameraBufferType*)mappedResource.pData;
 
-    // Copy the camera position into the constant buffer.
     cameraDataPtr->cameraPosition = camera->GetPosition();
     cameraDataPtr->displacementHeightScale = gameObjectData.vertexDisplacementMapScale;
     cameraDataPtr->uvScale = gameObjectData.uvScale;
     cameraDataPtr->padding = {};
 
-    // Unlock the camera constant buffer.
     deviceContext->Unmap(m_CameraBuffer, 0);
-
-    // Now set the camera constant buffer in the vertex shader with the updated values.
     deviceContext->DSSetConstantBuffers(1, 1, &m_CameraBuffer);
 
     ///// VS point light pos buffer
@@ -432,21 +445,17 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     deviceContext->DSSetShaderResources(0, 1, &pTempSRV);
 
     /// Pixel Shader Light cbuffer
-    // Lock the light constant buffer so it can be written to.
     result = deviceContext->Map(m_LightBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedResource);
     if(FAILED(result)) {
         return false;
     }
 
-    // Get a pointer to the data in the constant buffer.
     lightDataPtr = (LightBufferType*)mappedResource.pData;
 
-    // Copy the lighting variables into the constant buffer.
     lightDataPtr->diffuseColor = light->GetDirectionalColor();
     lightDataPtr->lightDirection = light->GetDirection();
     lightDataPtr->time = time;
 
-    // Unlock the constant buffer.
     deviceContext->Unmap(m_LightBuffer, 0);
     deviceContext->PSSetConstantBuffers(0, 1, &m_LightBuffer);
 
@@ -478,7 +487,16 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
 
     tessellationDataPtr = (TessellationBufferType*)mappedResource.pData;
 
-    tessellationDataPtr->tessellationFactor = gameObjectData.tessellationFactor;
+    float tessellationFactor {};
+    // tessellationMode: kDisabledTess = 0, kUniformTess = 1, kEdgeTess = 2,
+    if(gameObjectData.tessellationMode == 1) {
+        tessellationFactor = gameObjectData.uniformTessellationFactor;
+    }
+    else if(gameObjectData.tessellationMode == 2) {
+        tessellationFactor = gameObjectData.edgeTessellationLength;
+    }
+    tessellationDataPtr->tessellationFactor = tessellationFactor;
+
     tessellationDataPtr->cameraPosition = camera->GetPosition();
     tessellationDataPtr->world = worldMatrix;
 
@@ -491,7 +509,6 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     tessellationDataPtr->cullBias = gameObjectData.vertexDisplacementMapScale;
     tessellationDataPtr->screenDimensions = XMFLOAT2((float)GetSystemMetrics(SM_CXSCREEN), (float)GetSystemMetrics(SM_CYSCREEN));
     tessellationDataPtr->padding = {};
-
 
     deviceContext->Unmap(m_TessellationBuffer, 0);
     deviceContext->HSSetConstantBuffers(0, 1, &m_TessellationBuffer);
@@ -533,7 +550,6 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     deviceContext->PSSetSamplers(1, 1, &m_SampleStateBorder);
     deviceContext->PSSetSamplers(2, 1, &m_SampleStateClamp);
 
-    //deviceContext->VSSetSamplers(0, 1, &m_SampleStateWrap);
     deviceContext->DSSetSamplers(0, 1, &m_SampleStateWrap);
 
     deviceContext->DrawIndexed(indexCount, 0, 0);

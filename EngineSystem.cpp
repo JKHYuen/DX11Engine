@@ -12,16 +12,18 @@
 
 // App params (hardcoded)
 namespace {
-	constexpr bool sb_StartFullScreenState = false;
+	// Note: exclusive fullscreen is disabled in this app, "fullscreen" here means fullscreen borderless windowed 
+	constexpr bool sb_StartFullScreenState = true;
 	constexpr bool sb_IsVsyncEnabled = true;
 	constexpr int s_DefaultWindowedWidth = 1280;
 	constexpr int s_DefaultWindowedHeight = 720;
 
-	// This is used for 3d world cam and cam to render screen quad
+	// This is used for 3d world cam *and* cam to render screen quad
 	constexpr float s_NearZ = 0.1f;
 	constexpr float s_FarZ = 1000.0f;
 
-	constexpr int s_ShadowMapResolution = 2048;
+	// Directional Light Shadow params
+	constexpr int   s_ShadowMapResolution = 2048;
 	constexpr float s_ShadowMapFar = 150.0f;
 	constexpr float s_ShadowMapNear = 0.1f;
 	constexpr float s_ShadowDistance = 100.0f;
@@ -148,7 +150,7 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 	// Register the window class.
 	RegisterClassEx(&wc);
 
-	/// UNUSED - (for exclusive fullscreen) this app currently only supports borderelss windowed fullscreen
+	/// UNUSED - (for exclusive fullscreen) this app currently only supports borderless windowed fullscreen
 	//if(sb_IsFullScreen) {
 	//	// If full screen set the screen to maximum size of the users desktop and 32bit.
 	//  DEVMODE dmScreenSettings;
@@ -191,6 +193,7 @@ void EngineSystem::InitializeWindows(int& screenWidth, int& screenHeight) {
 	// Hide the mouse cursor.
 	ShowCursor(false);
 
+	// UNUSED - cusor capture that doesn't quite work
 	//RECT rect {};
 	//GetWindowRect(m_Hwnd, &rect);
 	//MapWindowPoints(m_Hwnd, nullptr, reinterpret_cast<POINT*>(&rect), 2);

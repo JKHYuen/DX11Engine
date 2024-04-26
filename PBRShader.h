@@ -70,7 +70,7 @@ private:
     };
 
 public:
-    enum TesselationModes {
+    enum TessellationMode {
         kDisabledTess = 0,
         kUniformTess  = 1,
         kEdgeTess     = 2,
@@ -96,7 +96,7 @@ private:
     ID3D11PixelShader*  m_PixelShader {};
     ID3D11DomainShader* m_DomainShader {};
     // Indexed by TesselationModes enum
-    std::array<ID3D11HullShader*, Num_TesselationModes> m_HullShaders {};
+    std::array<ID3D11HullShader*, TessellationMode::Num_TessellationModes> m_HullShaders {};
 
     ID3D11InputLayout*  m_Layout {};
     ID3D11SamplerState* m_SampleStateWrap {};

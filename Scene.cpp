@@ -467,7 +467,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		ImGui::Checkbox("Shadow Map View", &b_ShowDebugQuad1); ImGuiHelpMarker("Directional light shadow map.\nKeybing: Z");
 		ImGui::SameLine(200);
 		ImGui::Checkbox("Bloom Filter View", &b_ShowDebugQuad2); ImGuiHelpMarker("Bloom intensity not included.\nKeybing: X");
-		ImGui::Checkbox("Debug Camera", &b_ShowDebugQuad3); ImGuiHelpMarker("To debug culling. Quite slow (full res) and does not include post processing.\nKeybing: C");
+		ImGui::Checkbox("Culling Debug Camera", &b_ShowDebugQuad3); ImGuiHelpMarker("To debug object/triangle frsutum culling on the main camera. Quite slow (full res) and does not include post processing.\nKeybing: C");
 		ImGui::Spacing();
 	}
 	
@@ -568,7 +568,8 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		static int userMinParallaxLayers {};
 		static int userMaxParallaxLayers {};
 		static int userSelectedTessellationMode = 0;
-		static float userTessellationFactor {};
+		static float userUniformTessellationFactor {};
+		static float userEdgeTessellationLength {};
 
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
 		if(ImGui::TreeNode("Scene Object Select")) {
@@ -620,8 +621,9 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 			userMinParallaxLayers = pSelectedGO->GetMinParallaxLayers();
 			userMaxParallaxLayers = pSelectedGO->GetMaxParallaxLayers();
 
-			userSelectedTessellationMode = pSelectedGO->GetTesellationMode();
-			userTessellationFactor = pSelectedGO->GetTesellationFactor();
+			userSelectedTessellationMode = pSelectedGO->GetTessellationMode();
+			userUniformTessellationFactor = pSelectedGO->GetUniformTesellationFactor();
+			userEdgeTessellationLength = pSelectedGO->GetEdgeTessellationLength();
 
 			b_NewSceneObjectSelectedFlag = false;
 		}
@@ -700,16 +702,15 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 
 		ImGui::Spacing();
 		ImGui::Text("Tessellation - READ ME:");
-		ImGuiHelpMarker("Vertex displalcement should not be used with parallax occlusion, set \"Parallax Height Scale\" to zero to disable.\n\nSelf shadowing enabled by default, may have flickering due to the simple PCF algorithm.", true, true);
-
-		ImGui::Text("Tessellation Mode");
+		ImGuiHelpMarker("Press \"F2\" to toggle wireframe view.\n\nVertex displacement should not be used with parallax occlusion, set \"Parallax Height Scale\" to zero to disable.\n\nTessellation enabled in shadow mapping by default (not optimized), may have flickering due to the simple PCF algorithm.\n\nStart by selecting a tessellation mode below:\nUNIFORM MODE - Set tessellation factor, this value will be used for all patch points.\n\nEDGE MODE - Set target edge length (in units based on screen resolution), edge lengths longer than this value will be tessellated. This mode is also distance based (farther objects will be less tessellated). The dynamic nature of this mode may make vertices displace noticeably as the camera is moved around. This is partially due to not having minimum and maximum values for distance scaling.", true, true);
 		if(ImGui::BeginTable("##Tessellation Mode", 3, kTableFlags)) {
-			for(int i = 0; i < PBRShader::Num_TessellationModes; i++) {
+			for(int i = 0; i < PBRShader::TessellationMode::Num_TessellationModes; i++) {
 				ImGui::TableNextColumn();
-
 				if(ImGui::Selectable(PBRShader::s_TessellationModeNames[i].c_str(), userSelectedTessellationMode == i)) {
 					userSelectedTessellationMode = i;
 					pSelectedGO->SetTessellationMode(userSelectedTessellationMode);
+					pSelectedGO->SetUniformTessellationFactor(userUniformTessellationFactor);
+					pSelectedGO->SetEdgeTessellationLength(userEdgeTessellationLength);
 				}
 			}
 			ImGui::EndTable();
@@ -718,21 +719,21 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 
 		// Uniform Tess
 		if(userSelectedTessellationMode == 1) {
-			if(ImGui::DragFloat("Tesellation Factor", &userTessellationFactor, 0.1f, 1, 64, "%.1f", kSliderFlags)) {
-				pSelectedGO->SetTessellationFactor(userTessellationFactor);
+			if(ImGui::DragFloat("Tessellation Factor", &userUniformTessellationFactor, 0.1f, 1, 64, "%.1f", kSliderFlags)) {
+				pSelectedGO->SetUniformTessellationFactor(userUniformTessellationFactor);
 			}
 		}
 		// Edge Tess
 		else if(userSelectedTessellationMode == 2) {
-			if(ImGui::DragFloat("Edge Length", &userTessellationFactor, 0.1f, 5, 1000, "%.1f", kSliderFlags)) {
-				pSelectedGO->SetTessellationFactor(userTessellationFactor);
+			if(ImGui::DragFloat("Edge Length", &userEdgeTessellationLength, 0.1f, 5, 1000, "%.1f", kSliderFlags)) {
+				pSelectedGO->SetEdgeTessellationLength(userEdgeTessellationLength);
 			}
 		}
 
 		if(ImGui::DragFloat("Displacement Height", &userDisplacementHeight, 0.01f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
 			pSelectedGO->SetDisplacementMapHeightScale(userDisplacementHeight);
 		}
-		ImGuiHelpMarker("Vertex Displacement Scale\n\nNeeds sufficient amount of vertices, use \"Tessellation Factor\" to create more triangles. Press \"F2\" to toggle wireframe view.", true, true);
+		ImGuiHelpMarker("Vertex Displacement Scale:\nNeeds sufficient amount of vertices, use tessellation to create more triangles.", true, true);
 	}
 
 	ImGui::End();
