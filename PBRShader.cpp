@@ -3,6 +3,8 @@
 
 #include "DirectionalLight.h"
 #include "Texture.h"
+#include "Skybox.h"
+#include "Camera.h"
 
 bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     const std::wstring vsFileName = L"../DX11Engine/Shaders/PBR.vs";
@@ -298,10 +300,13 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     return true;
 }
 
-bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, const std::vector<Texture*> materialTextures, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPosition, float time, const GameObject::GameObjectData& gameObjectData) {
+bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX projectionMatrix, const std::vector<Texture*> materialTextures, ID3D11ShaderResourceView* shadowMap, Skybox* skybox, DirectionalLight* light, Camera* camera, const std::array<XMFLOAT4, 6>& cullFrustum, float time, const GameObject::GameObjectData& gameObjectData) {
     HRESULT result;
     //LightPositionBufferType* dataPtr2;
     //LightColorBufferType* dataPtr3;
+
+    XMMATRIX viewMatrix {};
+    camera->GetViewMatrix(viewMatrix);
 
     LightBufferType* lightDataPtr;
     CameraBufferType* cameraDataPtr;
@@ -357,7 +362,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     cameraDataPtr = (CameraBufferType*)mappedResource.pData;
 
     // Copy the camera position into the constant buffer.
-    cameraDataPtr->cameraPosition = cameraPosition;
+    cameraDataPtr->cameraPosition = camera->GetPosition();
     cameraDataPtr->displacementHeightScale = gameObjectData.vertexDisplacementMapScale;
     cameraDataPtr->uvScale = gameObjectData.uvScale;
     cameraDataPtr->padding = {};
@@ -403,9 +408,12 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
 
     // for indirect lighting
     deviceContext->PSSetShaderResources(6, 1, &shadowMap);
-    deviceContext->PSSetShaderResources(7, 1, &irradianceMap);
-    deviceContext->PSSetShaderResources(8, 1, &prefilteredMap);
-    deviceContext->PSSetShaderResources(9, 1, &BRDFLut);
+    ID3D11ShaderResourceView* pIrradianceMap = skybox->GetIrradianceMapSRV();
+    ID3D11ShaderResourceView* pPrefilteredMap = skybox->GetPrefilteredMapSRV();
+    ID3D11ShaderResourceView* pBRDFLut = skybox->GetPrecomputedBRDFSRV();
+    deviceContext->PSSetShaderResources(7, 1, &pIrradianceMap);
+    deviceContext->PSSetShaderResources(8, 1, &pPrefilteredMap);
+    deviceContext->PSSetShaderResources(9, 1, &pBRDFLut);
 
     /// Bind Domain Shader Textures
     pTempSRV = materialTextures[5]->GetTextureSRV(); // height map
@@ -459,8 +467,19 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     tessellationDataPtr = (TessellationBufferType*)mappedResource.pData;
 
     tessellationDataPtr->tessellationFactor = gameObjectData.tessellationFactor;
-    tessellationDataPtr->cameraPosition = cameraPosition;
+    tessellationDataPtr->cameraPosition = camera->GetPosition();
     tessellationDataPtr->world = worldMatrix;
+
+    // Ignore near and far planes (see Camera.cpp for plane order)
+    tessellationDataPtr->cullPlanes[0] = cullFrustum[2];
+    tessellationDataPtr->cullPlanes[1] = cullFrustum[3];
+    tessellationDataPtr->cullPlanes[2] = cullFrustum[4];
+    tessellationDataPtr->cullPlanes[3] = cullFrustum[5];
+
+    tessellationDataPtr->cullBias = gameObjectData.vertexDisplacementMapScale;
+    tessellationDataPtr->screenDimensions = XMFLOAT2(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+    tessellationDataPtr->padding = {};
+
 
     deviceContext->Unmap(m_TessellationBuffer, 0);
     deviceContext->HSSetConstantBuffers(0, 1, &m_TessellationBuffer);

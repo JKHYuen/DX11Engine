@@ -1,5 +1,4 @@
 #pragma once
-
 #include "GameObject.h"
 
 #include <d3d11.h>
@@ -9,6 +8,8 @@ using namespace DirectX;
 
 class DirectionalLight;
 class Texture;
+class Skybox;
+class Camera;
 
 // constexpr int g_numLights = 4;
 
@@ -33,11 +34,13 @@ private:
     struct TessellationBufferType {
         float tessellationFactor;
         XMFLOAT3 cameraPosition;
+
         XMMATRIX world;
-        XMFLOAT4 leftCullPlane;
-        XMFLOAT4 rightCullPlane;
-        XMFLOAT4 bottomCullPlane;
-        XMFLOAT4 topCullPlane;
+        XMFLOAT4 cullPlanes[4];
+
+        float cullBias;
+        XMFLOAT2 screenDimensions;
+        float padding;
     };
 
     struct CameraBufferType {
@@ -72,7 +75,7 @@ public:
 
     bool Initialize(ID3D11Device*, HWND);
     void Shutdown();
-    bool Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, const std::vector<Texture*> materialTextures, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, XMFLOAT3 cameraPosition, float time, const GameObject::GameObjectData& gameObjectData);
+    bool Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMATRIX worldMatrix, XMMATRIX projectionMatrix, const std::vector<Texture*> materialTextures, ID3D11ShaderResourceView* shadowMap, Skybox* skybox, DirectionalLight* light, Camera* camera, const std::array<XMFLOAT4, 6>& cullFrustum, float time, const GameObject::GameObjectData& gameObjectData);
 
 private:
     ID3D11VertexShader* m_VertexShader {};

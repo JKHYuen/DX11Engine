@@ -42,7 +42,7 @@ bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLi
 }
 
 // TODO: use CubeMapObject as parameter?
-bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, Camera* camera, Camera* cullFrustumCamera, float time) {
+bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, Skybox* skybox, DirectionalLight* light, Camera* camera, Camera* cullFrustumCamera, float time) {
 	if(!mb_IsEnabled) {
 		return true;
 	}
@@ -67,5 +67,5 @@ bool GameObject::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix,
 	);
 
 	m_ModelInstance->Render(deviceContext, true);
-	return m_PBRShaderInstance->Render(deviceContext, m_ModelInstance->GetIndexCount(), srtMatrix, viewMatrix, projectionMatrix, m_MaterialTextures, shadowMap, irradianceMap, prefilteredMap, BRDFLut, light, camera->GetPosition(), time, m_GameObjectData);
+	return m_PBRShaderInstance->Render(deviceContext, m_ModelInstance->GetIndexCount(), srtMatrix, projectionMatrix, m_MaterialTextures, shadowMap, skybox, light, camera, cullFrustumCamera->GetFrustumPlanes(), time, m_GameObjectData);
 }

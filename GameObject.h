@@ -11,6 +11,7 @@ class DepthShader;
 class RenderTexture;
 class Texture;
 class Camera;
+class Skybox;
 struct ID3D11Device;
 struct ID3D11DeviceContext;
 struct ID3D11ShaderResourceView;
@@ -38,7 +39,7 @@ public:
 public:
 	bool Initialize(PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textures, Model* model, const GameObjectData& initialGameObjectData);
 
-	bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, ID3D11ShaderResourceView* irradianceMap, ID3D11ShaderResourceView* prefilteredMap, ID3D11ShaderResourceView* BRDFLut, DirectionalLight* light, Camera* camera, Camera* cullFrustumCamera, float time);
+	bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, Skybox* skybox, DirectionalLight* light, Camera* camera, Camera* cullFrustumCamera, float time);
 
 	bool RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLight* light, float time);
 

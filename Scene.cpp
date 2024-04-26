@@ -221,12 +221,6 @@ bool Scene::LoadPBRShader(ID3D11Device* device, HWND hwnd) {
 }
 
 bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
-	m_WorldCamera->Update();
-	m_WorldCamera->UpdateFrustum(projectionMatrix, m_AppInstance->GetScreenFar());
-	
-	XMMATRIX viewMatrix {};
-	m_WorldCamera->GetViewMatrix(viewMatrix);
-
 	if(mb_AnimateDirectionalLight) {
 		float animatedDir = std::sin(time * 0.5f) * 0.5f + 0.5f;
 		static XMVECTOR quat1 = XMQuaternionRotationRollPitchYaw(XMConvertToRadians(170.0f), XMConvertToRadians(30.0f), 0.0f);
@@ -234,9 +228,12 @@ bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
 		m_DirectionalLight->SetQuaternionDirection(XMQuaternionSlerp(quat1, quat2, animatedDir));
 	}
 
-	SkyBox* currentCubemap = m_LoadedCubemapResources[s_HDRSkyboxFileNames[m_CurrentCubemapIndex]];
+	m_WorldCamera->Update();
+	m_WorldCamera->UpdateFrustum(projectionMatrix, m_AppInstance->GetScreenFar());
+
+	Skybox* currentCubemap = m_LoadedCubemapResources[s_HDRSkyboxFileNames[m_CurrentCubemapIndex]];
 	for(size_t i = 0; i < m_GameObjects.size(); i++) {
-		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), currentCubemap->GetIrradianceMapSRV(), currentCubemap->GetPrefilteredMapSRV(), currentCubemap->GetPrecomputedBRDFSRV(), m_DirectionalLight, m_WorldCamera, m_WorldCamera, time)) {
+		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), currentCubemap, m_DirectionalLight, m_WorldCamera, m_WorldCamera, time)) {
 			return false;
 		}
 	}
@@ -245,8 +242,11 @@ bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
 	m_D3DInstance->GetDeviceContext()->PSSetShaderResources(0, 10, nullSRV);
 
 	// Render skybox
+	XMMATRIX viewMatrix {};
+	m_WorldCamera->GetViewMatrix(viewMatrix);
+
 	m_D3DInstance->SetToFrontCullRasterState();
-	currentCubemap->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, SkyBox::kSkyBoxRender);
+	currentCubemap->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, Skybox::kSkyBoxRender);
 	m_D3DInstance->SetToBackCullRasterState();
 
 	//m_ScreenRenderTexture->TurnZBufferOff();
@@ -261,12 +261,9 @@ bool Scene::RenderScene(XMMATRIX projectionMatrix, float time) {
 }
 
 bool Scene::RenderSceneWithCullDebugCamera(XMMATRIX projectionMatrix, Camera* camera, float time) {
-	XMMATRIX viewMatrix {};
-	camera->GetViewMatrix(viewMatrix);
-
-	SkyBox* currentCubemap = m_LoadedCubemapResources[s_HDRSkyboxFileNames[m_CurrentCubemapIndex]];
+	Skybox* currentCubemap = m_LoadedCubemapResources[s_HDRSkyboxFileNames[m_CurrentCubemapIndex]];
 	for(size_t i = 0; i < m_GameObjects.size(); i++) {
-		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), currentCubemap->GetIrradianceMapSRV(), currentCubemap->GetPrefilteredMapSRV(), currentCubemap->GetPrecomputedBRDFSRV(), m_DirectionalLight, camera, m_WorldCamera, time)) {
+		if(!m_GameObjects[i]->Render(m_D3DInstance->GetDeviceContext(), projectionMatrix, m_DirectionalShadowMapRenderTexture->GetTextureSRV(), currentCubemap, m_DirectionalLight, camera, m_WorldCamera, time)) {
 			return false;
 		}
 	}
@@ -275,8 +272,10 @@ bool Scene::RenderSceneWithCullDebugCamera(XMMATRIX projectionMatrix, Camera* ca
 	m_D3DInstance->GetDeviceContext()->PSSetShaderResources(0, 10, nullSRV);
 
 	// Render skybox
+	XMMATRIX viewMatrix {};
+	camera->GetViewMatrix(viewMatrix);
 	m_D3DInstance->SetToFrontCullRasterState();
-	currentCubemap->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, SkyBox::kSkyBoxRender);
+	currentCubemap->Render(m_D3DInstance->GetDeviceContext(), viewMatrix, projectionMatrix, Skybox::kSkyBoxRender);
 	m_D3DInstance->SetToBackCullRasterState();
 
 	//m_ScreenRenderTexture->TurnZBufferOff();
@@ -390,7 +389,7 @@ bool Scene::LoadCubemapResource(const std::string& hdrFileName) {
 		m_D3DInstance->GetOrthoMatrix(screenOrthoMatrix);
 		m_AppInstance->GetScreenDisplayCamera()->GetViewMatrix(screenCamViewMatrix);
 
-		SkyBox* pCubemap = new SkyBox();
+		Skybox* pCubemap = new Skybox();
 		bool result = pCubemap->Initialize(m_D3DInstance, m_AppInstance->GetHWND(), hdrFileName, s_CubeFaceResolution, s_CubeMapMipLevels, s_IrradianceMapResolution, s_FullPrefilterMapResolution, s_PrecomputedBRDFResolution, screenCamViewMatrix, screenOrthoMatrix, m_AppInstance->GetScreenDisplayQuadInstance());
 		if(!result) {
 			MessageBox(m_AppInstance->GetHWND(), L"Could not initialize cubemap.", L"Error", MB_OK);
@@ -471,7 +470,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		ImGui::Checkbox("Shadow Map View", &b_ShowDebugQuad1); ImGuiHelpMarker("Directional light shadow map.\nKeybing: Z");
 		ImGui::SameLine(200);
 		ImGui::Checkbox("Bloom Filter View", &b_ShowDebugQuad2); ImGuiHelpMarker("Bloom intensity not included.\nKeybing: X");
-		ImGui::Checkbox("Debug Camera", &b_ShowDebugQuad3); ImGuiHelpMarker("To debug culling.\nKeybing: C");
+		ImGui::Checkbox("Debug Camera", &b_ShowDebugQuad3); ImGuiHelpMarker("To debug culling. Quite slow (full res) and does not include post processing.\nKeybing: C");
 		ImGui::Spacing();
 	}
 	
@@ -683,7 +682,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 
 		ImGui::Spacing();
 		ImGui::Text("Parallax Occlusion - READ ME:");
-		ImGuiHelpMarker("Only supported if using \"plane\" model! Other models should set \"Parallax Height Scale\" to zero.\n\nHigher min / max parallax layers will quickly increase GPU load.\n\nShould not be used with tessellation.", true, true);
+		ImGuiHelpMarker("Only supported if using \"plane\" model! Other models should set \"Parallax Height Scale\" to zero.\n\nHigher min / max parallax layers will quickly increase GPU load.\n\nShould not be used with vertex displacement.", true, true);
 		if(ImGui::DragFloat("Parallax Height Scale", &userParallaxHeight, 0.001f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {
 			pSelectedGO->SetParallaxMapHeightScale(userParallaxHeight);
 		}
@@ -702,7 +701,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 
 		ImGui::Spacing();
 		ImGui::Text("Tessellation - READ ME:");
-		ImGuiHelpMarker("Should not be used with parallax occlusion, set \"Parallax Height Scale\" to zero to disable.\n\nSelf shadowing enabled by default, may have flickering due to the simple PCF algorithm.", true, true);
+		ImGuiHelpMarker("Vertex displalcement should not be used with parallax occlusion, set \"Parallax Height Scale\" to zero to disable.\n\nSelf shadowing enabled by default, may have flickering due to the simple PCF algorithm.", true, true);
 		if(ImGui::DragFloat("Tesellation Factor", &userTessellationFactor, 0.1f, 5, 1000, "%.1f", kSliderFlags)) {
 			pSelectedGO->SetTessellationFactor(userTessellationFactor);
 		}

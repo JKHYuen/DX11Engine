@@ -14,7 +14,7 @@ class QuadModel;
 class Camera;
 class D3DInstance;
 
-class SkyBox {
+class Skybox {
 public:
     enum RenderType {
         kHDRCaptureRender            = 0,
@@ -26,9 +26,9 @@ public:
     };
 
 public:
-    SkyBox() {}
-    SkyBox(const SkyBox&) {}
-    ~SkyBox() {}
+    Skybox() {}
+    Skybox(const Skybox&) {}
+    ~Skybox() {}
 
     bool Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad);
 

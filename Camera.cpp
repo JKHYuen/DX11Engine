@@ -74,138 +74,138 @@ void Camera::UpdateFrustum(XMMATRIX projectionMatrix, float screenDepth) {
     XMStoreFloat4x4(&finalMatrix, tempMatrix);
 
     // Get the near plane of the frustum.
-    m_Planes[0].x = finalMatrix._13;
-    m_Planes[0].y = finalMatrix._23;
-    m_Planes[0].z = finalMatrix._33;
-    m_Planes[0].w = finalMatrix._43;
+    m_FrustumPlanes[0].x = finalMatrix._13;
+    m_FrustumPlanes[0].y = finalMatrix._23;
+    m_FrustumPlanes[0].z = finalMatrix._33;
+    m_FrustumPlanes[0].w = finalMatrix._43;
 
     // Normalize it.
-    float t = (float)sqrt((m_Planes[0].x * m_Planes[0].x) + (m_Planes[0].y * m_Planes[0].y) + (m_Planes[0].z * m_Planes[0].z));
-    m_Planes[0].x /= t;
-    m_Planes[0].y /= t;
-    m_Planes[0].z /= t;
-    m_Planes[0].w /= t;
+    float t = (float)sqrt((m_FrustumPlanes[0].x * m_FrustumPlanes[0].x) + (m_FrustumPlanes[0].y * m_FrustumPlanes[0].y) + (m_FrustumPlanes[0].z * m_FrustumPlanes[0].z));
+    m_FrustumPlanes[0].x /= t;
+    m_FrustumPlanes[0].y /= t;
+    m_FrustumPlanes[0].z /= t;
+    m_FrustumPlanes[0].w /= t;
 
     // Calculate the far plane of frustum.
-    m_Planes[1].x = finalMatrix._14 - finalMatrix._13;
-    m_Planes[1].y = finalMatrix._24 - finalMatrix._23;
-    m_Planes[1].z = finalMatrix._34 - finalMatrix._33;
-    m_Planes[1].w = finalMatrix._44 - finalMatrix._43;
+    m_FrustumPlanes[1].x = finalMatrix._14 - finalMatrix._13;
+    m_FrustumPlanes[1].y = finalMatrix._24 - finalMatrix._23;
+    m_FrustumPlanes[1].z = finalMatrix._34 - finalMatrix._33;
+    m_FrustumPlanes[1].w = finalMatrix._44 - finalMatrix._43;
 
     // Normalize it.
-    t = (float)sqrt((m_Planes[1].x * m_Planes[1].x) + (m_Planes[1].y * m_Planes[1].y) + (m_Planes[1].z * m_Planes[1].z));
-    m_Planes[1].x /= t;
-    m_Planes[1].y /= t;
-    m_Planes[1].z /= t;
-    m_Planes[1].w /= t;
+    t = (float)sqrt((m_FrustumPlanes[1].x * m_FrustumPlanes[1].x) + (m_FrustumPlanes[1].y * m_FrustumPlanes[1].y) + (m_FrustumPlanes[1].z * m_FrustumPlanes[1].z));
+    m_FrustumPlanes[1].x /= t;
+    m_FrustumPlanes[1].y /= t;
+    m_FrustumPlanes[1].z /= t;
+    m_FrustumPlanes[1].w /= t;
 
     // Calculate the left plane of frustum.
-    m_Planes[2].x = finalMatrix._14 + finalMatrix._11;
-    m_Planes[2].y = finalMatrix._24 + finalMatrix._21;
-    m_Planes[2].z = finalMatrix._34 + finalMatrix._31;
-    m_Planes[2].w = finalMatrix._44 + finalMatrix._41;
+    m_FrustumPlanes[2].x = finalMatrix._14 + finalMatrix._11;
+    m_FrustumPlanes[2].y = finalMatrix._24 + finalMatrix._21;
+    m_FrustumPlanes[2].z = finalMatrix._34 + finalMatrix._31;
+    m_FrustumPlanes[2].w = finalMatrix._44 + finalMatrix._41;
 
     // Normalize it.
-    t = (float)sqrt((m_Planes[2].x * m_Planes[2].x) + (m_Planes[2].y * m_Planes[2].y) + (m_Planes[2].z * m_Planes[2].z));
-    m_Planes[2].x /= t;
-    m_Planes[2].y /= t;
-    m_Planes[2].z /= t;
-    m_Planes[2].w /= t;
+    t = (float)sqrt((m_FrustumPlanes[2].x * m_FrustumPlanes[2].x) + (m_FrustumPlanes[2].y * m_FrustumPlanes[2].y) + (m_FrustumPlanes[2].z * m_FrustumPlanes[2].z));
+    m_FrustumPlanes[2].x /= t;
+    m_FrustumPlanes[2].y /= t;
+    m_FrustumPlanes[2].z /= t;
+    m_FrustumPlanes[2].w /= t;
 
     // Calculate the right plane of frustum.
-    m_Planes[3].x = finalMatrix._14 - finalMatrix._11;
-    m_Planes[3].y = finalMatrix._24 - finalMatrix._21;
-    m_Planes[3].z = finalMatrix._34 - finalMatrix._31;
-    m_Planes[3].w = finalMatrix._44 - finalMatrix._41;
+    m_FrustumPlanes[3].x = finalMatrix._14 - finalMatrix._11;
+    m_FrustumPlanes[3].y = finalMatrix._24 - finalMatrix._21;
+    m_FrustumPlanes[3].z = finalMatrix._34 - finalMatrix._31;
+    m_FrustumPlanes[3].w = finalMatrix._44 - finalMatrix._41;
 
     // Normalize it.
-    t = (float)sqrt((m_Planes[3].x * m_Planes[3].x) + (m_Planes[3].y * m_Planes[3].y) + (m_Planes[3].z * m_Planes[3].z));
-    m_Planes[3].x /= t;
-    m_Planes[3].y /= t;
-    m_Planes[3].z /= t;
-    m_Planes[3].w /= t;
+    t = (float)sqrt((m_FrustumPlanes[3].x * m_FrustumPlanes[3].x) + (m_FrustumPlanes[3].y * m_FrustumPlanes[3].y) + (m_FrustumPlanes[3].z * m_FrustumPlanes[3].z));
+    m_FrustumPlanes[3].x /= t;
+    m_FrustumPlanes[3].y /= t;
+    m_FrustumPlanes[3].z /= t;
+    m_FrustumPlanes[3].w /= t;
 
     // Calculate the top plane of frustum.
-    m_Planes[4].x = finalMatrix._14 - finalMatrix._12;
-    m_Planes[4].y = finalMatrix._24 - finalMatrix._22;
-    m_Planes[4].z = finalMatrix._34 - finalMatrix._32;
-    m_Planes[4].w = finalMatrix._44 - finalMatrix._42;
+    m_FrustumPlanes[4].x = finalMatrix._14 - finalMatrix._12;
+    m_FrustumPlanes[4].y = finalMatrix._24 - finalMatrix._22;
+    m_FrustumPlanes[4].z = finalMatrix._34 - finalMatrix._32;
+    m_FrustumPlanes[4].w = finalMatrix._44 - finalMatrix._42;
 
     // Normalize it.
-    t = (float)sqrt((m_Planes[4].x * m_Planes[4].x) + (m_Planes[4].y * m_Planes[4].y) + (m_Planes[4].z * m_Planes[4].z));
-    m_Planes[4].x /= t;
-    m_Planes[4].y /= t;
-    m_Planes[4].z /= t;
-    m_Planes[4].w /= t;
+    t = (float)sqrt((m_FrustumPlanes[4].x * m_FrustumPlanes[4].x) + (m_FrustumPlanes[4].y * m_FrustumPlanes[4].y) + (m_FrustumPlanes[4].z * m_FrustumPlanes[4].z));
+    m_FrustumPlanes[4].x /= t;
+    m_FrustumPlanes[4].y /= t;
+    m_FrustumPlanes[4].z /= t;
+    m_FrustumPlanes[4].w /= t;
 
     // Calculate the bottom plane of frustum.
-    m_Planes[5].x = finalMatrix._14 + finalMatrix._12;
-    m_Planes[5].y = finalMatrix._24 + finalMatrix._22;
-    m_Planes[5].z = finalMatrix._34 + finalMatrix._32;
-    m_Planes[5].w = finalMatrix._44 + finalMatrix._42;
+    m_FrustumPlanes[5].x = finalMatrix._14 + finalMatrix._12;
+    m_FrustumPlanes[5].y = finalMatrix._24 + finalMatrix._22;
+    m_FrustumPlanes[5].z = finalMatrix._34 + finalMatrix._32;
+    m_FrustumPlanes[5].w = finalMatrix._44 + finalMatrix._42;
 
     // Normalize it.
-    t = (float)sqrt((m_Planes[5].x * m_Planes[5].x) + (m_Planes[5].y * m_Planes[5].y) + (m_Planes[5].z * m_Planes[5].z));
-    m_Planes[5].x /= t;
-    m_Planes[5].y /= t;
-    m_Planes[5].z /= t;
-    m_Planes[5].w /= t;
+    t = (float)sqrt((m_FrustumPlanes[5].x * m_FrustumPlanes[5].x) + (m_FrustumPlanes[5].y * m_FrustumPlanes[5].y) + (m_FrustumPlanes[5].z * m_FrustumPlanes[5].z));
+    m_FrustumPlanes[5].x /= t;
+    m_FrustumPlanes[5].y /= t;
+    m_FrustumPlanes[5].z /= t;
+    m_FrustumPlanes[5].w /= t;
 }
 
 bool Camera::CheckRectangleInFrustum(float xCenter, float yCenter, float zCenter, float xSize, float ySize, float zSize, float bias) {
     for(int i = 0; i < 6; i++) {
-        if(m_Planes[i].x * (xCenter - xSize) +
-            m_Planes[i].y * (yCenter - ySize) +
-            m_Planes[i].z * (zCenter - zSize) + m_Planes[i].w >= bias)
+        if(m_FrustumPlanes[i].x * (xCenter - xSize) +
+           m_FrustumPlanes[i].y * (yCenter - ySize) +
+           m_FrustumPlanes[i].z * (zCenter - zSize) + m_FrustumPlanes[i].w >= bias)
         {
             continue;
         }
 
-        if(m_Planes[i].x * (xCenter + xSize) +
-            m_Planes[i].y * (yCenter - ySize) +
-            m_Planes[i].z * (zCenter - zSize) + m_Planes[i].w >= bias)
+        if(m_FrustumPlanes[i].x * (xCenter + xSize) +
+           m_FrustumPlanes[i].y * (yCenter - ySize) +
+           m_FrustumPlanes[i].z * (zCenter - zSize) + m_FrustumPlanes[i].w >= bias)
         {
             continue;
         }
 
-        if(m_Planes[i].x * (xCenter - xSize) +
-            m_Planes[i].y * (yCenter + ySize) +
-            m_Planes[i].z * (zCenter - zSize) + m_Planes[i].w >= bias)
+        if(m_FrustumPlanes[i].x * (xCenter - xSize) +
+           m_FrustumPlanes[i].y * (yCenter + ySize) +
+           m_FrustumPlanes[i].z * (zCenter - zSize) + m_FrustumPlanes[i].w >= bias)
         {
             continue;
         }
 
-        if(m_Planes[i].x * (xCenter - xSize) +
-            m_Planes[i].y * (yCenter - ySize) +
-            m_Planes[i].z * (zCenter + zSize) + m_Planes[i].w >= bias)
+        if(m_FrustumPlanes[i].x * (xCenter - xSize) +
+           m_FrustumPlanes[i].y * (yCenter - ySize) +
+           m_FrustumPlanes[i].z * (zCenter + zSize) + m_FrustumPlanes[i].w >= bias)
         {
             continue;
         }
 
-        if(m_Planes[i].x * (xCenter + xSize) +
-            m_Planes[i].y * (yCenter + ySize) +
-            m_Planes[i].z * (zCenter - zSize) + m_Planes[i].w >= bias)
+        if(m_FrustumPlanes[i].x * (xCenter + xSize) +
+           m_FrustumPlanes[i].y * (yCenter + ySize) +
+           m_FrustumPlanes[i].z * (zCenter - zSize) + m_FrustumPlanes[i].w >= bias)
         {
             continue;
         }
 
-        if(m_Planes[i].x * (xCenter + xSize) +
-            m_Planes[i].y * (yCenter - ySize) +
-            m_Planes[i].z * (zCenter + zSize) + m_Planes[i].w >= bias)
+        if(m_FrustumPlanes[i].x * (xCenter + xSize) +
+           m_FrustumPlanes[i].y * (yCenter - ySize) +
+           m_FrustumPlanes[i].z * (zCenter + zSize) + m_FrustumPlanes[i].w >= bias)
         {
             continue;
         }
 
-        if(m_Planes[i].x * (xCenter - xSize) +
-            m_Planes[i].y * (yCenter + ySize) +
-            m_Planes[i].z * (zCenter + zSize) + m_Planes[i].w >= bias)
+        if(m_FrustumPlanes[i].x * (xCenter - xSize) +
+           m_FrustumPlanes[i].y * (yCenter + ySize) +
+           m_FrustumPlanes[i].z * (zCenter + zSize) + m_FrustumPlanes[i].w >= bias)
         {
             continue;
         }
 
-        if(m_Planes[i].x * (xCenter + xSize) +
-            m_Planes[i].y * (yCenter + ySize) +
-            m_Planes[i].z * (zCenter + zSize) + m_Planes[i].w >= bias)
+        if(m_FrustumPlanes[i].x * (xCenter + xSize) +
+           m_FrustumPlanes[i].y * (yCenter + ySize) +
+           m_FrustumPlanes[i].z * (zCenter + zSize) + m_FrustumPlanes[i].w >= bias)
         {
             continue;
         }

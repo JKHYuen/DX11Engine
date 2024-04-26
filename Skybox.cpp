@@ -74,7 +74,7 @@ namespace {
 	const std::wstring s_SkyboxRenderShaderName = L"CubeMap";
 }
 
-bool SkyBox::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
+bool Skybox::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& fileName, int cubeFaceResolution, int cubeMapMipLevels, int irradianceMapResolution, int fullPrefilterMapResolution, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
 	bool result;
 
 	ID3D11Device* device = d3dInstance->GetDevice();
@@ -163,7 +163,7 @@ bool SkyBox::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& 
 	return true;
 }
 
-bool SkyBox::InitializeStaticResources(D3DInstance* d3dInstance, HWND hwnd, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
+bool Skybox::InitializeStaticResources(D3DInstance* d3dInstance, HWND hwnd, int precomputedBRDFResolution, XMMATRIX screenDisplayViewMatrix, XMMATRIX screenOrthoMatrix, QuadModel* screenDisplayQuad) {
 
 	ID3D11Device* device = d3dInstance->GetDevice();
 	ID3D11DeviceContext* deviceContext = d3dInstance->GetDeviceContext();
@@ -225,7 +225,7 @@ bool SkyBox::InitializeStaticResources(D3DInstance* d3dInstance, HWND hwnd, int 
 	return true;
 }
 
-bool SkyBox::InitializeUnitCubeBuffers(ID3D11Device* device) {
+bool Skybox::InitializeUnitCubeBuffers(ID3D11Device* device) {
 	VertexType* vertices = new VertexType[s_UnitCubeVertexCount];
 	unsigned long* indices = new unsigned long[s_UnitCubeIndexCount];
 
@@ -288,7 +288,7 @@ bool SkyBox::InitializeUnitCubeBuffers(ID3D11Device* device) {
 	return true;
 }
 
-bool SkyBox::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shaderName, ID3D11VertexShader** ppVertShader, ID3D11PixelShader** ppPixelShader) {
+bool Skybox::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shaderName, ID3D11VertexShader** ppVertShader, ID3D11PixelShader** ppPixelShader) {
 	HRESULT result {};
 	ID3D10Blob* errorMessage {};
 	ID3D10Blob* vertexShaderBuffer {};
@@ -405,7 +405,7 @@ bool SkyBox::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shad
 	return true;
 }
 
-bool SkyBox::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, RenderType renderType, float roughness) {
+bool Skybox::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMMATRIX projectionMatrix, RenderType renderType, float roughness) {
 	if(renderType != kIntegrateBRDFRender) {
 		/// Render Unit Cube
 		unsigned int stride = sizeof(VertexType);
@@ -503,11 +503,11 @@ bool SkyBox::Render(ID3D11DeviceContext* deviceContext, XMMATRIX viewMatrix, XMM
 	return true;
 }
 
-ID3D11ShaderResourceView* SkyBox::GetIrradianceMapSRV() const { return m_IrradianceCubeMapTex->GetTextureSRV(); }
-ID3D11ShaderResourceView* SkyBox::GetPrefilteredMapSRV() const { return m_PrefilteredCubeMapTex->GetTextureSRV(); }
-ID3D11ShaderResourceView* SkyBox::GetPrecomputedBRDFSRV() const { return m_PrecomputedBRDFTex->GetTextureSRV(); }
+ID3D11ShaderResourceView* Skybox::GetIrradianceMapSRV() const { return m_IrradianceCubeMapTex->GetTextureSRV(); }
+ID3D11ShaderResourceView* Skybox::GetPrefilteredMapSRV() const { return m_PrefilteredCubeMapTex->GetTextureSRV(); }
+ID3D11ShaderResourceView* Skybox::GetPrecomputedBRDFSRV() const { return m_PrecomputedBRDFTex->GetTextureSRV(); }
 
-void SkyBox::Shutdown() {
+void Skybox::Shutdown() {
 	if(m_ClampSampleState) {
 		m_ClampSampleState->Release();
 		m_ClampSampleState = nullptr;

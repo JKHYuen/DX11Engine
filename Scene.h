@@ -18,7 +18,7 @@ class GameObject;
 class D3DInstance;
 class PBRShader;
 class DepthShader;
-class SkyBox;
+class Skybox;
 class RenderTexture;
 class TextureShader;
 class DirectionalLight;
@@ -82,5 +82,5 @@ private:
 	std::vector<GameObject*> m_GameObjects {};
 	std::unordered_map<std::string, std::vector<Texture*>> m_LoadedTextureResources {};
 	std::unordered_map<std::string, Model*> m_LoadedModelResources {};
-	std::unordered_map<std::string, SkyBox*> m_LoadedCubemapResources {};
+	std::unordered_map<std::string, Skybox*> m_LoadedCubemapResources {};
 };

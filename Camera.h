@@ -35,6 +35,8 @@ public:
 	// Bias is for vertex displacement factor
 	bool CheckRectangleInFrustum(float xCenter, float yCenter, float zCenter, float xSize, float ySize, float zSize, float bias);
 
+	std::array<XMFLOAT4, 6> GetFrustumPlanes() const { return m_FrustumPlanes; }
+
 private:
 	float m_PositionX {}, m_PositionY {}, m_PositionZ {};
 	float m_RotationX {}, m_RotationY {}, m_RotationZ {};
@@ -43,5 +45,5 @@ private:
 	XMFLOAT3 m_RightDir {};
 	XMMATRIX m_ViewMatrix {};
 
-	std::array<XMFLOAT4, 6> m_Planes {};
+	std::array<XMFLOAT4, 6> m_FrustumPlanes {};
 };
