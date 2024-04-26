@@ -1,4 +1,5 @@
 #include "GameObject.h"
+
 #include "PBRShader.h"
 #include "DepthShader.h"
 #include "Texture.h"
@@ -9,15 +10,13 @@
 #include <iostream>
 
 // Note: "instances" passed as parameters are cleaned up in scene class
-bool GameObject::Initialize(PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textureResources, Model* model, const GameObjectData& initialGameObjectData) {
+void GameObject::Initialize(PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textureResources, Model* model, const GameObjectData& initialGameObjectData) {
 	m_MaterialTextures = textureResources;
 	m_ModelInstance = model;
 	m_PBRShaderInstance = pbrShaderInstance;
 	m_DepthShaderInstance = depthShaderInstance;
 
 	m_GameObjectData = initialGameObjectData;
-	
-	return true;
 }
 
 bool GameObject::RenderToDepth(ID3D11DeviceContext* deviceContext, DirectionalLight* light, float time){

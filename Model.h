@@ -59,7 +59,7 @@ private:
 	int m_VertexCount {};
 	int m_IndexCount  {};
 
-	XMFLOAT3 m_Extents;
+	XMFLOAT3 m_Extents {};
 
 	ModelType* m_Model {};
 };

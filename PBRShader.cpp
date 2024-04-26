@@ -16,7 +16,6 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     ID3D10Blob* errorMessage {};
     ID3D10Blob* vertexShaderBuffer {};
     ID3D10Blob* pixelShaderBuffer {};
-    ID3D10Blob* hullShaderBuffer {};
     ID3D10Blob* domainShaderBuffer {};
 
     // Compile vertex shader code
@@ -43,18 +42,6 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
         return false;
     }
 
-    // Compile hull shader code
-    result = D3DCompileFromFile(hsFileName.c_str(), NULL, NULL, "PBRHullShader", "hs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &hullShaderBuffer, &errorMessage);
-    if(FAILED(result)) {
-        if(errorMessage) {
-            OutputShaderErrorMessage(errorMessage, hwnd, hsFileName.c_str());
-        }
-        else {
-            MessageBox(hwnd, hsFileName.c_str(), L"Missing Shader File", MB_OK);
-        }
-        return false;
-    }
-
     // Compile domain shader code
     result = D3DCompileFromFile(dsFileName.c_str(), NULL, NULL, "PBRDomainShader", "ds_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &domainShaderBuffer, &errorMessage);
     if(FAILED(result)) {
@@ -75,13 +62,13 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     result = device->CreatePixelShader(pixelShaderBuffer->GetBufferPointer(), pixelShaderBuffer->GetBufferSize(), NULL, &m_PixelShader);
     if(FAILED(result)) return false;
 
-    // Create hull shader
-    result = device->CreateHullShader(hullShaderBuffer->GetBufferPointer(), hullShaderBuffer->GetBufferSize(), NULL, &m_HullShader);
-    if(FAILED(result)) return false;
-
     // Create domain shader
     result = device->CreateDomainShader(domainShaderBuffer->GetBufferPointer(), domainShaderBuffer->GetBufferSize(), NULL, &m_DomainShader);
     if(FAILED(result)) return false;
+
+    // Initialize all hull shader variants
+    if(!InitializeHullShaders(device, hsFileName, hwnd)) 
+        return false;
 
     // Create the vertex input layout description
     // This setup needs to match the VertexType stucture in the Model class and in the shader
@@ -126,7 +113,6 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
     polygonLayout[4].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
     polygonLayout[4].InstanceDataStepRate = 0;
 
-
     // Create the vertex input layout.
     unsigned int numElements = sizeof(polygonLayout) / sizeof(polygonLayout[0]);
     result =
@@ -143,9 +129,6 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
 
     pixelShaderBuffer->Release();
     pixelShaderBuffer = nullptr;
-
-    hullShaderBuffer->Release();
-    hullShaderBuffer = nullptr;
 
     domainShaderBuffer->Release();
     domainShaderBuffer = nullptr;
@@ -297,6 +280,35 @@ bool PBRShader::Initialize(ID3D11Device* device, HWND hwnd) {
         return false;
     }
 
+    return true;
+}
+
+bool PBRShader::InitializeHullShaders(ID3D11Device* device, const std::wstring& hsFileName, HWND hwnd) {
+    HRESULT result {};
+    ID3D10Blob* errorMessage {};
+    ID3D10Blob* hullShaderBuffers[3] {};
+    D3D_SHADER_MACRO hullMacros[2] {{NULL, NULL}, {NULL, NULL}};
+    for(int i = 0; i < Num_TessellationModes; i++) {
+        char buffer[3] {};
+        _itoa_s(i, buffer, _countof(buffer), 10);
+        hullMacros[0] = {"TESS_MODE", buffer};
+        result = D3DCompileFromFile(hsFileName.c_str(), hullMacros, NULL, "PBRHullShader", "hs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0, &hullShaderBuffers[i], &errorMessage);
+        if(FAILED(result)) {
+            if(errorMessage) {
+                OutputShaderErrorMessage(errorMessage, hwnd, hsFileName.c_str());
+            }
+            else {
+                MessageBox(hwnd, hsFileName.c_str(), L"Missing Shader File", MB_OK);
+            }
+            return false;
+        }
+
+        result = device->CreateHullShader(hullShaderBuffers[i]->GetBufferPointer(), hullShaderBuffers[i]->GetBufferSize(), NULL, &m_HullShaders[i]);
+        if(FAILED(result)) return false;
+
+        hullShaderBuffers[i]->Release();
+        hullShaderBuffers[i] = nullptr;
+    }
     return true;
 }
 
@@ -477,7 +489,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     tessellationDataPtr->cullPlanes[3] = cullFrustum[5];
 
     tessellationDataPtr->cullBias = gameObjectData.vertexDisplacementMapScale;
-    tessellationDataPtr->screenDimensions = XMFLOAT2(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+    tessellationDataPtr->screenDimensions = XMFLOAT2((float)GetSystemMetrics(SM_CXSCREEN), (float)GetSystemMetrics(SM_CYSCREEN));
     tessellationDataPtr->padding = {};
 
 
@@ -513,7 +525,7 @@ bool PBRShader::Render(ID3D11DeviceContext* deviceContext, int indexCount, XMMAT
     deviceContext->IASetInputLayout(m_Layout);
 
     deviceContext->VSSetShader(m_VertexShader, NULL, 0);
-    deviceContext->HSSetShader(m_HullShader, NULL, 0);
+    deviceContext->HSSetShader(m_HullShaders[gameObjectData.tessellationMode], NULL, 0);
     deviceContext->DSSetShader(m_DomainShader, NULL, 0);
     deviceContext->PSSetShader(m_PixelShader, NULL, 0);
 
@@ -595,9 +607,9 @@ void PBRShader::Shutdown() {
         m_VertexShader = nullptr;
     }
 
-    if(m_HullShader) {
-        m_HullShader->Release();
-        m_HullShader = nullptr;
+    for(int i = 0; i < m_HullShaders.size(); i++) {
+        m_HullShaders[i]->Release();
+        m_HullShaders[i] = nullptr;
     }
 
     if(m_DomainShader) {

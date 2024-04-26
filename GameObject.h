@@ -4,14 +4,16 @@
 #include <iostream>
 #include <vector>
 
+//#include "PBRShader.h"
+
 class DirectionalLight;
 class Model;
-class PBRShader;
 class DepthShader;
 class RenderTexture;
 class Texture;
 class Camera;
 class Skybox;
+class PBRShader;
 struct ID3D11Device;
 struct ID3D11DeviceContext;
 struct ID3D11ShaderResourceView;
@@ -33,11 +35,13 @@ public:
 		bool useParallaxShadow = true;
 		int minParallaxLayers = 8;
 		int maxParallaxLayers = 32;
+		// See PBRShader::TesselationModes
+		int tessellationMode = 0;
 		float tessellationFactor = 50.0f;
 	};
 
 public:
-	bool Initialize(PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textures, Model* model, const GameObjectData& initialGameObjectData);
+	void Initialize(PBRShader* pbrShaderInstance, DepthShader* depthShaderInstance, const std::vector<Texture*>& textures, Model* model, const GameObjectData& initialGameObjectData);
 
 	bool Render(ID3D11DeviceContext* deviceContext, XMMATRIX projectionMatrix, ID3D11ShaderResourceView* shadowMap, Skybox* skybox, DirectionalLight* light, Camera* camera, Camera* cullFrustumCamera, float time);
 
@@ -66,6 +70,9 @@ public:
 
 	void SetTessellationFactor(float newValue) { m_GameObjectData.tessellationFactor = newValue; }
 	float GetTesellationFactor() const { return m_GameObjectData.tessellationFactor; }
+
+	void SetTessellationMode(int newValue) { m_GameObjectData.tessellationMode = newValue; }
+	int GetTesellationMode() const { return m_GameObjectData.tessellationMode; }
 
 	// Implemented this way (i.e. not using XMFLOAT3) for convenience in IMGUI
 	void SetPosition(float x, float y, float z) { m_GameObjectData.position.x = x;	m_GameObjectData.position.y = y; m_GameObjectData.position.z = z; }

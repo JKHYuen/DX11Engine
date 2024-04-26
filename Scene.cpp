@@ -158,10 +158,7 @@ bool Scene::InitializeDemoScene(Application* appInstance, int shadowMapResolutio
 	m_GameObjects.reserve(sceneObjects.size());
 	for(size_t i = 0; i < sceneObjects.size(); i++) {
 		m_GameObjects.push_back(new GameObject());
-		if(!m_GameObjects[i]->Initialize(m_PBRShaderInstance, m_DepthShaderInstance, m_LoadedTextureResources[sceneObjects[i].materialName], m_LoadedModelResources[sceneObjects[i].modelName], sceneObjects[i])) {
-			MessageBox(hwnd, L"Could not initialize PBR object.", L"Error", MB_OK);
-			return false;
-		}
+		m_GameObjects[i]->Initialize(m_PBRShaderInstance, m_DepthShaderInstance, m_LoadedTextureResources[sceneObjects[i].materialName], m_LoadedModelResources[sceneObjects[i].modelName], sceneObjects[i]);
 	}
 
 	/// Lighting
@@ -570,6 +567,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		static bool b_UserParallaxShadowEnabled {};
 		static int userMinParallaxLayers {};
 		static int userMaxParallaxLayers {};
+		static int userSelectedTessellationMode = 0;
 		static float userTessellationFactor {};
 
 		ImGui::SetNextItemOpen(true, ImGuiCond_Once);
@@ -622,6 +620,7 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 			userMinParallaxLayers = pSelectedGO->GetMinParallaxLayers();
 			userMaxParallaxLayers = pSelectedGO->GetMaxParallaxLayers();
 
+			userSelectedTessellationMode = pSelectedGO->GetTesellationMode();
 			userTessellationFactor = pSelectedGO->GetTesellationFactor();
 
 			b_NewSceneObjectSelectedFlag = false;
@@ -702,8 +701,32 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		ImGui::Spacing();
 		ImGui::Text("Tessellation - READ ME:");
 		ImGuiHelpMarker("Vertex displalcement should not be used with parallax occlusion, set \"Parallax Height Scale\" to zero to disable.\n\nSelf shadowing enabled by default, may have flickering due to the simple PCF algorithm.", true, true);
-		if(ImGui::DragFloat("Tesellation Factor", &userTessellationFactor, 0.1f, 5, 1000, "%.1f", kSliderFlags)) {
-			pSelectedGO->SetTessellationFactor(userTessellationFactor);
+
+		ImGui::Text("Tessellation Mode");
+		if(ImGui::BeginTable("##Tessellation Mode", 3, kTableFlags)) {
+			for(int i = 0; i < PBRShader::Num_TessellationModes; i++) {
+				ImGui::TableNextColumn();
+
+				if(ImGui::Selectable(PBRShader::s_TessellationModeNames[i].c_str(), userSelectedTessellationMode == i)) {
+					userSelectedTessellationMode = i;
+					pSelectedGO->SetTessellationMode(userSelectedTessellationMode);
+				}
+			}
+			ImGui::EndTable();
+		}
+		ImGui::Spacing();
+
+		// Uniform Tess
+		if(userSelectedTessellationMode == 1) {
+			if(ImGui::DragFloat("Tesellation Factor", &userTessellationFactor, 0.1f, 1, 64, "%.1f", kSliderFlags)) {
+				pSelectedGO->SetTessellationFactor(userTessellationFactor);
+			}
+		}
+		// Edge Tess
+		else if(userSelectedTessellationMode == 2) {
+			if(ImGui::DragFloat("Edge Length", &userTessellationFactor, 0.1f, 5, 1000, "%.1f", kSliderFlags)) {
+				pSelectedGO->SetTessellationFactor(userTessellationFactor);
+			}
 		}
 
 		if(ImGui::DragFloat("Displacement Height", &userDisplacementHeight, 0.01f, -100.0f, 100.0f, "%.3f", kSliderFlags)) {

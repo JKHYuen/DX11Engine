@@ -43,9 +43,9 @@ float CalcTessellationFactor(float3 vertexPosition1, float3 vertexPosition2) {
 bool TriangleIsBelowClipPlane(float3 p0, float3 p1, float3 p2, int cullPlaneIndex) {
     float4 plane = cullingPlanes[cullPlaneIndex];
     return
-		dot(float4(p0, 1), plane) < 0 &&
-		dot(float4(p1, 1), plane) < 0 &&
-		dot(float4(p2, 1), plane) < 0;
+		dot(float4(p0, 1), plane) < -cullBias &&
+		dot(float4(p1, 1), plane) < -cullBias &&
+		dot(float4(p2, 1), plane) < -cullBias;
 }
 
 bool TriangleIsCulled(float3 p0, float3 p1, float3 p2) {
@@ -58,25 +58,30 @@ bool TriangleIsCulled(float3 p0, float3 p1, float3 p2) {
 
 ConstantOutputType PBRPatchConstantFunction(InputPatch<HullInputType, 3> inputPatch, uint patchId : SV_PrimitiveID) {
     ConstantOutputType output;
-    
-    //output.edges[0] = output.edges[1] = output.edges[2] = output.inside = 1;
-    //return output;
-    
     float3 vertexPosition0 = mul(float4(inputPatch[0].position.xyz, 1.0), modelMatrix).xyz;
     float3 vertexPosition1 = mul(float4(inputPatch[1].position.xyz, 1.0), modelMatrix).xyz;
     float3 vertexPosition2 = mul(float4(inputPatch[2].position.xyz, 1.0), modelMatrix).xyz;
     
+    // Frustum culling - might not be worth doing when not tessellating (we also have object culling)
     if(TriangleIsCulled(vertexPosition0, vertexPosition1, vertexPosition2)) {
         output.edges[0] = output.edges[1] = output.edges[2] = output.inside = 0;
         return output;
     }
-
+    
+// DISABLED TESSELLATION
+#if TESS_MODE == 0
+    output.edges[0] = output.edges[1] = output.edges[2] = output.inside = 1;
+// UNIFORM TESSELLATION
+#elif TESS_MODE == 1
+    output.edges[0] = output.edges[1] = output.edges[2] = output.inside = tessellationAmount;
+// EDGE TESSELLATION
+#elif TESS_MODE == 2
     output.edges[0] = CalcTessellationFactor(vertexPosition1, vertexPosition2);
     output.edges[1] = CalcTessellationFactor(vertexPosition2, vertexPosition0);
     output.edges[2] = CalcTessellationFactor(vertexPosition0, vertexPosition1);
 
     output.inside = (output.edges[0] + output.edges[1] + output.edges[2]) / 3.0;
-
+#endif
     return output;
 }
 
