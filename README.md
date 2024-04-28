@@ -1,8 +1,8 @@
 DRAFT (INCOMPLETE):
 
-CONTROLS:
-TAB - menu
-ESC - quit app
+CONTROLS:  
+TAB - menu  
+ESC - quit app  
 
 Technical Limitations:
 - Some outdated code practices to keep consistent with rastertek base 
