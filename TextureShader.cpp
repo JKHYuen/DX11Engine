@@ -10,16 +10,16 @@ bool TextureShader::Initialize(ID3D11Device* device, HWND hwnd, bool isPostProce
 
 	// Set the filename of the vertex shader.
 	error = isPostProcessShader ?
-		wcscpy_s(vsFilename, 128, L"../DX11Engine/shaders/PostProcess.vs") :
-		wcscpy_s(vsFilename, 128, L"../DX11Engine/shaders/Texture.vs");
+		wcscpy_s(vsFilename, 128, L"./shaders/PostProcess.vs") :
+		wcscpy_s(vsFilename, 128, L"./shaders/Texture.vs");
 	if(error != 0) {
 		return false;
 	}
 
 	// Set the filename of the pixel shader.
 	error = isPostProcessShader ? 
-		wcscpy_s(psFilename, 128, L"../DX11Engine/shaders/PostProcess.ps") :
-		wcscpy_s(psFilename, 128, L"../DX11Engine/shaders/Texture.ps");
+		wcscpy_s(psFilename, 128, L"./shaders/PostProcess.ps") :
+		wcscpy_s(psFilename, 128, L"./shaders/Texture.ps");
 	if(error != 0) {
 		return false;
 	}

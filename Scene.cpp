@@ -335,7 +335,7 @@ bool Scene::RenderDirectionalLightSceneDepth(float time) {
 bool Scene::LoadPBRTextureResource(const std::string& textureFileName) {
 	if(m_LoadedTextureResources.find(textureFileName) == m_LoadedTextureResources.end()) {
 		// Load models and materials to be used in scene
-		std::string filePathPrefix {"../DX11Engine/data/" + textureFileName + "/" + textureFileName};
+		std::string filePathPrefix {"./data/" + textureFileName + "/" + textureFileName};
 		const std::vector<std::string> textureFileNames {
 			filePathPrefix + "_albedo.tga",
 			filePathPrefix + "_normal.tga",
@@ -369,7 +369,7 @@ bool Scene::LoadModelResource(const std::string& modelFileName) {
 	if(m_LoadedModelResources.find(modelFileName) == m_LoadedModelResources.end()) {
 		Model* pModel = new Model();
 		if(!pModel->Initialize(
-			m_D3DInstance->GetDevice(), "../DX11Engine/data/" + modelFileName + ".txt")
+			m_D3DInstance->GetDevice(), "./data/" + modelFileName + ".txt")
 			) {
 			return false;
 		}

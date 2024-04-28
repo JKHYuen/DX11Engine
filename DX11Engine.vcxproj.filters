@@ -57,9 +57,6 @@
     <ClCompile Include="Texture.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="Sprite.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
     <ClCompile Include="TextureShader.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
@@ -144,9 +141,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Texture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Sprite.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TextureShader.h">
@@ -310,8 +304,12 @@
     <None Include="Shaders\PBR.hs">
       <Filter>Source Files\Shaders</Filter>
     </None>
-    <None Include="Shaders\Depth.hs" />
-    <None Include="Shaders\Depth.ds" />
+    <None Include="Shaders\Depth.ds">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
+    <None Include="Shaders\Depth.hs">
+      <Filter>Source Files\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="Include\imgui\imgui.natvis" />

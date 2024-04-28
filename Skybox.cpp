@@ -89,7 +89,7 @@ bool Skybox::Initialize(D3DInstance* d3dInstance, HWND hwnd, const std::string& 
 	/// Load HDR cubemap texture from disk and render to 6 cubemap textures to build skybox
 	// NOTE: HDRTexture defaults to no mipmaps
 	m_HDRCubeMapTex = new Texture();
-	result = m_HDRCubeMapTex->Initialize(device, deviceContext, "../DX11Engine/data/cubemaps/" + fileName + ".hdr", DXGI_FORMAT_R32G32B32A32_FLOAT, 1);
+	result = m_HDRCubeMapTex->Initialize(device, deviceContext, "./data/cubemaps/" + fileName + ".hdr", DXGI_FORMAT_R32G32B32A32_FLOAT, 1);
 	if(!result) {
 		return false;
 	}
@@ -292,8 +292,8 @@ bool Skybox::InitializeShader(ID3D11Device* device, HWND hwnd, std::wstring shad
 	ID3D10Blob* vertexShaderBuffer {};
 	ID3D10Blob* pixelShaderBuffer {};
 
-	const std::wstring vsFileName = L"../DX11Engine/shaders/" + shaderName + L".vs";
-	const std::wstring psFileName = L"../DX11Engine/shaders/" + shaderName + L".ps";
+	const std::wstring vsFileName = L"./shaders/" + shaderName + L".vs";
+	const std::wstring psFileName = L"./shaders/" + shaderName + L".ps";
 
 	// Compile the vertex shader code
 	result = D3DCompileFromFile(vsFileName.c_str(), NULL, NULL, "Vert", "vs_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,

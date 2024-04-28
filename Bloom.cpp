@@ -23,7 +23,7 @@ bool Bloom::Initialize(ID3D11Device* device, ID3D11DeviceContext* deviceContext,
 	HRESULT hresult {};
 	ID3D10Blob* errorMessage {};
 	ID3D10Blob* pixelShaderBuffer {};
-	const WCHAR* psFileName = L"../DX11Engine/shaders/Bloom.ps";
+	const WCHAR* psFileName = L"./shaders/Bloom.ps";
 	/// Compile the pixel shader
 	hresult = D3DCompileFromFile(psFileName, NULL, NULL, "BloomPixelShader", "ps_5_0", D3D10_SHADER_ENABLE_STRICTNESS, 0,
 		&pixelShaderBuffer, &errorMessage);

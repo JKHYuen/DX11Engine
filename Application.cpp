@@ -14,7 +14,6 @@
 
 #include "Font.h"
 #include "Text.h"
-#include "Sprite.h"
 #include "FpsCounter.h"
 
 #include "imgui_impl_dx11.h"
@@ -79,17 +78,6 @@ bool Application::Initialize(bool b_IsFullScreen, bool b_IsVsyncEnabled, int scr
 		MessageBox(hwnd, L"Could not initialize the depth shader object.", L"Error", MB_OK);
 		return false;
 	}
-
-	// Set the sprite info file we will be using.
-	//strcpy_s(spriteFilename, "../DX11Engine/data/sprite_data_01.txt");
-
-	// Create and initialize the sprite object.
-	//m_sprite = new SpriteClass();
-
-	//result = m_sprite->Initialize(m_direct3D->GetDevice(), m_direct3D->GetDeviceContext(), screenWidth, screenHeight, spriteFilename, 0, 0);
-	//if(!result) {
-	//	return false;
-	//}
 
 	/// 3D Objects
 	XMMATRIX screenCameraViewMatrix{};
@@ -250,9 +238,6 @@ bool Application::Frame(Input* input) {
 	//std::cout << m_DeltaTime * 1000.0f << " ms" << std::endl;
 
 	m_Time = (currentFrameTimePoint - m_StartTime).count();
-
-	// Update the sprite object (animation) using the frame time.
-	//m_sprite->Update(m_DeltaTime);
 
     // Update the frames per second each frame.
     if(!UpdateFpsDisplay()) {
@@ -521,13 +506,6 @@ void Application::Shutdown() {
 		delete m_FontShader;
 		m_FontShader = nullptr;
 	}
-
-	// Release the sprite object.
-	//if(m_sprite) {
-	//	m_sprite->Shutdown();
-	//	delete m_sprite;
-	//	m_sprite = nullptr;
-	//}
 
 	if(m_PassThroughShader) {
 		m_PassThroughShader->Shutdown();

@@ -27,7 +27,6 @@ class Scene;
 
 class Font;
 class Text;
-class Sprite;
 class FpsCounter;
 
 class Application {
@@ -85,7 +84,6 @@ private:
 
 	FontShader* m_FontShader {};
 	Font* m_Font {};
-	//SpriteClass* m_sprite {};
 
 	/// Debug
 	RenderTexture* m_DebugCameraRenderTexture {};

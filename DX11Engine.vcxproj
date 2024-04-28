@@ -36,7 +36,6 @@
     <ClCompile Include="GameObject.cpp" />
     <ClCompile Include="RenderTexture.cpp" />
     <ClCompile Include="Scene.cpp" />
-    <ClCompile Include="Sprite.cpp" />
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="D3DInstance.cpp" />
     <ClCompile Include="FpsCounter.cpp" />
@@ -70,7 +69,6 @@
     <ClInclude Include="RenderTexture.h" />
     <ClInclude Include="Scene.h" />
     <ClInclude Include="ShaderUtil.h" />
-    <ClInclude Include="Sprite.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="D3DInstance.h" />
     <ClInclude Include="FpsCounter.h" />
