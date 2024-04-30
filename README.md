@@ -7,12 +7,12 @@ Custom DX11 Graphics Engine
 
 ## Feature Highlights
 - HDR physically based rendering (PBR) with image-based lighting (IBL)
-	- Using Epic Game's version of the Cook-Torrance BRDF developed for Unreal 4 (https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf p. 1 - 8)
+	- Using Epic Game's version of the Cook-Torrance BRDF developed for Unreal 4 ([link](https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf) p. 1 - 8)
 	- Linear space calculations with gamma correction
-	- Reinhard-Jodie tonemapping (https://64.github.io/tonemapping/#reinhard-jodie)
+	- Reinhard-Jodie tonemapping ([link](https://64.github.io/tonemapping/#reinhard-jodie))
 	
-- IBL environment maps (Irradiance map and Pre-Filtered map (specular)) generation from equirectangular .hdr files in runtime
-	- Includes skybox generation and rendering
+- IBL environment maps (Irradiance and Pre-Filtered (specular) cubemap) generation from equirectangular .hdr files in runtime
+	- Includes skybox cubemap generation and rendering
 	- Skyboxes/environment maps can be loaded/switched during run time
 
 - Bloom
