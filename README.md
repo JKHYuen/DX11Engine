@@ -1,11 +1,11 @@
 # README DRAFT (INCOMPLETE):
-Custom DX11 Engine
+Custom DX11 Graphics Engine
 
 ***Windows 64-bit required** 
 
-![ss1](/data/archive/ss2.png)
+![ss2](https://github.com/JKHYuen/DX11Engine/assets/53157428/0375ab4e-9be6-45a1-a498-8aaa90a31758)
 
-## Feature highlights
+## Feature Highlights
 - HDR physically based rendering (PBR) with image-based lighting (IBL)
 	- Using Epic Game's version of the Cook-Torrance BRDF developed for Unreal 4 (https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf p. 1 - 8)
 	- Linear space calculations with gamma correction
@@ -66,8 +66,7 @@ Controls below are listed in app UI tooltips:
 - bloom blur iterations hardcoded to log2(screen or window height)
 - bloom flickering (see notes in TAB menu)
 
-- no exclusive fullscreen![ss2](https://github.com/JKHYuen/DX11Engine/assets/53157428/0375ab4e-9be6-45a1-a498-8aaa90a31758)
- mode
+- no exclusive fullscreen mode
 	- alt-enter does not work
 	- app can be toggled to windowed mode (hardcoded to 1280x720 resolution) or fullscreen windowed borderless
 
