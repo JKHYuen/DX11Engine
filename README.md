@@ -1,4 +1,4 @@
-# C++ DX11 Game Engine:
+# C++ DX11 Game Engine
 
 DX11 engine made from scratch as practice to familiarize with the Windows/Direct3D api and as preparation for a custom DX12 game engine (currently in development). This project is considered finished, features will be ported and expanded on in the DX12 engine. Implemented features mainly focus on graphics rendering techniques, but the intention is to eventually create a specialized game engine for my future projects. Source code is included for reference, project was built on Visual Studio 2022. Go to *releases* to try the playable build!
 
