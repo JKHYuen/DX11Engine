@@ -1,6 +1,6 @@
 # C++ DX11 Game Engine
 
-DX11 engine made from scratch as practice to familiarize with the Windows/Direct3D api and as preparation for a custom DX12 game engine (currently in development). This project is considered finished, features will be ported and expanded on in the DX12 engine. Implemented features mainly focus on graphics rendering techniques, but the intention is to eventually create a specialized game engine for my future projects. Source code is included for reference, project was built on Visual Studio 2022. Go to *releases* to try the playable build!
+DX11 engine made from scratch as practice to familiarize with the Windows/Direct3D api and as preparation for a custom DX12 game engine (currently in development). This project is considered finished, features will be ported and expanded on in the DX12 engine. Implemented features mainly focus on graphics rendering techniques (forward rendering), but the intention is to eventually create a specialized game engine for my future projects. Source code is included for reference, project was built on Visual Studio 2022. Go to *releases* to try the playable build!
 
 ***Windows 64-bit required** 
 
@@ -16,7 +16,6 @@ DX11 engine made from scratch as practice to familiarize with the Windows/Direct
 	- Skyboxes/environment maps can be loaded/switched during run time
 - Bloom
 	- Hardware progressive down and up sampling with box sampling
- 	- Method adapted from Catlike Coding ([link](https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/))
 - Parallax occlusion mapping with optional self shadowing
 - Directional light with shadow mapping
 	- Simple 5x5 multisample PCF
@@ -44,7 +43,7 @@ Controls below are listed in app UI tooltips:
     F1:  toggle on-screen FPS counter
     F2:  toggle wireframe view
      
-## Technical Limitations:
+## Technical Limitations
 *Most of these issues and systems will be addressed/improved on in a new DX12 engine project.*
 - This project started from the Rastertek tutorial series ([link](https://rastertek.com/tutdx11win10.html) Tutorial 1 - 16), kept some outdated code practices to keep style consistent
 	- Raw pointers used instead of COM smart pointers
@@ -84,3 +83,14 @@ Controls below are listed in app UI tooltips:
 	- Visual artifacts if used with a non-flat surface (therefore it should not be used with displacement mapping) 
 - Cursor not constrained to window
 - (QOL) Cursor does not loop when adjusting values in IMGUI
+
+## Asset Sources
+- https://polyhaven.com/hdris
+- https://freepbr.com/
+
+## Additional Resources Used
+ - https://learnopengl.com/PBR/IBL/Diffuse-irradiance
+ - https://learnopengl.com/Advanced-Lighting/Parallax-Mapping
+ - https://chanhaeng.blogspot.com/2019/01/normalparllax-mapping-with-self.html
+ - https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/
+ - https://catlikecoding.com/unity/tutorials/advanced-rendering/tessellation/
