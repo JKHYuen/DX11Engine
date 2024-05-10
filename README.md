@@ -28,9 +28,11 @@ DX11 engine made from scratch as practice to familiarize with the Windows/Direct
 	- Togglable bloom filter, secondary cull camera, and shadow map views for debugging
 
 ## Controls
+TAB: Open UI  
+  
 *Hover over "(?)" and "(!)" icons in the TAB menu for useful/important tooltips!*
 ![ss3](https://github.com/JKHYuen/DX11Engine/assets/53157428/411f27d7-08d3-499a-8b23-639f01cdc2f6)
-TAB: Open UI  
+
 Controls below are listed in app UI tooltips:     
 
     WASD/Mouse: main camera movement 
