@@ -16,7 +16,7 @@ DX11 engine made from scratch as practice to familiarize with the Windows/Direct
 	- Skyboxes/environment maps can be loaded/switched during run time
 - Bloom
 	- Hardware progressive down and up sampling with box sampling
- 	- Method adapted from Catlike Coding [link](https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/)
+ 	- Method adapted from Catlike Coding ([link](https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/))
 - Parallax occlusion mapping with optional self shadowing
 - Directional light with shadow mapping
 	- Simple 5x5 multisample PCF
