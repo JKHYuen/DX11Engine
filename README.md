@@ -1,5 +1,6 @@
-# README DRAFT (INCOMPLETE):
-Custom DX11 Graphics Engine
+# C++ DX11 Game Engine:
+
+DX11 engine made from scratch as practice to familiarize with the Windows/Direct3D api and as preparation for a custom DX12 game engine (currently in development). This project is considered finished, features will be ported and expanded on in the DX12 engine. Implemented features mainly focus on graphics rendering techniques, but the intention is to eventually create a specialized game engine for my future projects. Source code is included for reference, project was built on Visual Studio 2022. Go to *releases* to try the playable build!
 
 ***Windows 64-bit required** 
 
@@ -15,10 +16,11 @@ Custom DX11 Graphics Engine
 	- Skyboxes/environment maps can be loaded/switched during run time
 - Bloom
 	- Hardware progressive down and up sampling with box sampling
+ 	- Method adapted from Catlike Coding [link](https://catlikecoding.com/unity/tutorials/advanced-rendering/bloom/)
 - Parallax occlusion mapping with optional self shadowing
 - Directional light with shadow mapping
 	- Simple 5x5 multisample PCF
-- Object and triangle level frustrum culling
+- Object and triangle frustrum culling
         - compatible with vertex dispalcement
 - Tessellation with DX11 hull and domain shaders with two modes:
 	- Basic uniform tessellation
@@ -27,42 +29,50 @@ Custom DX11 Graphics Engine
 	- Togglable bloom filter, secondary cull camera, and shadow map views for debugging
 
 ## Controls
+*Hover over "(?)" and "(!)" icons in the TAB menu for useful/important tooltips!*
+![ss3](https://github.com/JKHYuen/DX11Engine/assets/53157428/411f27d7-08d3-499a-8b23-639f01cdc2f6)
 TAB: Open UI  
 Controls below are listed in app UI tooltips:     
 
     WASD/Mouse: main camera movement 
     Left Shift: hold to move main camera faster
     ESC: quit app
-    F: toggle fullscreen
-    Z: toggle directional shadow map view
-    X: toggle bloom prefilter view
-    C: toggle second camera view for cull debugging
-    F1: toggle on-screen FPS counter
-    F2: toggle wireframe view
+    F:   toggle fullscreen
+    Z:   toggle directional shadow map view
+    X:   toggle bloom prefilter view
+    C:   toggle second camera view for cull debugging
+    F1:  toggle on-screen FPS counter
+    F2:  toggle wireframe view
      
 ## Technical Limitations:
-- Some outdated code practices to keep consistent with rastertek base 
+*Most of these issues and systems will be addressed/improved on in a new DX12 engine project.*
+- This project started from the Rastertek tutorial series ([link](https://rastertek.com/tutdx11win10.html) Tutorial 1 - 16), kept some outdated code practices to keep style consistent
 	- Raw pointers used instead of COM smart pointers
 	- Constructors, destructors and copy constructors are disabled
 	- Some outdated DXGI (1.1) functions are used (e.g. using IDXGISwapChain::Present rather than IDXGISwapChain1::Present1)
-- no dynamic shader linkage (lots of repeated code)
-- Object Frustum culling does not take rotation into account
-- no AA
+- No dynamic shader linkage (some repeated code in shader classes)
+	- Shader macros used for tessellation mode switching only, can be used in other places for performance gain (e.g. bloom implementation)
+ 	- No shader cache, all shaders are compiled every time app is booted
+- Object and triangle Frustum culling does not take rotation into account
+- No AA
 - Vertical sync on by default
-- no shadow culling
-- bloom blur iterations hardcoded to log2(screen or window height)
-- bloom flickering (see notes in TAB menu)
-- no exclusive fullscreen mode
-	- alt-enter does not work
-	- app can be toggled to windowed mode (hardcoded to 1280x720 resolution) or fullscreen windowed borderless
+- No shadow culling
+- Bloom blur iterations hardcoded to log2(screen or window height)
+- Bloom flickering due to HDR rendering (see notes in TAB menu for quick fixes)
+	- Unreal Engine 4 uses TAA to alleviate issue (not implemented in this project)
+	- Additional notes in *Bloom.h*
+- No exclusive fullscreen mode
+	- Alt-enter will not work
+	- App can be toggled to windowed mode (hardcoded to 1280x720 resolution) or fullscreen windowed borderless
 - Only directional light source, no point lights, spotlights, etc.
-- Directional Light shadow map:
-	- shadow map resolution is hardcoded to 2048x2048
-	- simple 5x5 multisample PCF, no hardware filtering - flickering with finer detail shadows
-	- no cascades
-	- shadow distance is hardcoded
-	- shadow map view does not follow main world camera
-- Environment cubemaps used for image based lighting (IBL) are generated in runtime (not cached on disk)
+	- Point lights were implemented at some point, but are commented out to simplify project
+- Directional light shadow map:
+	- Shadow map resolution is hardcoded to 2048x2048
+	- Simple 5x5 multisample PCF, no hardware filtering - flickering with finer detail shadows
+	- No shadow cascades
+	- Shadow distance is hardcoded
+	- Shadow map view is stationary (does not follow main world camera)
+- Loaded environment cubemaps used for IBL are cached during runtime, but not cached on disk
 - IBL Cubemap generation parameters are hardcoded to the following:
 	- Cube face resolution: 2048x2048
 	- Irradiance map resolution: 32x32
@@ -70,4 +80,5 @@ Controls below are listed in app UI tooltips:
 	- Cube map mip levels (for PBR smoothness interpolation): 9
 	- Precomputed BRDF map: 512x512
 - Cursor not constrained to window
-- Cursor does not loop when adjusting values in IMGUI
+- (QOL) Cursor does not loop when adjusting values in IMGUI
+- No asset compression
