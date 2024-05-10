@@ -79,6 +79,8 @@ Controls below are listed in app UI tooltips:
 	- Prefiltered environment map: 512x512
 	- Cube map mip levels (for PBR smoothness interpolation): 9
 	- Precomputed BRDF map: 512x512
+- No asset compression
+- Parallax occlusion with self shadowing not very optimized (quality is tweakable)
+	- Visual artifacts if used with a non-flat surface (therefore it should not be used with displacement mapping) 
 - Cursor not constrained to window
 - (QOL) Cursor does not loop when adjusting values in IMGUI
-- No asset compression
