@@ -464,10 +464,10 @@ void Scene::UpdateMainImGuiWindow(float currentFPS, bool& b_IsWireFrameRender, b
 		ImGui::Checkbox("Show FPS on screen", &b_ShowScreenFPS); ImGuiHelpMarker("Keybind: F1");
 		ImGui::SameLine(200);
 		ImGui::Checkbox("Wireframe Render", &b_IsWireFrameRender); ImGuiHelpMarker("Keybind: F2");
-		ImGui::Checkbox("Shadow Map View", &b_ShowDebugQuad1); ImGuiHelpMarker("Directional light shadow map.\nKeybing: Z");
+		ImGui::Checkbox("Shadow Map View", &b_ShowDebugQuad1); ImGuiHelpMarker("Directional light shadow map.\nKeybind: Z");
 		ImGui::SameLine(200);
-		ImGui::Checkbox("Bloom Filter View", &b_ShowDebugQuad2); ImGuiHelpMarker("Bloom intensity not included.\nKeybing: X");
-		ImGui::Checkbox("Culling Debug Camera", &b_ShowDebugQuad3); ImGuiHelpMarker("To debug object/triangle frsutum culling on the main camera. Quite slow (full res) and does not include post processing.\nKeybing: C");
+		ImGui::Checkbox("Bloom Filter View", &b_ShowDebugQuad2); ImGuiHelpMarker("Bloom intensity not included.\nKeybind: X");
+		ImGui::Checkbox("Culling Debug Camera", &b_ShowDebugQuad3); ImGuiHelpMarker("To debug object/triangle frustum culling on the main camera. Quite slow (full res) and does not include post processing.\nKeybing: C");
 		ImGui::Spacing();
 	}
 	
