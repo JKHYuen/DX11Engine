@@ -19,7 +19,7 @@ DX11 engine made from scratch as practice to familiarize with the Windows/Direct
 - Parallax occlusion mapping with optional self shadowing
 - Directional light with shadow mapping
 	- Simple 5x5 multisample PCF
-- Object and triangle frustrum culling
+- Object and triangle frustum culling
         - compatible with vertex dispalcement
 - Tessellation with DX11 hull and domain shaders with two modes:
 	- Basic uniform tessellation
