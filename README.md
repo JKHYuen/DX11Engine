@@ -24,7 +24,8 @@ DX11 engine made from scratch as practice to familiarize with the Windows/Direct
 - Tessellation with DX11 hull and domain shaders with two modes:
 	- Basic uniform tessellation
 	- Distance based edge tessellation
-- UI for real time scene/material editing and debugging (with options to tweak all features above)
+- UI for real time scene/material editing and debugging (with options to tweak all features above)	
+	- made with [Dear ImGui](https://github.com/ocornut/imgui)
 	- Togglable bloom filter, secondary cull camera, and shadow map views for debugging
 
 ## Controls
