@@ -55,7 +55,7 @@ Controls below are listed in app UI tooltips:
 - No dynamic shader linkage (some repeated code in shader classes)
 	- Shader macros used for tessellation mode switching only, can be used in other places for performance gain (e.g. bloom implementation)
  	- No shader cache, all shaders are compiled every time app is booted
-- Object and triangle Frustum culling does not take rotation into account
+- Object and triangle frustum culling does not take rotation into account
 - No AA
 - Vertical sync on by default
 - No shadow culling
