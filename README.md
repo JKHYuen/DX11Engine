@@ -59,7 +59,7 @@ Controls below are listed in app UI tooltips:
 - No AA
 - Vertical sync on by default
 - No shadow culling
-- Bloom blur iterations hardcoded to log2(screen or window height)
+- Bloom blur iteration count hardcoded to log2(screen or window height)
 - Bloom flickering due to HDR rendering (see notes in TAB menu for quick fixes)
 	- Unreal Engine 4 uses TAA to alleviate issue (not implemented in this project)
 	- Additional notes in *Bloom.h*
